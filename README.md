@@ -2,7 +2,6 @@
 
 Schema-first toolkit for defining data models once in TypeScript, generating **Prisma**, **Drizzle**, and **safe SQL** artifacts, and driving a small typed **in-memory** client for tests and demos. Built for libraries and internal platforms that want one contract across many persistence stacks.
 
-
 ## What you get
 
 - **Schema DSL** — Models, fields (ids, strings, booleans, datetimes, etc.), defaults, uniqueness, column mapping, and relations (`hasMany`, `hasOne`, `belongsTo`) in a single TypeScript surface.
@@ -12,12 +11,12 @@ Schema-first toolkit for defining data models once in TypeScript, generating **P
 
 ## Monorepo layout
 
-| Path | Role |
-|------|------|
-| `packages/orm` | Core: schema builders, relations, generators (Prisma/Drizzle/SQL), manifest helpers, and the in-memory ORM driver. |
-| `packages/cli` | `farm-orm` binary: config loading (via Jiti), merge schemas, invoke generators per target. |
-| `apps/demo` | Example **auth-shaped** schema (users, profiles, sessions, accounts) plus `farm-orm.config.ts` and `generated/` samples. |
-| `apps/docs` | Next.js site: landing page and MDX docs (getting started, schema, CLI, use cases). |
+| Path           | Role                                                                                                                     |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `packages/orm` | Core: schema builders, relations, generators (Prisma/Drizzle/SQL), manifest helpers, and the in-memory ORM driver.       |
+| `packages/cli` | `farm-orm` binary: config loading (via Jiti), merge schemas, invoke generators per target.                               |
+| `apps/demo`    | Example **auth-shaped** schema (users, profiles, sessions, accounts) plus `farm-orm.config.ts` and `generated/` samples. |
+| `apps/docs`    | Next.js site: landing page and MDX docs (getting started, schema, CLI, use cases).                                       |
 
 Root **e2e** tests under `tests/` exercise a full workspace flow (build, generate, validate).
 

@@ -131,9 +131,7 @@ export default function HomePage() {
 
         <div className="relative z-2 flex min-h-0 w-full flex-1 flex-col">
           <div
-            className={cn(
-              "flex min-h-0 flex-1 flex-col justify-center py-[clamp(24px,5vh,56px)]",
-            )}
+            className={cn("flex min-h-0 flex-1 flex-col justify-center py-[clamp(24px,5vh,56px)]")}
           >
             <div
               className={cn(
@@ -154,8 +152,8 @@ export default function HomePage() {
                 />
               </h1>
               <p className="m-0 max-w-[min(32rem,100%)] font-mono text-sm font-light uppercase tracking-tight text-white/70">
-                Define the data model once, then generate the storage layer each app stack wants along with
-                built-in cli.
+                Define the data model once, then generate the storage layer each app stack wants
+                along with built-in cli.
               </p>
             </div>
 
@@ -235,10 +233,10 @@ export default function HomePage() {
               aria-hidden
             />
           </div>
-            <hr
-              className="relative z-2 mt-0 mb-0 ml-[calc(50%-50vw)] mr-[calc(50%-50vw)] block h-px w-screen max-w-[100vw] shrink-0 border-0 bg-white/12"
-              aria-hidden
-            />
+          <hr
+            className="relative z-2 mt-0 mb-0 ml-[calc(50%-50vw)] mr-[calc(50%-50vw)] block h-px w-screen max-w-[100vw] shrink-0 border-0 bg-white/12"
+            aria-hidden
+          />
           <nav
             className={cn(
               "flex shrink-0 flex-wrap items-center justify-between gap-x-8 gap-y-4 px-[clamp(20px,6vw,72px)] pb-[max(28px,4vh)] pt-5",
@@ -246,7 +244,6 @@ export default function HomePage() {
             )}
             aria-label="Site links"
           >
-
             <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
               <Link href="/docs/use-cases" className={footerLinkClass}>
                 <IconUseCases className={iconClass} />
