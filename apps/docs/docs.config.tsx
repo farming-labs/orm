@@ -1,5 +1,13 @@
+import type { ReactNode } from "react";
 import { defineDocs } from "@farming-labs/docs";
 import { pixelBorder } from "@farming-labs/theme/pixel-border";
+import { BookOpen, Database, Rocket, Terminal, Users } from "lucide-react";
+
+const icon = (node: ReactNode) => (
+  <span className="flex size-4 shrink-0 items-center justify-center text-white/70 [&_svg]:size-4">
+    {node}
+  </span>
+);
 
 export default defineDocs({
   entry: "docs",
@@ -49,6 +57,13 @@ export default defineDocs({
   breadcrumb: { enabled: true },
   ordering: "numeric",
   themeToggle: { enabled: false },
+  icons: {
+    book: icon(<BookOpen strokeWidth={1.5} />),
+    rocket: icon(<Rocket strokeWidth={1.5} />),
+    database: icon(<Database strokeWidth={1.5} />),
+    terminal: icon(<Terminal strokeWidth={1.5} />),
+    users: icon(<Users strokeWidth={1.5} />),
+  },
   sidebar: {
     banner: (
       <div className="docs-sidebar-banner">
