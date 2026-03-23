@@ -99,11 +99,11 @@ export default function HomePage() {
         )}
       >
         <div
-          className="pointer-events-none absolute inset-y-0 left-5 z-[3] w-px bg-white/12"
+          className="pointer-events-none absolute inset-y-0 left-8 z-[3] w-px bg-white/12"
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute inset-y-0 right-5 z-[3] w-px bg-white/12"
+          className="pointer-events-none absolute inset-y-0 right-8 z-[3] w-px bg-white/12"
           aria-hidden
         />
 
@@ -120,6 +120,14 @@ export default function HomePage() {
           />
         </div>
         <div className="pointer-events-none absolute inset-0 z-0 bg-[rgba(4,4,6,0.3)]" />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-[clamp(4.5rem,16vw,12rem)] bg-gradient-to-r from-[#050507] via-[#050507]/85 to-transparent"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-[clamp(4.5rem,16vw,12rem)] bg-gradient-to-l from-[#050507] via-[#050507]/85 to-transparent"
+        />
 
         <div className="relative z-2 flex min-h-0 w-full flex-1 flex-col">
           <div
@@ -145,7 +153,7 @@ export default function HomePage() {
                   className="block text-[clamp(2.25rem,6vw,4.75rem)]! tracking-[-0.08em]"
                 />
               </h1>
-              <p className="m-0 max-w-[min(32rem,100%)] font-mono text-lg font-light uppercase tracking-tight text-white/70">
+              <p className="m-0 max-w-[min(32rem,100%)] font-mono text-sm font-light uppercase tracking-tight text-white/70">
                 Define the data model once, then generate the storage layer each app stack wants along with
                 built-in cli.
               </p>
@@ -166,7 +174,7 @@ export default function HomePage() {
                 aria-hidden
                 className="home-hero-gutter-pattern pointer-events-none absolute inset-y-0 z-0"
                 style={{
-                  left: "calc(1.25rem + 1px)",
+                  left: "calc(1.25rem + 13px)",
                   width: "max(0px, calc(clamp(20px, 6vw, 72px) - 1.25rem - 1px))",
                 }}
               />
@@ -174,7 +182,7 @@ export default function HomePage() {
                 aria-hidden
                 className="home-hero-gutter-pattern pointer-events-none absolute inset-y-0 z-0"
                 style={{
-                  right: "calc(1.25rem + 1px)",
+                  right: "calc(1.25rem + 13px)",
                   width: "max(0px, calc(clamp(20px, 6vw, 72px) - 1.25rem - 1px))",
                 }}
               />
@@ -227,7 +235,10 @@ export default function HomePage() {
               aria-hidden
             />
           </div>
-
+            <hr
+              className="relative z-2 mt-0 mb-0 ml-[calc(50%-50vw)] mr-[calc(50%-50vw)] block h-px w-screen max-w-[100vw] shrink-0 border-0 bg-white/12"
+              aria-hidden
+            />
           <nav
             className={cn(
               "flex shrink-0 flex-wrap items-center justify-between gap-x-8 gap-y-4 px-[clamp(20px,6vw,72px)] pb-[max(28px,4vh)] pt-5",
@@ -235,6 +246,7 @@ export default function HomePage() {
             )}
             aria-label="Site links"
           >
+
             <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
               <Link href="/docs/use-cases" className={footerLinkClass}>
                 <IconUseCases className={iconClass} />

@@ -74,10 +74,10 @@ a {
 .home-hero-gutter-pattern {
   background-image: repeating-linear-gradient(
     -45deg,
-    rgba(255, 255, 255, 0.07) 0,
-    rgba(255, 255, 255, 0.07) 1px,
-    rgba(255, 255, 255, 0.2) 1px,
-    rgba(255, 255, 255, 0.2) 2px,
+    rgba(255, 255, 255, 0.005) 0,
+    rgba(255, 255, 255, 0.005) 1px,
+    rgba(255, 255, 255, 0.1) 1px,
+    rgba(255, 255, 255, 0.1) 2px,
     transparent 2px,
     transparent 7px
   );
