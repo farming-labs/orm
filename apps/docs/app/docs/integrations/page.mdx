@@ -1,0 +1,73 @@
+---
+title: "Integrations"
+description: "How Farming Labs ORM fits into Prisma, Drizzle, SQL-first, and supported database workflows."
+order: 6
+icon: package
+---
+
+# Integrations
+
+This section explains how Farming Labs ORM fits into real application stacks.
+
+The most important idea is this:
+
+- `@farming-labs/orm` is the schema contract
+- `@farming-labs/orm-cli` generates artifacts for app-side tools
+- the current live runtime driver is memory-only
+
+So when people ask “does this support Prisma or Drizzle?” the honest answer is:
+
+- **yes for generation today**
+- **not yet for live runtime execution in this repo**
+
+## Current support matrix
+
+| Layer | PostgreSQL | MySQL | SQLite | Notes |
+| --- | --- | --- | --- | --- |
+| Prisma generation | Yes | Yes | Yes | Uses Prisma providers `postgresql`, `mysql`, `sqlite` |
+| Drizzle generation | Yes | Yes | Yes | Uses Drizzle dialects `pg`, `mysql`, `sqlite` |
+| Safe SQL generation | Yes | Yes | Yes | Uses SQL dialects `postgres`, `mysql`, `sqlite` |
+| Memory runtime | N/A | N/A | N/A | In-memory driver for tests, demos, and docs |
+| Prisma runtime driver | Planned | Planned | Planned | Future package |
+| Drizzle runtime driver | Planned | Planned | Planned | Future package |
+| Kysely runtime driver | Planned | Planned | Planned | Future package |
+| Direct SQL runtime driver | Planned | Planned | Planned | Future package |
+
+## How to think about “fit”
+
+### Library author side
+
+The library author writes:
+
+- one schema
+- one docs story
+- one set of runtime helper ideas
+
+### App side
+
+The consuming app chooses:
+
+- Prisma generation
+- Drizzle generation
+- safe SQL generation
+
+That means the application keeps control over its own persistence toolchain.
+
+## Integration guides
+
+- [Prisma](/docs/integrations/prisma)
+- [Drizzle](/docs/integrations/drizzle)
+- [SQL databases](/docs/integrations/sql-databases)
+
+## What “supported” means in practice
+
+When we say Prisma or Drizzle is supported **today**, we mean:
+
+- the schema can be rendered into those target formats
+- the generated files can then be consumed by those ecosystems
+
+It does **not** mean that this repo already ships a live runtime executor backed
+by `PrismaClient` or `drizzle-orm` at runtime.
+
+That distinction matters a lot in the docs, because otherwise “support” becomes
+too vague to be useful.

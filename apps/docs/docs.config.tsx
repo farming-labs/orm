@@ -9,7 +9,10 @@ import {
   CreditCard,
   Database,
   Braces,
+  FileCode2,
+  HardDrive,
   Network,
+  Package,
   Rocket,
   Server,
   ShieldCheck,
@@ -69,7 +72,26 @@ export default defineDocs({
       "Unified schema, generator-first tooling, and pixel-border documentation for Farming Labs ORM.",
   },
   breadcrumb: { enabled: true },
-  ordering: "numeric",
+  ordering: [
+    { slug: "getting-started" },
+    {
+      slug: "schema",
+      children: [{ slug: "fields" }, { slug: "relations" }],
+    },
+    {
+      slug: "runtime",
+      children: [{ slug: "query-api" }, { slug: "memory-driver" }],
+    },
+    { slug: "cli" },
+    {
+      slug: "integrations",
+      children: [{ slug: "prisma" }, { slug: "drizzle" }, { slug: "sql-databases" }],
+    },
+    {
+      slug: "use-cases",
+      children: [{ slug: "auth-libraries" }, { slug: "billing-modules" }, { slug: "internal-platforms" }],
+    },
+  ],
   themeToggle: { enabled: false },
   icons: {
     book: icon(<BookOpen strokeWidth={1.5} />),
@@ -80,6 +102,9 @@ export default defineDocs({
     server: icon(<Server strokeWidth={1.5} />),
     boxes: icon(<Boxes strokeWidth={1.5} />),
     code: icon(<Code2 strokeWidth={1.5} />),
+    package: icon(<Package strokeWidth={1.5} />),
+    filecode: icon(<FileCode2 strokeWidth={1.5} />),
+    harddrive: icon(<HardDrive strokeWidth={1.5} />),
     terminal: icon(<Terminal strokeWidth={1.5} />),
     users: icon(<Users strokeWidth={1.5} />),
     shield: icon(<ShieldCheck strokeWidth={1.5} />),
@@ -101,6 +126,7 @@ export default defineDocs({
         <a href="/">Home</a>
         <a href="/docs/getting-started">Setup</a>
         <a href="/docs/runtime">Runtime</a>
+        <a href="/docs/integrations">Integrations</a>
         <a href="/docs/use-cases">Use cases</a>
       </div>
     ),

@@ -1,0 +1,105 @@
+---
+title: "SQL Databases"
+description: "How the safe SQL generator fits PostgreSQL, MySQL, and SQLite workflows."
+order: 3
+icon: harddrive
+---
+
+# SQL Databases
+
+The safe SQL generator is the most direct path for teams that want generated SQL
+without a required app-side ORM.
+
+## Supported SQL dialects
+
+- `postgres`
+- `mysql`
+- `sqlite`
+
+## Basic config
+
+```ts
+import { defineConfig } from "@farming-labs/orm-cli";
+import { authSchema } from "./src/schema";
+
+export default defineConfig({
+  schemas: [authSchema],
+  targets: {
+    sql: {
+      out: "./generated/sql/0001_init.sql",
+      dialect: "postgres",
+    },
+  },
+});
+```
+
+## Example output
+
+For a simple user model, the SQL generator emits output like:
+
+```sql
+create table if not exists users (
+  id text primary key not null,
+  email_address text not null unique,
+  createdAt timestamp not null
+);
+```
+
+## How this fits into PostgreSQL, MySQL, and SQLite workflows
+
+### PostgreSQL
+
+Use:
+
+```ts
+sql: {
+  out: "./generated/sql/0001_init.sql",
+  dialect: "postgres",
+}
+```
+
+This is a good fit when the team wants schema-first SQL generation but does not
+need Prisma or Drizzle to be the consumer of that schema.
+
+### MySQL
+
+Use:
+
+```ts
+sql: {
+  out: "./generated/sql/0001_init.sql",
+  dialect: "mysql",
+}
+```
+
+This works well when the database is MySQL but the team prefers a more direct
+SQL workflow.
+
+### SQLite
+
+Use:
+
+```ts
+sql: {
+  out: "./generated/sql/0001_init.sql",
+  dialect: "sqlite",
+}
+```
+
+This is especially practical for lightweight apps, prototypes, demos, and local
+development workflows.
+
+## When the SQL path is a good fit
+
+- greenfield apps
+- database-first teams
+- simple deployment pipelines
+- projects that want generated DDL without standardizing on one ORM
+
+## Important limit
+
+The SQL generator currently emits safe SQL output. It is not trying to replace a
+full migration system with every advanced schema transform built in.
+
+That is why the docs call it **safe SQL generation** rather than a complete
+migration framework.

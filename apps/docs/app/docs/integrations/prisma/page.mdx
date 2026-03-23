@@ -1,0 +1,123 @@
+---
+title: "Prisma"
+description: "How the unified schema generates Prisma schema output and fits into Prisma-based apps."
+order: 1
+icon: filecode
+---
+
+# Prisma
+
+Prisma integration in this repo is currently **generation-first**.
+
+## What Prisma support means today
+
+Today, Prisma support means:
+
+- your schema can generate `schema.prisma`
+- the consuming app can use that generated Prisma schema in its Prisma workflow
+
+It does **not** yet mean:
+
+- there is a live `@farming-labs/orm-prisma` runtime driver in this repo
+
+## Basic config
+
+```ts
+import { defineConfig } from "@farming-labs/orm-cli";
+import { authSchema } from "./src/schema";
+
+export default defineConfig({
+  schemas: [authSchema],
+  targets: {
+    prisma: {
+      out: "./generated/prisma/schema.prisma",
+      provider: "postgresql",
+      mode: "replace",
+    },
+  },
+});
+```
+
+## Supported Prisma providers
+
+- `postgresql`
+- `mysql`
+- `sqlite`
+
+## What gets generated
+
+Given this field:
+
+```ts
+email: string().unique().map("email_address")
+```
+
+the Prisma output looks like:
+
+```prisma
+email String @unique @map("email_address")
+```
+
+## Example generated model
+
+From a simple user model, the Prisma generator produces output shaped like:
+
+```prisma
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique @map("email_address")
+  name      String
+  createdAt DateTime @default(now())
+
+  @@map("users")
+}
+```
+
+## How it fits into a Prisma app
+
+Typical flow:
+
+1. define schema in `@farming-labs/orm`
+2. run `farm-orm generate prisma`
+3. point your Prisma workflow at the generated file
+4. run normal Prisma commands such as client generation in the app
+
+In other words, Farming Labs ORM does not replace Prisma. It feeds Prisma.
+
+## Replace mode vs block mode
+
+### Replace mode
+
+Use this when the generated schema should own the whole output file.
+
+```ts
+prisma: {
+  out: "./generated/prisma/schema.prisma",
+  provider: "postgresql",
+  mode: "replace",
+}
+```
+
+### Block mode
+
+Use this when the application wants generated Prisma content inserted inside a
+managed block of an existing file.
+
+```ts
+prisma: {
+  out: "./prisma/schema.prisma",
+  provider: "postgresql",
+  mode: "block",
+}
+```
+
+## When Prisma is a strong fit
+
+- apps already using Prisma client and migrations
+- teams that want generated Prisma models from reusable package schemas
+- monorepos where several packages contribute models into one Prisma schema
+
+## What comes next
+
+A future Prisma runtime driver would let the typed runtime API execute through
+Prisma directly. That is a future layer, not today’s implementation.

@@ -1,0 +1,95 @@
+---
+title: "Drizzle"
+description: "How the unified schema generates Drizzle tables and fits into Drizzle-based apps."
+order: 2
+icon: boxes
+---
+
+# Drizzle
+
+Drizzle integration in this repo is also **generation-first**.
+
+## What Drizzle support means today
+
+Today, Drizzle support means:
+
+- the schema can render generated Drizzle table code
+- the app can consume that generated file in its Drizzle setup
+
+It does **not** yet mean:
+
+- there is already a live `@farming-labs/orm-drizzle` runtime driver in this repo
+
+## Basic config
+
+```ts
+import { defineConfig } from "@farming-labs/orm-cli";
+import { authSchema } from "./src/schema";
+
+export default defineConfig({
+  schemas: [authSchema],
+  targets: {
+    drizzle: {
+      out: "./generated/drizzle/schema.ts",
+      dialect: "pg",
+    },
+  },
+});
+```
+
+## Supported Drizzle dialects
+
+- `pg`
+- `mysql`
+- `sqlite`
+
+## Example generated output
+
+From:
+
+```ts
+user: model({
+  table: "users",
+  fields: {
+    id: id(),
+    email: string().unique().map("email_address"),
+    createdAt: datetime().defaultNow(),
+  },
+})
+```
+
+the generator emits output shaped like:
+
+```ts
+export const user = pgTable("users", {
+  id: text("id").primaryKey(),
+  email: text("email_address").notNull().unique(),
+  createdAt: timestamp("createdAt").notNull(),
+});
+```
+
+## How it fits into a Drizzle app
+
+Typical flow:
+
+1. define the reusable schema once
+2. run `farm-orm generate drizzle`
+3. import the generated tables in the application’s Drizzle setup
+4. continue using Drizzle in the app as normal
+
+So again, Farming Labs ORM is feeding the app-side stack rather than replacing it.
+
+## Why Drizzle teams might like this
+
+- generated table definitions from shared package schemas
+- no need to manually rewrite the same package tables per app
+- easier multi-package monorepo composition
+
+## Important nuance
+
+The current generator is focused on field and reference output first. Higher-level
+relation helpers are more fully realized in the runtime layer today than in the
+Drizzle generator itself.
+
+That is why the docs keep field/reference generation and runtime relation docs
+clearly separated.
