@@ -1,0 +1,34 @@
+{
+  "name": "@farming-labs/orm-cli",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "farm-orm": "./dist/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsx ./scripts/build.ts",
+    "test": "pnpm --filter @farming-labs/orm build && vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@farming-labs/orm": "workspace:*",
+    "commander": "^13.1.0",
+    "jiti": "^2.4.2"
+  },
+  "devDependencies": {
+    "tsup": "^8.4.0"
+  }
+}

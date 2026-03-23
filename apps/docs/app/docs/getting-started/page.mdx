@@ -1,0 +1,64 @@
+---
+title: "Getting Started"
+description: "Define a schema, add a config file, and generate your first artifacts."
+order: 2
+---
+
+# Getting Started
+
+The recommended flow is simple:
+
+1. Define your schema once in `@farming-labs/orm`.
+2. Point `@farming-labs/orm-cli` at that schema.
+3. Generate Prisma, Drizzle, or safe SQL output for the consuming app.
+
+## 1. Define a schema
+
+```ts
+import { defineSchema, model, id, string, datetime } from "@farming-labs/orm";
+
+export const authSchema = defineSchema({
+  user: model({
+    table: "users",
+    fields: {
+      id: id(),
+      email: string().unique(),
+      name: string(),
+      createdAt: datetime().defaultNow(),
+    },
+  }),
+});
+```
+
+## 2. Create `farm-orm.config.ts`
+
+```ts
+import { defineConfig } from "@farming-labs/orm-cli";
+import { authSchema } from "./src/schema";
+
+export default defineConfig({
+  schemas: [authSchema],
+  targets: {
+    prisma: { out: "./generated/prisma/schema.prisma", provider: "postgresql" },
+    drizzle: { out: "./generated/drizzle/schema.ts", dialect: "pg" },
+    sql: { out: "./generated/sql/0001_init.sql", dialect: "postgres" },
+  },
+});
+```
+
+## 3. Generate output
+
+```bash
+farm-orm generate prisma
+farm-orm generate drizzle
+farm-orm generate sql
+farm-orm check prisma
+```
+
+## 4. Validate the workspace
+
+The monorepo is designed so docs, package tests, CLI generation, and the demo flow can all be verified together.
+
+```bash
+pnpm test
+```

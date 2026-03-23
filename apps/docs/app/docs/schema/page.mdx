@@ -1,0 +1,45 @@
+---
+title: "Unified Schema"
+description: "One source of truth for fields, defaults, references, and relationships."
+order: 3
+---
+
+# Unified Schema
+
+The schema DSL is the center of the system. It captures:
+
+- table names
+- field names and mapped column names
+- defaults and generated values
+- uniqueness and references
+- higher-level relationships
+
+## Example model
+
+```ts
+user: model({
+  table: "users",
+  fields: {
+    id: id(),
+    email: string().unique().map("email_address"),
+    createdAt: datetime().defaultNow(),
+  },
+  relations: {
+    sessions: hasMany("session", { foreignKey: "userId" }),
+  },
+})
+```
+
+## Why this matters
+
+The generators consume the low-level manifest details, while runtime helpers can consume the higher-level relationship graph. That means the same schema can power:
+
+- Prisma schema generation
+- Drizzle table generation
+- safe SQL generation
+- demo and test fixtures
+- docs examples
+
+## Design rule
+
+Keep the schema authoritative and keep backend-specific translation outside the library package whenever possible.

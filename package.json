@@ -1,0 +1,20 @@
+{
+  "name": "farming-labs-orm",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "pnpm@10.9.0",
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev:docs": "pnpm --filter docs dev",
+    "dev:demo": "pnpm --filter demo dev",
+    "test": "pnpm -r test && pnpm test:e2e",
+    "test:e2e": "vitest run tests/e2e.test.ts",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "vitest": "^3.1.1"
+  }
+}

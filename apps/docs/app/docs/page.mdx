@@ -1,0 +1,116 @@
+---
+title: "Overview"
+description: "Generator-first documentation for Farming Labs ORM."
+order: 1
+---
+
+# Farming Labs ORM
+
+<div className="docs-overview-hero not-prose">
+  <section className="docs-overview-panel docs-overview-copy">
+    <span className="docs-overview-kicker">Generator-first docs</span>
+    <h1>One schema contract for libraries that need to meet many stacks.</h1>
+    <p>
+      Farming Labs ORM is built for reusable packages that want one storage-facing
+      source of truth, one generation story, and one documentation home instead
+      of adapter sprawl.
+    </p>
+    <div className="docs-overview-actions">
+      <a href="/docs/getting-started">Start here</a>
+      <a href="/docs/use-cases">See use cases</a>
+    </div>
+  </section>
+
+  <section className="docs-overview-panel docs-overview-summary">
+    <article className="docs-overview-summary-card">
+      <span className="docs-overview-label">Core</span>
+      <strong>Define models, defaults, relations, and constraints once.</strong>
+      <p>The schema becomes the product contract shared by runtime, generation, docs, and examples.</p>
+    </article>
+    <article className="docs-overview-summary-card">
+      <span className="docs-overview-label">CLI</span>
+      <strong>Generate what the app stack already expects.</strong>
+      <p>Prisma, Drizzle, and safe SQL outputs come from the same source instead of separate adapter trees.</p>
+    </article>
+    <article className="docs-overview-summary-card">
+      <span className="docs-overview-label">Workspace</span>
+      <strong>Keep the docs aligned with the implementation.</strong>
+      <p>Docs build, package tests, generation, and the example flow all verify together in one repo.</p>
+    </article>
+  </section>
+</div>
+
+<div className="docs-overview-stats not-prose">
+  <article className="docs-overview-stat">
+    <strong>3 generation targets</strong>
+    <p>Prisma, Drizzle, and safe SQL are implemented and tested in this workspace.</p>
+  </article>
+  <article className="docs-overview-stat">
+    <strong>1 live runtime adapter</strong>
+    <p>The typed memory driver powers the demo and current relation tests.</p>
+  </article>
+  <article className="docs-overview-stat">
+    <strong>1 consistent docs system</strong>
+    <p>The docs route stays on <code>@farming-labs/docs</code> with the pixel-border theme.</p>
+  </article>
+</div>
+
+## Start with the product surface
+
+<div className="docs-overview-links not-prose">
+  <a className="docs-overview-link" href="/docs/getting-started">
+    <strong>Getting started</strong>
+    <p>Define the first schema, wire the config file, and generate your first artifacts.</p>
+    <span>Open section</span>
+  </a>
+  <a className="docs-overview-link" href="/docs/schema">
+    <strong>Unified schema</strong>
+    <p>See how models, defaults, references, and relationships are represented once.</p>
+    <span>Open section</span>
+  </a>
+  <a className="docs-overview-link" href="/docs/cli">
+    <strong>CLI generation</strong>
+    <p>Understand how the CLI loads <code>@farming-labs/orm</code> schemas directly and writes target-specific output.</p>
+    <span>Open section</span>
+  </a>
+  <a className="docs-overview-link" href="/docs/use-cases">
+    <strong>Use cases</strong>
+    <p>Map the design to auth libraries, billing kits, and internal platform modules.</p>
+    <span>Open section</span>
+  </a>
+</div>
+
+## Where it fits best
+
+<div className="docs-overview-uses not-prose">
+  <article className="docs-overview-use">
+    <strong>Auth systems</strong>
+    <p>Replace one Prisma adapter, one Drizzle adapter, and one Kysely adapter with a single schema contract and targeted outputs.</p>
+  </article>
+  <article className="docs-overview-use">
+    <strong>Reusable product kits</strong>
+    <p>Ship storage-aware packages for billing, organizations, permissions, and audit logs without dictating the consumer’s ORM.</p>
+  </article>
+  <article className="docs-overview-use">
+    <strong>Internal platforms</strong>
+    <p>Keep shared domain models stable across multiple apps and services while generating the local integration layer each team needs.</p>
+  </article>
+</div>
+
+## What ships today
+
+| Layer | Status | Notes |
+| --- | --- | --- |
+| `@farming-labs/orm` | Live | Schema DSL, manifest, generators, typed helpers, memory runtime |
+| `@farming-labs/orm-cli` | Live | Loads schemas directly and generates target artifacts |
+| Prisma generation | Live | PostgreSQL, MySQL, and SQLite providers |
+| Drizzle generation | Live | `pg`, `mysql`, and `sqlite` dialects |
+| Safe SQL generation | Live | Forward-safe SQL output for PostgreSQL, MySQL, and SQLite |
+| Runtime driver packages | Planned | Prisma, Drizzle, Kysely, SQL, and Mongoose packages can layer on next |
+
+## Why this docs route uses `@farming-labs/docs`
+
+The `/docs` route is intentionally framework-driven. It uses the same
+`@farming-labs/docs` stack and `pixelBorder` theme family you referenced, but
+with a calmer black visual system so the site feels closer to a polished product
+docs home than a demo page.

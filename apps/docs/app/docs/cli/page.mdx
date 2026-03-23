@@ -1,0 +1,42 @@
+---
+title: "CLI Generation"
+description: "How the CLI loads schemas and writes Prisma, Drizzle, and SQL output."
+order: 4
+---
+
+# CLI Generation
+
+`@farming-labs/orm-cli` consumes the schema exported by `@farming-labs/orm`. It does not define a second schema language.
+
+## Core commands
+
+```bash
+farm-orm generate prisma
+farm-orm generate drizzle
+farm-orm generate sql
+farm-orm check prisma
+```
+
+## What each target does
+
+- `generate prisma` renders Prisma schema output.
+- `generate drizzle` writes generated Drizzle table code.
+- `generate sql` emits safe SQL output.
+- `check` validates that an already-generated file matches current schema state.
+
+## Prisma block mode
+
+Prisma can be written into a generated block so application-owned models stay untouched.
+
+```prisma
+// @farming-labs/orm:start:prisma
+generator client {
+  provider = "prisma-client-js"
+}
+// ...
+// @farming-labs/orm:end:prisma
+```
+
+## Design constraint
+
+The CLI package depends on `@farming-labs/orm` directly, so schema semantics only exist in one place.

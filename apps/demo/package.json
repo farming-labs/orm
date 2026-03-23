@@ -1,0 +1,16 @@
+{
+  "name": "demo",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@farming-labs/orm": "workspace:*",
+    "@farming-labs/orm-cli": "workspace:*"
+  }
+}

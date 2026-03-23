@@ -1,0 +1,25 @@
+---
+title: "Use Cases"
+description: "Where the generator-first approach fits best."
+order: 5
+---
+
+# Use Cases
+
+The best fit is reusable packages that want one storage-facing design while giving each application freedom to choose its persistence stack.
+
+## Auth libraries
+
+Ship one schema and one storage contract, then let the consuming app generate Prisma, Drizzle, or safe SQL output without maintaining a different adapter for every ORM.
+
+## Billing and organization kits
+
+Package tables, generation rules, and storage helpers once, then reuse them across many customer stacks.
+
+## Greenfield apps
+
+Start with the schema DSL and safe SQL generation. Add richer runtime integrations later without replacing the source of truth.
+
+## Internal platforms
+
+Standardize schema authoring once and let different teams consume the generated output that matches their stack.
