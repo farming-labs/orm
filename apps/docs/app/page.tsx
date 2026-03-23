@@ -15,11 +15,9 @@ const sectionTopRule =
 const btnBase =
   "inline-flex min-h-[46px] items-center justify-center rounded-none px-[18px] font-bold transition duration-150 ease-out hover:-translate-y-px max-md:w-full";
 
-const btnPrimary =
-  `${btnBase} border border-dashed border-white/[0.22] bg-white/[0.06] text-slate-50 shadow-none`;
+const btnPrimary = `${btnBase} border border-dashed border-white/[0.22] bg-white/[0.06] text-slate-50 shadow-none`;
 
-const btnSecondary =
-  `${btnBase} border border-white/10 bg-white/[0.03] text-slate-100`;
+const btnSecondary = `${btnBase} border border-white/10 bg-white/[0.03] text-slate-100`;
 
 const toneBorder: Record<string, string> = {
   cyan: "border-dashed border-sky-300/30",
@@ -111,11 +109,9 @@ const sectionTitle =
 
 const sectionText = "m-0 leading-[1.8] text-slate-300/80";
 
-const cardLabel =
-  "font-mono text-[0.76rem] uppercase tracking-[0.06em] text-slate-200";
+const cardLabel = "font-mono text-[0.76rem] uppercase tracking-[0.06em] text-slate-200";
 
-const heading3 =
-  "my-2.5 text-xl font-normal leading-snug tracking-tight first:mt-0";
+const heading3 = "my-2.5 text-xl font-normal leading-snug tracking-tight first:mt-0";
 
 export default function HomePage() {
   return (
@@ -157,8 +153,8 @@ export default function HomePage() {
               />
             </h1>
             <p className="font-mono text-lg font-light uppercase tracking-tight text-white/70">
-              Define the data model once, then generate the storage layer each
-              app stack wants along with built-in cli.
+              Define the data model once, then generate the storage layer each app stack wants along
+              with built-in cli.
             </p>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -234,22 +230,17 @@ export default function HomePage() {
       <section id="platform" className={cn(sectionShell, sectionTopRule)}>
         <div className="grid max-w-[840px] gap-4">
           <span className={kicker}>Platform</span>
-          <h2 className={sectionTitle}>
-            Built as a system, not a pile of storage-specific glue.
-          </h2>
+          <h2 className={sectionTitle}>Built as a system, not a pile of storage-specific glue.</h2>
           <p className={sectionText}>
-            The point is not to hide complexity with magic. It is to centralize
-            the real shared contract so generation, docs, examples, and future
-            drivers all line up around the same data model.
+            The point is not to hide complexity with magic. It is to centralize the real shared
+            contract so generation, docs, examples, and future drivers all line up around the same
+            data model.
           </p>
         </div>
 
         <div className="grid w-full grid-cols-3 gap-[18px] max-lg:grid-cols-1">
           {platformCards.map((card) => (
-            <article
-              key={card.title}
-              className={cn(panel, "p-6", toneBorder[card.tone])}
-            >
+            <article key={card.title} className={cn(panel, "p-6", toneBorder[card.tone])}>
               <span className={cardLabel}>{card.label}</span>
               <h3 className={heading3}>{card.title}</h3>
               <p className={sectionText}>{card.body}</p>
@@ -265,9 +256,9 @@ export default function HomePage() {
             A modern product surface for teams shipping reusable packages.
           </h2>
           <p className={sectionText}>
-            This works especially well when your package has to meet Prisma
-            users, Drizzle users, SQL-first teams, and documentation readers
-            without rewriting the same story over and over.
+            This works especially well when your package has to meet Prisma users, Drizzle users,
+            SQL-first teams, and documentation readers without rewriting the same story over and
+            over.
           </p>
         </div>
 
@@ -312,13 +303,11 @@ export default function HomePage() {
         <div className="grid max-w-[840px] gap-4">
           <span className={kicker}>Use cases</span>
           <h2 className={sectionTitle}>
-            A better fit for auth, billing, and platform libraries than ORM-by-ORM
-            adapters.
+            A better fit for auth, billing, and platform libraries than ORM-by-ORM adapters.
           </h2>
           <p className={sectionText}>
-            Reusable packages need a stable storage-facing contract. This is the
-            kind of system that keeps that contract intact while still meeting the
-            integration needs of downstream apps.
+            Reusable packages need a stable storage-facing contract. This is the kind of system that
+            keeps that contract intact while still meeting the integration needs of downstream apps.
           </p>
         </div>
 
@@ -339,9 +328,8 @@ export default function HomePage() {
             Sharp visuals, but still honest about the current implementation.
           </h2>
           <p className={sectionText}>
-            The project can look polished without pretending every runtime package
-            is already done. The landing page should sell the direction while still
-            telling the truth.
+            The project can look polished without pretending every runtime package is already done.
+            The landing page should sell the direction while still telling the truth.
           </p>
         </div>
 
@@ -352,9 +340,7 @@ export default function HomePage() {
               className="flex items-center justify-between gap-[22px] border-b border-white/[0.08] p-6 last:border-b-0 max-md:flex-col max-md:items-start"
             >
               <div>
-                <strong className="mb-1.5 block text-base font-semibold">
-                  {row.label}
-                </strong>
+                <strong className="mb-1.5 block text-base font-semibold">{row.label}</strong>
                 <p className={sectionText}>{row.value}</p>
               </div>
               <span
@@ -381,13 +367,12 @@ export default function HomePage() {
         <div className="grid gap-4">
           <span className={kicker}>Next step</span>
           <h2 className={sectionTitle}>
-            Follow the docs route and the example workflow that this monorepo is
-            already testing.
+            Follow the docs route and the example workflow that this monorepo is already testing.
           </h2>
           <p className={sectionText}>
-            The homepage sets the tone, then <code className="text-slate-200">/docs</code> carries the
-            product forward with `@farming-labs/docs`, the pixel-border theme, and
-            the actual generator story underneath.
+            The homepage sets the tone, then <code className="text-slate-200">/docs</code> carries
+            the product forward with `@farming-labs/docs`, the pixel-border theme, and the actual
+            generator story underneath.
           </p>
         </div>
 

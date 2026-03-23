@@ -6,5 +6,5 @@ await build({
   format: ["esm", "cjs"],
   sourcemap: true,
   clean: true,
-  outDir: "dist"
+  outDir: "dist",
 });

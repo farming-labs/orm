@@ -1,7 +1,6 @@
 import type { SchemaDefinition } from "./schema";
 import type {
   ModelName,
-  ModelRelations,
   RelationForName,
   RelationName,
   RelationTarget,
@@ -28,10 +27,7 @@ export type Where<TRecord extends Record<string, Primitive>> = {
   NOT?: Where<TRecord>;
 };
 
-type RelationQuery<
-  TSchema extends SchemaDefinition<any>,
-  TModelName extends ModelName<TSchema>
-> = {
+type RelationQuery<TSchema extends SchemaDefinition<any>, TModelName extends ModelName<TSchema>> = {
   where?: Where<ScalarRecord<TSchema, TModelName>>;
   select?: SelectShape<TSchema, TModelName>;
   orderBy?: Partial<Record<keyof ScalarRecord<TSchema, TModelName> & string, Direction>>;
@@ -42,12 +38,12 @@ type RelationQuery<
 type RelationSelectionValue<
   TSchema extends SchemaDefinition<any>,
   TModelName extends ModelName<TSchema>,
-  TRelationName extends RelationName<TSchema, TModelName>
+  TRelationName extends RelationName<TSchema, TModelName>,
 > = true | RelationQuery<TSchema, RelationTarget<TSchema, TModelName, TRelationName>>;
 
 export type SelectShape<
   TSchema extends SchemaDefinition<any>,
-  TModelName extends ModelName<TSchema>
+  TModelName extends ModelName<TSchema>,
 > = {
   [K in
     | (keyof ScalarRecord<TSchema, TModelName> & string)
@@ -62,13 +58,13 @@ type IsManyRelation<TRelation> = TRelation extends { kind: "hasMany" | "manyToMa
 
 type DefaultSelectedRecord<
   TSchema extends SchemaDefinition<any>,
-  TModelName extends ModelName<TSchema>
+  TModelName extends ModelName<TSchema>,
 > = ScalarRecord<TSchema, TModelName>;
 
 type SelectedScalars<
   TSchema extends SchemaDefinition<any>,
   TModelName extends ModelName<TSchema>,
-  TSelect extends SelectShape<TSchema, TModelName>
+  TSelect extends SelectShape<TSchema, TModelName>,
 > = {
   [K in keyof TSelect & keyof ScalarRecord<TSchema, TModelName> as TSelect[K] extends true
     ? K
@@ -79,7 +75,7 @@ type RelationResult<
   TSchema extends SchemaDefinition<any>,
   TModelName extends ModelName<TSchema>,
   TRelationName extends RelationName<TSchema, TModelName>,
-  TValue extends RelationSelectionValue<TSchema, TModelName, TRelationName>
+  TValue extends RelationSelectionValue<TSchema, TModelName, TRelationName>,
 > = TValue extends true
   ? IsManyRelation<RelationForName<TSchema, TModelName, TRelationName>> extends true
     ? Array<DefaultSelectedRecord<TSchema, RelationTarget<TSchema, TModelName, TRelationName>>>
@@ -91,26 +87,21 @@ type RelationResult<
             SelectedRecord<
               TSchema,
               Target,
-              TValue["select"] extends SelectShape<TSchema, Target>
-                ? TValue["select"]
-                : undefined
+              TValue["select"] extends SelectShape<TSchema, Target> ? TValue["select"] : undefined
             >
           >
-        : | SelectedRecord<
-              TSchema,
-              Target,
-              TValue["select"] extends SelectShape<TSchema, Target>
-                ? TValue["select"]
-                : undefined
-            >
-          | null
+        : SelectedRecord<
+            TSchema,
+            Target,
+            TValue["select"] extends SelectShape<TSchema, Target> ? TValue["select"] : undefined
+          > | null
       : never
     : never;
 
 type SelectedRelations<
   TSchema extends SchemaDefinition<any>,
   TModelName extends ModelName<TSchema>,
-  TSelect extends SelectShape<TSchema, TModelName>
+  TSelect extends SelectShape<TSchema, TModelName>,
 > = {
   [K in keyof TSelect & RelationName<TSchema, TModelName>]: RelationResult<
     TSchema,
@@ -123,16 +114,17 @@ type SelectedRelations<
 export type SelectedRecord<
   TSchema extends SchemaDefinition<any>,
   TModelName extends ModelName<TSchema>,
-  TSelect extends SelectShape<TSchema, TModelName> | undefined
-> = TSelect extends SelectShape<TSchema, TModelName>
-  ? SelectedScalars<TSchema, TModelName, TSelect> &
-      SelectedRelations<TSchema, TModelName, TSelect>
-  : DefaultSelectedRecord<TSchema, TModelName>;
+  TSelect extends SelectShape<TSchema, TModelName> | undefined,
+> =
+  TSelect extends SelectShape<TSchema, TModelName>
+    ? SelectedScalars<TSchema, TModelName, TSelect> &
+        SelectedRelations<TSchema, TModelName, TSelect>
+    : DefaultSelectedRecord<TSchema, TModelName>;
 
 export type FindManyArgs<
   TSchema extends SchemaDefinition<any>,
   TModelName extends ModelName<TSchema>,
-  TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined
+  TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined,
 > = {
   where?: Where<ScalarRecord<TSchema, TModelName>>;
   select?: TSelect;
@@ -144,13 +136,13 @@ export type FindManyArgs<
 export type FindFirstArgs<
   TSchema extends SchemaDefinition<any>,
   TModelName extends ModelName<TSchema>,
-  TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined
+  TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined,
 > = FindManyArgs<TSchema, TModelName, TSelect>;
 
 export type CreateArgs<
   TSchema extends SchemaDefinition<any>,
   TModelName extends ModelName<TSchema>,
-  TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined
+  TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined,
 > = {
   data: Partial<ScalarRecord<TSchema, TModelName>>;
   select?: TSelect;
@@ -159,7 +151,7 @@ export type CreateArgs<
 export type UpdateArgs<
   TSchema extends SchemaDefinition<any>,
   TModelName extends ModelName<TSchema>,
-  TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined
+  TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined,
 > = {
   where: Where<ScalarRecord<TSchema, TModelName>>;
   data: Partial<ScalarRecord<TSchema, TModelName>>;
@@ -168,7 +160,7 @@ export type UpdateArgs<
 
 export type DeleteArgs<
   TSchema extends SchemaDefinition<any>,
-  TModelName extends ModelName<TSchema>
+  TModelName extends ModelName<TSchema>,
 > = {
   where: Where<ScalarRecord<TSchema, TModelName>>;
 };
@@ -176,7 +168,7 @@ export type DeleteArgs<
 export interface OrmDriver<TSchema extends SchemaDefinition<any>> {
   findMany<
     TModelName extends ModelName<TSchema>,
-    TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined
+    TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined,
   >(
     schema: TSchema,
     model: TModelName,
@@ -184,7 +176,7 @@ export interface OrmDriver<TSchema extends SchemaDefinition<any>> {
   ): Promise<Array<SelectedRecord<TSchema, TModelName, TSelect>>>;
   findFirst<
     TModelName extends ModelName<TSchema>,
-    TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined
+    TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined,
   >(
     schema: TSchema,
     model: TModelName,
@@ -192,7 +184,7 @@ export interface OrmDriver<TSchema extends SchemaDefinition<any>> {
   ): Promise<SelectedRecord<TSchema, TModelName, TSelect> | null>;
   create<
     TModelName extends ModelName<TSchema>,
-    TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined
+    TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined,
   >(
     schema: TSchema,
     model: TModelName,
@@ -200,7 +192,7 @@ export interface OrmDriver<TSchema extends SchemaDefinition<any>> {
   ): Promise<SelectedRecord<TSchema, TModelName, TSelect>>;
   update<
     TModelName extends ModelName<TSchema>,
-    TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined
+    TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined,
   >(
     schema: TSchema,
     model: TModelName,
@@ -219,7 +211,7 @@ export interface OrmDriver<TSchema extends SchemaDefinition<any>> {
 
 export type ModelClient<
   TSchema extends SchemaDefinition<any>,
-  TModelName extends ModelName<TSchema>
+  TModelName extends ModelName<TSchema>,
 > = {
   findMany<TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined>(
     args?: FindManyArgs<TSchema, TModelName, TSelect>,
@@ -244,7 +236,7 @@ export type OrmClient<TSchema extends SchemaDefinition<any>> = {
 
 function createModelClient<
   TSchema extends SchemaDefinition<any>,
-  TModelName extends ModelName<TSchema>
+  TModelName extends ModelName<TSchema>,
 >(
   schema: TSchema,
   driver: OrmDriver<TSchema>,

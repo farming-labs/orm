@@ -11,7 +11,7 @@ import type {
   Where,
 } from "./client";
 import type { SchemaDefinition } from "./schema";
-import type { ModelName, RelationName, ScalarRecord } from "./schema";
+import type { ModelName, RelationName } from "./schema";
 
 type MemoryStore<TSchema extends SchemaDefinition<any>> = Partial<
   Record<ModelName<TSchema>, Array<Record<string, unknown>>>
@@ -133,11 +133,7 @@ function sortRows(
   });
 }
 
-function pageRows(
-  rows: Array<Record<string, unknown>>,
-  skip?: number,
-  take?: number,
-) {
+function pageRows(rows: Array<Record<string, unknown>>, skip?: number, take?: number) {
   const start = skip ?? 0;
   const end = take === undefined ? undefined : start + take;
   return rows.slice(start, end);
@@ -156,19 +152,20 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
 
   function applyQuery<TModelName extends ModelName<TSchema>>(
     model: TModelName,
-    args:
-      | FindManyArgs<TSchema, TModelName, any>
-      | FindFirstArgs<TSchema, TModelName, any>,
+    args: FindManyArgs<TSchema, TModelName, any> | FindFirstArgs<TSchema, TModelName, any>,
   ) {
     const rows = getRows(model);
     const filtered = rows.filter((row) => matchesWhere(row, args.where));
-    const sorted = sortRows(filtered, args.orderBy as Partial<Record<string, "asc" | "desc">> | undefined);
+    const sorted = sortRows(
+      filtered,
+      args.orderBy as Partial<Record<string, "asc" | "desc">> | undefined,
+    );
     return pageRows(sorted, args.skip, args.take);
   }
 
   async function projectRow<
     TModelName extends ModelName<TSchema>,
-    TSelect extends SelectShape<TSchema, TModelName> | undefined
+    TSelect extends SelectShape<TSchema, TModelName> | undefined,
   >(
     schema: TSchema,
     model: TModelName,
@@ -209,7 +206,7 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
 
   async function resolveRelation<
     TModelName extends ModelName<TSchema>,
-    TRelationName extends RelationName<TSchema, TModelName>
+    TRelationName extends RelationName<TSchema, TModelName>,
   >(
     schema: TSchema,
     model: TModelName,
@@ -225,12 +222,7 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
       const foreignValue = row[relation.foreignKey];
       const target = targetRows.find((item) => item.id === foreignValue);
       return target
-        ? projectRow(
-            schema,
-            relation.target as ModelName<TSchema>,
-            target,
-            relationArgs.select,
-          )
+        ? projectRow(schema, relation.target as ModelName<TSchema>, target, relationArgs.select)
         : null;
     }
 
@@ -238,12 +230,7 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
       const targetRows = getRows(relation.target as ModelName<TSchema>);
       const target = targetRows.find((item) => item[relation.foreignKey] === row.id);
       return target
-        ? projectRow(
-            schema,
-            relation.target as ModelName<TSchema>,
-            target,
-            relationArgs.select,
-          )
+        ? projectRow(schema, relation.target as ModelName<TSchema>, target, relationArgs.select)
         : null;
     }
 
@@ -259,12 +246,7 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
       const filtered = paged.filter((item) => matchesWhere(item, relationArgs.where));
       return Promise.all(
         filtered.map((item) =>
-          projectRow(
-            schema,
-            relation.target as ModelName<TSchema>,
-            item,
-            relationArgs.select,
-          ),
+          projectRow(schema, relation.target as ModelName<TSchema>, item, relationArgs.select),
         ),
       );
     }
@@ -285,12 +267,7 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
 
     return Promise.all(
       filtered.map((item) =>
-        projectRow(
-          schema,
-          relation.target as ModelName<TSchema>,
-          item,
-          relationArgs.select,
-        ),
+        projectRow(schema, relation.target as ModelName<TSchema>, item, relationArgs.select),
       ),
     );
   }
@@ -302,9 +279,7 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
       args: FindManyArgs<TSchema, ModelName<TSchema>, any>,
     ) {
       const rows = applyQuery(model, args);
-      return Promise.all(
-        rows.map((row) => projectRow(schema, model, row, args.select)),
-      );
+      return Promise.all(rows.map((row) => projectRow(schema, model, row, args.select)));
     },
     async findFirst(
       schema: TSchema,

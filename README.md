@@ -1,6 +1,4 @@
 # Farming Labs ORM
- 
-
 
 ## Workspace
 

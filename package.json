@@ -1,20 +1,27 @@
 {
   "name": "farming-labs-orm",
-  "private": true,
   "version": "0.0.0",
-  "packageManager": "pnpm@10.9.0",
+  "private": true,
   "scripts": {
     "build": "pnpm -r build",
     "dev:docs": "pnpm --filter docs dev",
     "dev:demo": "pnpm --filter demo dev",
     "test": "pnpm -r test && pnpm test:e2e",
     "test:e2e": "vitest run tests/e2e.test.ts",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "lint": "oxlint . --ignore-path .oxlintignore",
+    "lint:fix": "oxlint --fix . --ignore-path .oxlintignore",
+    "fmt": "oxfmt .",
+    "fmt:check": "oxfmt --check .",
+    "check": "pnpm lint && pnpm fmt:check && pnpm typecheck"
   },
   "devDependencies": {
     "@types/node": "^22.13.10",
+    "oxfmt": "^0.41.0",
+    "oxlint": "^1.56.0",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2",
     "vitest": "^3.1.1"
-  }
+  },
+  "packageManager": "pnpm@10.9.0"
 }

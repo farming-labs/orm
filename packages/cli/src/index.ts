@@ -71,10 +71,7 @@ async function readIfExists(filePath: string) {
   return readFile(filePath, "utf8");
 }
 
-export async function generateTarget(
-  target: keyof FarmOrmConfig["targets"],
-  configPath?: string,
-) {
+export async function generateTarget(target: keyof FarmOrmConfig["targets"], configPath?: string) {
   const { config } = await loadConfig(configPath);
   const schema = mergeSchemas(config.schemas);
 
@@ -107,11 +104,7 @@ export async function generateTarget(
     }
     const outputPath = path.resolve(process.cwd(), targetConfig.out);
     await ensureFileDirectory(outputPath);
-    await writeFile(
-      outputPath,
-      renderDrizzleSchema(schema, targetConfig),
-      "utf8",
-    );
+    await writeFile(outputPath, renderDrizzleSchema(schema, targetConfig), "utf8");
     return outputPath;
   }
 
@@ -125,10 +118,7 @@ export async function generateTarget(
   return outputPath;
 }
 
-export async function checkTarget(
-  target: keyof FarmOrmConfig["targets"],
-  configPath?: string,
-) {
+export async function checkTarget(target: keyof FarmOrmConfig["targets"], configPath?: string) {
   const { config } = await loadConfig(configPath);
   const schema = mergeSchemas(config.schemas);
 
