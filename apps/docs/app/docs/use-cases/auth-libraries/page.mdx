@@ -1,0 +1,121 @@
+---
+title: "Auth Libraries"
+description: "How one schema contract can replace adapter sprawl in auth-style packages."
+order: 1
+icon: shield
+---
+
+# Auth Libraries
+
+Auth packages are one of the clearest fits for Farming Labs ORM.
+
+## Why auth packages suffer
+
+They usually need to define the same storage ideas repeatedly:
+
+- users
+- sessions
+- accounts
+- verification records
+- memberships
+- plugin-owned models
+
+And then they often repeat that work again for:
+
+- Prisma
+- Drizzle
+- raw SQL examples
+- docs and setup guides
+
+## One schema instead
+
+```ts
+export const authSchema = defineSchema({
+  user: model({
+    table: "users",
+    fields: {
+      id: id(),
+      email: string().unique(),
+      name: string(),
+      createdAt: datetime().defaultNow(),
+    },
+    relations: {
+      sessions: hasMany("session", { foreignKey: "userId" }),
+      accounts: hasMany("account", { foreignKey: "userId" }),
+    },
+  }),
+  session: model({
+    table: "sessions",
+    fields: {
+      id: id(),
+      userId: string().references("user.id"),
+      token: string().unique(),
+      expiresAt: datetime(),
+    },
+    relations: {
+      user: belongsTo("user", { foreignKey: "userId" }),
+    },
+  }),
+  account: model({
+    table: "accounts",
+    fields: {
+      id: id(),
+      userId: string().references("user.id"),
+      provider: string(),
+      accountId: string(),
+    },
+    relations: {
+      user: belongsTo("user", { foreignKey: "userId" }),
+    },
+  }),
+});
+```
+
+## App-side generation
+
+```ts
+export default defineConfig({
+  schemas: [authSchema],
+  targets: {
+    prisma: {
+      out: "./generated/prisma/schema.prisma",
+      provider: "postgresql",
+    },
+  },
+});
+```
+
+## Runtime helper example
+
+```ts
+export async function findUserByEmail(orm: typeof authOrm, email: string) {
+  return orm.user.findFirst({
+    where: { email },
+    select: {
+      id: true,
+      email: true,
+      sessions: {
+        select: {
+          token: true,
+          expiresAt: true,
+        },
+      },
+      accounts: {
+        select: {
+          provider: true,
+          accountId: true,
+        },
+      },
+    },
+  });
+}
+```
+
+## What this removes
+
+- storage docs duplicated per ORM
+- package-owned schema drift across stacks
+- hand-maintained adapter surfaces for every consumer stack
+
+It does not magically remove all complexity, but it centralizes the part that is
+actually shared.

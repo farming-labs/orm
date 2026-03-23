@@ -1,0 +1,77 @@
+---
+title: "Billing Modules"
+description: "Reusable plans, subscriptions, invoices, and org billing models."
+order: 2
+icon: card
+---
+
+# Billing Modules
+
+Billing packages often need to travel across many apps and customer stacks.
+
+## Typical shared models
+
+- plans
+- subscriptions
+- invoices
+- credits
+- seats
+- organizations
+- entitlements
+
+## Example
+
+```ts
+export const billingSchema = defineSchema({
+  plan: model({
+    table: "plans",
+    fields: {
+      id: id(),
+      slug: string().unique(),
+      name: string(),
+    },
+  }),
+  subscription: model({
+    table: "subscriptions",
+    fields: {
+      id: id(),
+      userId: string(),
+      planId: string().references("plan.id"),
+      status: string(),
+      createdAt: datetime().defaultNow(),
+    },
+  }),
+  invoice: model({
+    table: "invoices",
+    fields: {
+      id: id(),
+      subscriptionId: string().references("subscription.id"),
+      status: string(),
+      issuedAt: datetime().defaultNow(),
+    },
+  }),
+});
+```
+
+## Why this works well
+
+- the business shape is stable
+- consumers often differ in ORM preference
+- documentation drift is expensive
+- test fixtures benefit from a shared schema contract
+
+## Typical outcome
+
+The billing package owns:
+
+- one schema
+- one set of runtime helpers
+- one docs story
+
+The app chooses:
+
+- Prisma generation
+- Drizzle generation
+- safe SQL generation
+
+That separation is exactly where this project tends to feel useful.

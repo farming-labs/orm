@@ -7,31 +7,92 @@ icon: rocket
 
 # Getting Started
 
-The recommended flow is simple:
+The recommended path is:
 
-1. Define your schema once in `@farming-labs/orm`.
-2. Point `@farming-labs/orm-cli` at that schema.
-3. Generate Prisma, Drizzle, or safe SQL output for the consuming app.
+1. Define a schema in `@farming-labs/orm`
+2. Add a `farm-orm.config.ts`
+3. Generate target output with `@farming-labs/orm-cli`
+4. Use the typed client with the memory driver while other runtime drivers are still being layered in
 
-## 1. Define a schema
+## Step 1: Define a real schema
+
+This example mirrors the auth-flavored demo already present in the repo.
 
 ```ts
-import { defineSchema, model, id, string, datetime } from "@farming-labs/orm";
+import {
+  belongsTo,
+  boolean,
+  datetime,
+  defineSchema,
+  hasMany,
+  hasOne,
+  id,
+  model,
+  string,
+} from "@farming-labs/orm";
 
 export const authSchema = defineSchema({
   user: model({
     table: "users",
+    description: "Core user records for auth-like libraries.",
     fields: {
       id: id(),
-      email: string().unique(),
       name: string(),
+      email: string().unique().map("email_address"),
+      emailVerified: boolean().default(false),
       createdAt: datetime().defaultNow(),
+      updatedAt: datetime().defaultNow(),
+    },
+    relations: {
+      profile: hasOne("profile", { foreignKey: "userId" }),
+      accounts: hasMany("account", { foreignKey: "userId" }),
+      sessions: hasMany("session", { foreignKey: "userId" }),
+    },
+  }),
+
+  profile: model({
+    table: "profiles",
+    fields: {
+      id: id(),
+      userId: string().unique().references("user.id"),
+      bio: string().nullable(),
+    },
+    relations: {
+      user: belongsTo("user", { foreignKey: "userId" }),
+    },
+  }),
+
+  session: model({
+    table: "sessions",
+    fields: {
+      id: id(),
+      userId: string().references("user.id"),
+      token: string().unique(),
+      expiresAt: datetime(),
+    },
+    relations: {
+      user: belongsTo("user", { foreignKey: "userId" }),
+    },
+  }),
+
+  account: model({
+    table: "accounts",
+    fields: {
+      id: id(),
+      userId: string().references("user.id"),
+      provider: string(),
+      accountId: string(),
+    },
+    relations: {
+      user: belongsTo("user", { foreignKey: "userId" }),
     },
   }),
 });
 ```
 
-## 2. Create `farm-orm.config.ts`
+## Step 2: Add `farm-orm.config.ts`
+
+The CLI takes one or more schema objects and one or more targets.
 
 ```ts
 import { defineConfig } from "@farming-labs/orm-cli";
@@ -40,14 +101,24 @@ import { authSchema } from "./src/schema";
 export default defineConfig({
   schemas: [authSchema],
   targets: {
-    prisma: { out: "./generated/prisma/schema.prisma", provider: "postgresql" },
-    drizzle: { out: "./generated/drizzle/schema.ts", dialect: "pg" },
-    sql: { out: "./generated/sql/0001_init.sql", dialect: "postgres" },
+    prisma: {
+      out: "./generated/prisma/schema.prisma",
+      provider: "postgresql",
+      mode: "replace",
+    },
+    drizzle: {
+      out: "./generated/drizzle/schema.ts",
+      dialect: "pg",
+    },
+    sql: {
+      out: "./generated/sql/0001_init.sql",
+      dialect: "postgres",
+    },
   },
 });
 ```
 
-## 3. Generate output
+## Step 3: Generate artifacts
 
 ```bash
 farm-orm generate prisma
@@ -56,9 +127,115 @@ farm-orm generate sql
 farm-orm check prisma
 ```
 
-## 4. Validate the workspace
+### What each command does
 
-The monorepo is designed so docs, package tests, CLI generation, and the demo flow can all be verified together.
+- `generate prisma` renders Prisma schema output
+- `generate drizzle` renders generated Drizzle table code
+- `generate sql` emits safe SQL
+- `check prisma` verifies that the generated Prisma output on disk still matches the schema
+
+## Step 4: Use the runtime client today
+
+The memory driver is the runtime driver already implemented in this repo. It is
+useful for docs, tests, demos, and schema-level validation.
+
+```ts
+import { createMemoryDriver, createOrm } from "@farming-labs/orm";
+import { authSchema } from "./schema";
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createMemoryDriver({
+    user: [
+      {
+        id: "user_1",
+        name: "Ada Lovelace",
+        email: "ada@farminglabs.dev",
+        emailVerified: true,
+        createdAt: new Date("2025-01-01T00:00:00.000Z"),
+        updatedAt: new Date("2025-01-01T00:00:00.000Z"),
+      },
+    ],
+    profile: [
+      {
+        id: "profile_1",
+        userId: "user_1",
+        bio: "Design once, ship to every storage layer.",
+      },
+    ],
+    session: [
+      {
+        id: "session_1",
+        userId: "user_1",
+        token: "session-token",
+        expiresAt: new Date("2026-01-01T00:00:00.000Z"),
+      },
+    ],
+  }),
+});
+
+const user = await orm.user.findFirst({
+  where: { email: "ada@farminglabs.dev" },
+  select: {
+    id: true,
+    name: true,
+    email: true,
+    profile: {
+      select: {
+        bio: true,
+      },
+    },
+    sessions: {
+      select: {
+        token: true,
+        expiresAt: true,
+      },
+    },
+  },
+});
+```
+
+## Step 5: Understand what gets generated
+
+From the schema above:
+
+- `email: string().unique().map("email_address")` becomes `email_address` in generated database output
+- `id()` becomes a primary key and generated id field
+- `datetime().defaultNow()` becomes a generated `now` default where supported
+- `references("user.id")` becomes a real foreign key/reference in generated output
+
+## Common first tasks
+
+### Add a second schema package
+
+```ts
+import { defineConfig } from "@farming-labs/orm-cli";
+import { authSchema } from "@acme/auth";
+import { billingSchema } from "@acme/billing";
+
+export default defineConfig({
+  schemas: [authSchema, billingSchema],
+  targets: {
+    prisma: { out: "./generated/prisma/schema.prisma", provider: "postgresql" },
+  },
+});
+```
+
+### Seed a demo or test quickly
+
+```ts
+const orm = createOrm({
+  schema: authSchema,
+  driver: createMemoryDriver({
+    user: [{ id: "user_1", name: "Ada", email: "ada@farminglabs.dev" }],
+  }),
+});
+```
+
+## Verify everything together
+
+This repo is intentionally set up so docs, generators, and demo flows can be
+checked together.
 
 ```bash
 pnpm test

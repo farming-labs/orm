@@ -1,26 +1,227 @@
 ---
 title: "Use Cases"
 description: "Where the generator-first approach fits best."
-order: 5
+order: 6
 icon: users
 ---
 
 # Use Cases
 
-The best fit is reusable packages that want one storage-facing design while giving each application freedom to choose its persistence stack.
+The strongest fit is anything that needs one storage-facing design while giving
+consuming applications room to choose their own persistence stack.
 
-## Auth libraries
+## Sections
 
-Ship one schema and one storage contract, then let the consuming app generate Prisma, Drizzle, or safe SQL output without maintaining a different adapter for every ORM.
+- [Auth libraries](/docs/use-cases/auth-libraries)
+- [Billing modules](/docs/use-cases/billing-modules)
+- [Internal platforms](/docs/use-cases/internal-platforms)
 
-## Billing and organization kits
+## 1. Auth-like libraries
 
-Package tables, generation rules, and storage helpers once, then reuse them across many customer stacks.
+This is one of the clearest use cases.
 
-## Greenfield apps
+### The usual problem
 
-Start with the schema DSL and safe SQL generation. Add richer runtime integrations later without replacing the source of truth.
+Auth libraries often end up maintaining:
 
-## Internal platforms
+- Prisma adapter logic
+- Drizzle adapter logic
+- app-specific schema examples
+- migration examples
+- docs for every storage story
 
-Standardize schema authoring once and let different teams consume the generated output that matches their stack.
+### What Farming Labs ORM changes
+
+The auth package can define its schema once:
+
+```ts
+export const authSchema = defineSchema({
+  user: model({
+    table: "users",
+    fields: {
+      id: id(),
+      email: string().unique(),
+      name: string(),
+      createdAt: datetime().defaultNow(),
+    },
+    relations: {
+      sessions: hasMany("session", { foreignKey: "userId" }),
+      accounts: hasMany("account", { foreignKey: "userId" }),
+    },
+  }),
+  session: model({
+    table: "sessions",
+    fields: {
+      id: id(),
+      userId: string().references("user.id"),
+      token: string().unique(),
+    },
+    relations: {
+      user: belongsTo("user", { foreignKey: "userId" }),
+    },
+  }),
+  account: model({
+    table: "accounts",
+    fields: {
+      id: id(),
+      userId: string().references("user.id"),
+      provider: string(),
+      accountId: string(),
+    },
+    relations: {
+      user: belongsTo("user", { foreignKey: "userId" }),
+    },
+  }),
+});
+```
+
+Then the consuming app decides how to generate it:
+
+```ts
+export default defineConfig({
+  schemas: [authSchema],
+  targets: {
+    prisma: { out: "./generated/prisma/schema.prisma", provider: "postgresql" },
+  },
+});
+```
+
+The package also gets one runtime-facing contract for storage helpers:
+
+```ts
+export async function findUserByEmail(orm: ReturnType<typeof createOrm<typeof authSchema>>, email: string) {
+  return orm.user.findFirst({
+    where: { email },
+    select: {
+      id: true,
+      email: true,
+      sessions: {
+        select: {
+          token: true,
+        },
+      },
+    },
+  });
+}
+```
+
+## 2. Billing and organization kits
+
+Billing modules often need reusable data definitions for:
+
+- plans
+- subscriptions
+- invoices
+- credits
+- seats
+- organizations
+- memberships
+
+Instead of hand-writing those tables and examples for every consumer stack, the
+package can ship one schema contract and let apps generate their preferred
+output.
+
+### Example structure
+
+```ts
+export const billingSchema = defineSchema({
+  plan: model({
+    table: "plans",
+    fields: {
+      id: id(),
+      slug: string().unique(),
+      name: string(),
+    },
+  }),
+  subscription: model({
+    table: "subscriptions",
+    fields: {
+      id: id(),
+      userId: string(),
+      planId: string().references("plan.id"),
+      status: string(),
+      createdAt: datetime().defaultNow(),
+    },
+  }),
+});
+```
+
+This is especially nice in a monorepo where many products need the same
+commercial model but not the same ORM choice.
+
+## 3. Internal platform modules
+
+Platform teams often own cross-cutting packages for:
+
+- organizations
+- roles and permissions
+- audit logs
+- feature flags
+- provisioning state
+
+The cost of drift grows fast when every app re-implements that schema
+individually.
+
+With Farming Labs ORM, the platform team can:
+
+1. own the shared schema package
+2. publish docs and examples from the same contract
+3. generate stack-specific output for each consumer app
+
+## 4. Greenfield apps that want a safe starting point
+
+A greenfield app does not have to adopt a future runtime driver immediately.
+
+It can start with:
+
+- schema DSL
+- safe SQL generation
+- memory runtime for early tests and docs
+
+Then later add richer drivers without replacing the source of truth.
+
+## 5. Multi-package monorepos
+
+The CLI supports multiple schema packages:
+
+```ts
+import { defineConfig } from "@farming-labs/orm-cli";
+import { authSchema } from "@acme/auth";
+import { billingSchema } from "@acme/billing";
+import { orgSchema } from "@acme/org";
+
+export default defineConfig({
+  schemas: [authSchema, billingSchema, orgSchema],
+  targets: {
+    prisma: {
+      out: "./generated/prisma/schema.prisma",
+      provider: "postgresql",
+    },
+  },
+});
+```
+
+That is one of the highest-leverage workflows in the project because it lets
+several reusable packages contribute models into one generated application
+surface.
+
+## 6. When this approach is not the best fit
+
+Farming Labs ORM is probably overkill when:
+
+- you only have one app and one storage layer forever
+- your team is already happy with one ORM-specific schema as the sole source of truth
+- you do not need package-level reuse
+- you are not trying to publish or share a storage-facing contract
+
+## Practical decision rule
+
+This approach becomes more valuable as these increase:
+
+- number of consumer apps
+- number of package boundaries
+- number of supported stacks
+- amount of duplicated storage docs and adapter work
+
+If your biggest pain is “we keep rewriting the same storage story for every
+consumer,” this project is aimed directly at that pain.

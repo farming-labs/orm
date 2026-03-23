@@ -7,40 +7,232 @@ icon: database
 
 # Unified Schema
 
-The schema DSL is the center of the system. It captures:
+The schema DSL is the center of Farming Labs ORM. Everything else either reads
+the schema directly or consumes its normalized manifest form.
 
-- table names
-- field names and mapped column names
-- defaults and generated values
-- uniqueness and references
-- higher-level relationships
+## Core building blocks
 
-## Example model
+- `defineSchema(...)` defines the top-level schema object
+- `model(...)` defines one model
+- field builders such as `id()`, `string()`, `boolean()`, and `datetime()`
+- relation helpers such as `belongsTo(...)`, `hasOne(...)`, `hasMany(...)`, and `manyToMany(...)`
+
+## Full schema example
+
+```ts
+import {
+  belongsTo,
+  boolean,
+  datetime,
+  defineSchema,
+  hasMany,
+  hasOne,
+  id,
+  manyToMany,
+  model,
+  string,
+} from "@farming-labs/orm";
+
+export const appSchema = defineSchema({
+  user: model({
+    table: "users",
+    description: "Primary application users.",
+    fields: {
+      id: id(),
+      name: string(),
+      email: string().unique().map("email_address").describe("Canonical login email"),
+      emailVerified: boolean().default(false),
+      createdAt: datetime().defaultNow(),
+    },
+    relations: {
+      profile: hasOne("profile", { foreignKey: "userId" }),
+      sessions: hasMany("session", { foreignKey: "userId" }),
+      organizations: manyToMany("organization", {
+        through: "membership",
+        from: "userId",
+        to: "organizationId",
+      }),
+    },
+  }),
+
+  profile: model({
+    table: "profiles",
+    fields: {
+      id: id(),
+      userId: string().unique().references("user.id"),
+      bio: string().nullable(),
+    },
+    relations: {
+      user: belongsTo("user", { foreignKey: "userId" }),
+    },
+  }),
+
+  session: model({
+    table: "sessions",
+    fields: {
+      id: id(),
+      userId: string().references("user.id"),
+      token: string().unique(),
+      expiresAt: datetime(),
+    },
+    relations: {
+      user: belongsTo("user", { foreignKey: "userId" }),
+    },
+  }),
+
+  organization: model({
+    table: "organizations",
+    fields: {
+      id: id(),
+      slug: string().unique(),
+      name: string(),
+    },
+  }),
+
+  membership: model({
+    table: "memberships",
+    fields: {
+      id: id(),
+      userId: string().references("user.id"),
+      organizationId: string().references("organization.id"),
+      role: string(),
+    },
+  }),
+});
+```
+
+## Field builders
+
+### Scalar field types
+
+| Builder | Output type | Notes |
+| --- | --- | --- |
+| `id()` | `string` | Unique by default and generated as an id |
+| `string()` | `string` | Plain string scalar |
+| `boolean()` | `boolean` | Boolean scalar |
+| `datetime()` | `Date` | Represents a JavaScript `Date` in runtime typing |
+
+### Field methods
+
+| Method | Purpose |
+| --- | --- |
+| `.unique()` | Marks the field unique |
+| `.nullable()` | Makes the runtime output `T \| null` |
+| `.default(value)` | Stores a literal default |
+| `.defaultNow()` | Marks the field as generated from `now` |
+| `.references("model.field")` | Declares a foreign-key style reference |
+| `.map("column_name")` | Maps a field name to a different physical column name |
+| `.describe("...")` | Adds documentation metadata for the manifest/docs layer |
+
+## Relation helpers
+
+### `belongsTo`
+
+Use this when the current model holds the foreign key.
+
+```ts
+session: model({
+  table: "sessions",
+  fields: {
+    id: id(),
+    userId: string().references("user.id"),
+  },
+  relations: {
+    user: belongsTo("user", { foreignKey: "userId" }),
+  },
+});
+```
+
+### `hasOne`
+
+Use this when the target model stores a unique foreign key back to the current model.
 
 ```ts
 user: model({
   table: "users",
-  fields: {
-    id: id(),
-    email: string().unique().map("email_address"),
-    createdAt: datetime().defaultNow(),
+  fields: { id: id() },
+  relations: {
+    profile: hasOne("profile", { foreignKey: "userId" }),
   },
+});
+```
+
+### `hasMany`
+
+Use this when the target model stores a non-unique foreign key back to the current model.
+
+```ts
+user: model({
+  table: "users",
+  fields: { id: id() },
   relations: {
     sessions: hasMany("session", { foreignKey: "userId" }),
   },
 });
 ```
 
-## Why this matters
+### `manyToMany`
 
-The generators consume the low-level manifest details, while runtime helpers can consume the higher-level relationship graph. That means the same schema can power:
+Use this when you have a join model and want higher-level relation metadata.
 
-- Prisma schema generation
-- Drizzle table generation
-- safe SQL generation
-- demo and test fixtures
-- docs examples
+```ts
+organizations: manyToMany("organization", {
+  through: "membership",
+  from: "userId",
+  to: "organizationId",
+});
+```
 
-## Design rule
+In plain English:
 
-Keep the schema authoritative and keep backend-specific translation outside the library package whenever possible.
+- `through` is the join model
+- `from` is the join-table field pointing back to the current model
+- `to` is the join-table field pointing at the target model
+
+## Mapped names and why they matter
+
+This field:
+
+```ts
+email: string().unique().map("email_address")
+```
+
+means:
+
+- the logical field name is `email`
+- the physical column name is `email_address`
+- the typed client still uses `email`
+- generators output the mapped database name
+
+## What generators use vs. what runtime uses
+
+Today, it is important to separate two layers of value:
+
+- **Generators** primarily use field-level manifest data such as column names, defaults, uniqueness, and references
+- **Runtime helpers** can use relation metadata such as `hasMany(...)` and `manyToMany(...)`
+
+That means the current schema relation graph is already useful, but not every
+generator consumes every relation helper yet.
+
+## Manifest layer
+
+Internally, the schema is normalized into a manifest that contains:
+
+- model names and table names
+- field names and mapped columns
+- scalar kinds
+- nullability
+- uniqueness
+- generated/default values
+- references
+- descriptions
+
+That is the handoff point used by the code generators.
+
+## Design guidance
+
+- Keep model names logical and stable
+- Use `.map(...)` only when the physical database naming must differ
+- Prefer `references(...)` whenever a foreign-key relationship is real
+- Use relation helpers to express how the library thinks about the graph, not just how the database stores it
+- Keep backend-specific translation logic out of the library package whenever possible

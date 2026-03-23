@@ -1,0 +1,279 @@
+---
+title: "Query API"
+description: "Typed CRUD, nested select, filters, sorting, paging, and transactions."
+order: 1
+icon: code
+---
+
+# Query API
+
+The runtime API is model-based and fully typed from the schema.
+
+## Model clients
+
+Given:
+
+```ts
+const orm = createOrm({
+  schema: authSchema,
+  driver: createMemoryDriver(),
+});
+```
+
+you get model clients such as:
+
+```ts
+orm.user
+orm.profile
+orm.session
+orm.account
+```
+
+Each model client supports:
+
+- `findMany`
+- `findFirst`
+- `create`
+- `update`
+- `delete`
+
+## `findFirst`
+
+```ts
+const user = await orm.user.findFirst({
+  where: { email: "ada@farminglabs.dev" },
+  select: {
+    id: true,
+    email: true,
+  },
+});
+```
+
+Returns one typed record or `null`.
+
+## `findMany`
+
+```ts
+const sessions = await orm.session.findMany({
+  where: {
+    token: { contains: "session" },
+  },
+  orderBy: {
+    expiresAt: "desc",
+  },
+  take: 10,
+  skip: 0,
+  select: {
+    id: true,
+    token: true,
+    expiresAt: true,
+  },
+});
+```
+
+Returns an array of typed records.
+
+## `create`
+
+```ts
+const user = await orm.user.create({
+  data: {
+    name: "Grace Hopper",
+    email: "grace@farminglabs.dev",
+  },
+  select: {
+    id: true,
+    email: true,
+    createdAt: true,
+  },
+});
+```
+
+Generated/default fields are filled by the driver where supported. In the memory
+driver:
+
+- `id()` generates an id
+- `defaultNow()` uses `new Date()`
+- `.default(...)` applies the literal default value
+
+## `update`
+
+```ts
+const updated = await orm.user.update({
+  where: { email: "grace@farminglabs.dev" },
+  data: {
+    emailVerified: true,
+  },
+  select: {
+    id: true,
+    emailVerified: true,
+  },
+});
+```
+
+Returns the updated record or `null`.
+
+## `delete`
+
+```ts
+const deleted = await orm.session.delete({
+  where: { token: "session-token" },
+});
+```
+
+Returns the number of deleted rows.
+
+## `select` and type inference
+
+The `select` object is one of the most important parts of the runtime API.
+
+```ts
+const user = await orm.user.findFirst({
+  where: { email: "ada@farminglabs.dev" },
+  select: {
+    id: true,
+    name: true,
+    profile: {
+      select: {
+        bio: true,
+      },
+    },
+    sessions: {
+      select: {
+        token: true,
+      },
+    },
+  },
+});
+```
+
+That means the result type is narrowed to exactly the selected fields and
+relations.
+
+## Relation selection
+
+Relations can be selected with:
+
+- `true` for default scalar selection on the target
+- a nested object with `select`, `where`, `orderBy`, `take`, and `skip`
+
+### Example
+
+```ts
+const user = await orm.user.findFirst({
+  where: { email: "ada@farminglabs.dev" },
+  select: {
+    id: true,
+    sessions: {
+      where: {
+        token: { contains: "session" },
+      },
+      orderBy: {
+        expiresAt: "desc",
+      },
+      take: 5,
+      select: {
+        token: true,
+        expiresAt: true,
+      },
+    },
+  },
+});
+```
+
+## `where` filters
+
+### Shorthand equality
+
+```ts
+where: { email: "ada@farminglabs.dev" }
+```
+
+### Operator objects
+
+```ts
+where: {
+  email: { eq: "ada@farminglabs.dev" },
+  token: { contains: "session" },
+}
+```
+
+### Supported operators
+
+For strings:
+
+- `eq`
+- `contains`
+- `in`
+- `not`
+
+For comparable values such as strings and dates:
+
+- `eq`
+- `gt`
+- `gte`
+- `lt`
+- `lte`
+- `in`
+- `not`
+
+### Logical operators
+
+```ts
+where: {
+  AND: [{ emailVerified: true }],
+  OR: [
+    { name: { contains: "Ada" } },
+    { email: { contains: "@farminglabs.dev" } },
+  ],
+  NOT: { email: { contains: "@spam.test" } },
+}
+```
+
+## Sorting and paging
+
+```ts
+const users = await orm.user.findMany({
+  orderBy: {
+    createdAt: "desc",
+  },
+  skip: 20,
+  take: 20,
+});
+```
+
+## Transactions
+
+```ts
+await orm.transaction(async (tx) => {
+  const user = await tx.user.create({
+    data: {
+      name: "Linus",
+      email: "linus@farminglabs.dev",
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  await tx.profile.create({
+    data: {
+      userId: user.id,
+      bio: "Kernel and schema pragmatist.",
+    },
+  });
+});
+```
+
+## Design goals of the query API
+
+- model-first instead of stringly-typed command objects
+- typed `select` result narrowing
+- generic enough to support many driver implementations
+- simple enough to explain in library docs
+
+## Related pages
+
+- [Runtime overview](/docs/runtime)
+- [Memory driver](/docs/runtime/memory-driver)
+- [Schema relations](/docs/schema/relations)

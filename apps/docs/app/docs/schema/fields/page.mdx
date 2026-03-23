@@ -1,0 +1,151 @@
+---
+title: "Fields"
+description: "Field builders, defaults, mapping, nullability, uniqueness, and references."
+order: 1
+icon: braces
+---
+
+# Fields
+
+Field builders define the scalar shape of each model.
+
+## Scalar builders
+
+### `id()`
+
+```ts
+id: id()
+```
+
+- runtime output type: `string`
+- unique by default
+- generated as an id by default
+
+### `string()`
+
+```ts
+email: string()
+```
+
+- runtime output type: `string`
+
+### `boolean()`
+
+```ts
+emailVerified: boolean()
+```
+
+- runtime output type: `boolean`
+
+### `datetime()`
+
+```ts
+createdAt: datetime()
+```
+
+- runtime output type: `Date`
+
+## Field modifiers
+
+### `.unique()`
+
+```ts
+email: string().unique()
+```
+
+Marks the field as unique in the schema and generated outputs.
+
+### `.nullable()`
+
+```ts
+bio: string().nullable()
+```
+
+Changes the runtime output type from `string` to `string | null`.
+
+### `.default(...)`
+
+```ts
+role: string().default("member")
+```
+
+Stores a literal default value.
+
+### `.defaultNow()`
+
+```ts
+createdAt: datetime().defaultNow()
+```
+
+Marks the field as generated from the current time.
+
+### `.references("model.field")`
+
+```ts
+userId: string().references("user.id")
+```
+
+Adds foreign-key-style metadata that generators can translate.
+
+### `.map("column_name")`
+
+```ts
+email: string().map("email_address")
+```
+
+Keeps the logical API field name as `email` while generating the physical column
+name `email_address`.
+
+### `.describe("...")`
+
+```ts
+email: string().describe("Canonical login email")
+```
+
+Adds descriptive metadata to the manifest/docs layer.
+
+## Example model
+
+```ts
+user: model({
+  table: "users",
+  fields: {
+    id: id(),
+    email: string().unique().map("email_address"),
+    name: string(),
+    emailVerified: boolean().default(false),
+    createdAt: datetime().defaultNow(),
+    bio: string().nullable(),
+  },
+});
+```
+
+## What generators care about
+
+Field data is especially important because it drives:
+
+- Prisma field types
+- Drizzle column definitions
+- SQL column definitions
+- nullability
+- unique constraints
+- references
+- generated/default behavior
+
+## Mapping example
+
+```ts
+email: string().unique().map("email_address")
+```
+
+Logical side:
+
+- `user.email`
+
+Physical side:
+
+- `users.email_address`
+
+This is a big part of why the schema DSL is useful for reusable packages: the
+library can keep a stable logical field name even when the physical database
+surface needs a different name.

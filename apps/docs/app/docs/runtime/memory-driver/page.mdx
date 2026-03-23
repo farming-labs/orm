@@ -1,0 +1,129 @@
+---
+title: "Memory Driver"
+description: "The current live runtime driver for tests, demos, and docs examples."
+order: 2
+icon: boxes
+---
+
+# Memory Driver
+
+`createMemoryDriver(...)` is the runtime driver implemented in this repo today.
+
+It is ideal for:
+
+- tests
+- seeded demos
+- docs examples
+- validating the typed query API
+
+## Basic usage
+
+```ts
+import { createMemoryDriver, createOrm } from "@farming-labs/orm";
+import { authSchema } from "./schema";
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createMemoryDriver(),
+});
+```
+
+## Seeded usage
+
+```ts
+const orm = createOrm({
+  schema: authSchema,
+  driver: createMemoryDriver({
+    user: [
+      {
+        id: "user_1",
+        name: "Ada Lovelace",
+        email: "ada@farminglabs.dev",
+        emailVerified: true,
+        createdAt: new Date("2025-01-01T00:00:00.000Z"),
+        updatedAt: new Date("2025-01-01T00:00:00.000Z"),
+      },
+    ],
+    profile: [
+      {
+        id: "profile_1",
+        userId: "user_1",
+        bio: "Design once, ship to every storage layer.",
+      },
+    ],
+  }),
+});
+```
+
+## What it supports
+
+- model CRUD
+- generated/default field application
+- nested relation selection
+- filtering
+- sorting
+- paging
+- transaction rollback on thrown errors
+
+## How defaults work
+
+When you call `create(...)`, the memory driver will:
+
+- generate ids for `id()`
+- generate dates for `defaultNow()`
+- apply `.default(...)` values
+- keep provided values when you pass them explicitly
+
+## Example
+
+```ts
+const user = await orm.user.create({
+  data: {
+    name: "Grace Hopper",
+    email: "grace@farminglabs.dev",
+  },
+});
+```
+
+Even though `id` and timestamps are not passed above, the driver can still fill
+them when the schema marks them as generated/defaulted.
+
+## Relation support
+
+The memory driver already understands:
+
+- `belongsTo`
+- `hasOne`
+- `hasMany`
+- `manyToMany`
+
+That is why it is so useful as a reference driver for the runtime API.
+
+## Transaction behavior
+
+The memory driver snapshots its current state before `transaction(...)` runs.
+If the callback throws, it restores the snapshot.
+
+```ts
+await orm.transaction(async (tx) => {
+  await tx.user.create({
+    data: {
+      name: "Rollback Example",
+      email: "rollback@farminglabs.dev",
+    },
+  });
+
+  throw new Error("Abort");
+});
+```
+
+After the error, the transaction changes are rolled back.
+
+## What it is not meant for
+
+- production persistence
+- large-scale performance work
+- replacing a real database
+
+Its role is to make the query API concrete and testable while live drivers are
+still being layered in.

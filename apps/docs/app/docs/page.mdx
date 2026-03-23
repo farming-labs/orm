@@ -7,32 +7,105 @@ icon: book
 
 # Overview
 
-Farming Labs ORM is for reusable packages that want **one** storage-facing schema, **one** generation story, and **one** documentation home instead of maintaining separate adapters per ORM.
+Farming Labs ORM is built for packages and platforms that want one schema
+contract, one docs story, and one generation path instead of maintaining a
+different storage adapter for every ORM.
 
-**Quick links**
+## What this project is
 
-- [Getting started](/docs/getting-started) — define a schema, add `farm-orm.config.ts`, run `farm-orm generate`.
-- [Unified schema](/docs/schema) — models, fields, defaults, references, and relations in one DSL.
-- [CLI generation](/docs/cli) — how the CLI loads schemas and writes Prisma, Drizzle, and SQL.
-- [Use cases](/docs/use-cases) — auth kits, billing modules, internal platforms.
+- A schema DSL in `@farming-labs/orm`
+- A typed client surface built around `createOrm(...)`
+- A memory runtime driver that already supports nested relation selection
+- A generator CLI that writes Prisma, Drizzle, and safe SQL output
 
-## At a glance
+## What this project is not
 
-- **Core** — The schema is the contract shared by runtime, generators, docs, and examples.
-- **CLI** — Prisma, Drizzle, and safe SQL outputs come from the same source files.
-- **Workspace** — Docs build, tests, generation, and the demo flow stay aligned in one repo.
+- It is not a second full ORM with its own migrations, query planner, and SQL execution engine.
+- It does not yet ship live Prisma, Drizzle, or Kysely runtime drivers in this repo.
+- Higher-level relation helpers are currently most useful for runtime helpers and docs, not for current code generators.
+
+## Recommended reading order
+
+1. [Getting started](/docs/getting-started)
+2. [Unified schema](/docs/schema)
+3. [Runtime](/docs/runtime)
+4. [CLI generation](/docs/cli)
+5. [Use cases](/docs/use-cases)
+
+## End-to-end mental model
+
+```ts
+import { defineSchema, model, id, string } from "@farming-labs/orm";
+import { defineConfig } from "@farming-labs/orm-cli";
+
+export const authSchema = defineSchema({
+  user: model({
+    table: "users",
+    fields: {
+      id: id(),
+      email: string().unique(),
+      name: string(),
+    },
+  }),
+});
+
+export default defineConfig({
+  schemas: [authSchema],
+  targets: {
+    prisma: { out: "./generated/prisma/schema.prisma", provider: "postgresql" },
+    drizzle: { out: "./generated/drizzle/schema.ts", dialect: "pg" },
+    sql: { out: "./generated/sql/0001_init.sql", dialect: "postgres" },
+  },
+});
+```
+
+That same schema can then also drive the typed client surface:
+
+```ts
+import { createMemoryDriver, createOrm } from "@farming-labs/orm";
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createMemoryDriver(),
+});
+
+await orm.user.create({
+  data: {
+    email: "ada@farminglabs.dev",
+    name: "Ada",
+  },
+});
+```
 
 ## What ships today
 
-| Layer                   | Status  | Notes                                                           |
-| ----------------------- | ------- | --------------------------------------------------------------- |
-| `@farming-labs/orm`     | Live    | Schema DSL, manifest, generators, typed helpers, memory runtime |
-| `@farming-labs/orm-cli` | Live    | Loads schemas and generates target artifacts                    |
-| Prisma generation       | Live    | PostgreSQL, MySQL, and SQLite providers                         |
-| Drizzle generation      | Live    | `pg`, `mysql`, and `sqlite` dialects                            |
-| Safe SQL generation     | Live    | Forward-safe SQL for PostgreSQL, MySQL, and SQLite              |
-| Runtime driver packages | Planned | Prisma, Drizzle, Kysely, SQL, and Mongoose can layer on next    |
+| Layer | Status | Notes |
+| --- | --- | --- |
+| `@farming-labs/orm` | Live | Schema DSL, manifest, typed client, generators, memory runtime |
+| `@farming-labs/orm-cli` | Live | Loads schemas directly and writes target output |
+| Memory runtime | Live | Supports typed CRUD, nested relation selection, and transactions |
+| Prisma generation | Live | PostgreSQL, MySQL, and SQLite providers |
+| Drizzle generation | Live | `pg`, `mysql`, and `sqlite` dialects |
+| Safe SQL generation | Live | PostgreSQL, MySQL, and SQLite |
+| Runtime driver packages | Planned | Prisma, Drizzle, Kysely, SQL, and Mongoose are future layers |
+
+## Current architecture
+
+- The schema DSL defines models, fields, references, descriptions, and higher-level relation metadata.
+- The manifest layer turns that schema into normalized table and column information.
+- The generators consume manifest-level field data such as mapped column names, uniqueness, defaults, and references.
+- The memory driver consumes both field data and relation metadata so nested `select` queries work today.
+- The CLI merges multiple schema objects and refuses duplicate model names.
+
+## Where this fits best
+
+- Auth-like packages that want one storage contract and many consuming stacks
+- Billing and org kits that need reusable models and generated output
+- Internal platform modules shared across many apps or services
+- Greenfield teams that want a schema-first start without locking into one app-side ORM shape immediately
 
 ## Docs on this site
 
-The `/docs` route uses `@farming-labs/docs` with the pixel-border theme and a dark, minimal palette so navigation and content stay the focus.
+The `/docs` route runs on `@farming-labs/docs` with the pixel-border theme, but
+the content is grounded in this repo’s actual API surface and tests rather than
+aspirational examples.

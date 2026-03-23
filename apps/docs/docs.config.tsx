@@ -1,7 +1,21 @@
 import type { ReactNode } from "react";
 import { defineDocs } from "@farming-labs/docs";
 import { pixelBorder } from "@farming-labs/theme/pixel-border";
-import { BookOpen, Database, Rocket, Terminal, Users } from "lucide-react";
+import {
+  BookOpen,
+  Boxes,
+  Building2,
+  Code2,
+  CreditCard,
+  Database,
+  Braces,
+  Network,
+  Rocket,
+  Server,
+  ShieldCheck,
+  Terminal,
+  Users,
+} from "lucide-react";
 
 const icon = (node: ReactNode) => (
   <span className="flex size-4 shrink-0 items-center justify-center text-white/70 [&_svg]:size-4">
@@ -61,8 +75,16 @@ export default defineDocs({
     book: icon(<BookOpen strokeWidth={1.5} />),
     rocket: icon(<Rocket strokeWidth={1.5} />),
     database: icon(<Database strokeWidth={1.5} />),
+    braces: icon(<Braces strokeWidth={1.5} />),
+    network: icon(<Network strokeWidth={1.5} />),
+    server: icon(<Server strokeWidth={1.5} />),
+    boxes: icon(<Boxes strokeWidth={1.5} />),
+    code: icon(<Code2 strokeWidth={1.5} />),
     terminal: icon(<Terminal strokeWidth={1.5} />),
     users: icon(<Users strokeWidth={1.5} />),
+    shield: icon(<ShieldCheck strokeWidth={1.5} />),
+    card: icon(<CreditCard strokeWidth={1.5} />),
+    building: icon(<Building2 strokeWidth={1.5} />),
   },
   sidebar: {
     banner: (
@@ -78,6 +100,7 @@ export default defineDocs({
       <div className="docs-sidebar-footer">
         <a href="/">Home</a>
         <a href="/docs/getting-started">Setup</a>
+        <a href="/docs/runtime">Runtime</a>
         <a href="/docs/use-cases">Use cases</a>
       </div>
     ),

@@ -1,0 +1,205 @@
+---
+title: "Relations"
+description: "One-to-one, one-to-many, and many-to-many relation patterns."
+order: 2
+icon: network
+---
+
+# Relations
+
+Relations describe how models connect at the library level.
+
+In the current repo:
+
+- field references are already used heavily by generators
+- relation helpers are already used heavily by the runtime layer
+
+## Relation helpers
+
+- `belongsTo(target, { foreignKey })`
+- `hasOne(target, { foreignKey })`
+- `hasMany(target, { foreignKey })`
+- `manyToMany(target, { through, from, to })`
+
+## One-to-one
+
+One-to-one usually means:
+
+- one side stores a unique foreign key
+- the other side exposes a `hasOne(...)` relation
+
+### Example
+
+```ts
+user: model({
+  table: "users",
+  fields: {
+    id: id(),
+    email: string().unique(),
+  },
+  relations: {
+    profile: hasOne("profile", { foreignKey: "userId" }),
+  },
+});
+
+profile: model({
+  table: "profiles",
+  fields: {
+    id: id(),
+    userId: string().unique().references("user.id"),
+    bio: string().nullable(),
+  },
+  relations: {
+    user: belongsTo("user", { foreignKey: "userId" }),
+  },
+});
+```
+
+### Plain English
+
+- `profile.userId` points to `user.id`
+- each profile can only point to one user
+- because `profile.userId` is unique, each user can only have one profile
+
+## One-to-many
+
+One-to-many usually means:
+
+- many rows on the child side store the same foreign key
+- the parent exposes `hasMany(...)`
+- the child exposes `belongsTo(...)`
+
+### Example
+
+```ts
+user: model({
+  table: "users",
+  fields: {
+    id: id(),
+  },
+  relations: {
+    sessions: hasMany("session", { foreignKey: "userId" }),
+  },
+});
+
+session: model({
+  table: "sessions",
+  fields: {
+    id: id(),
+    userId: string().references("user.id"),
+    token: string().unique(),
+  },
+  relations: {
+    user: belongsTo("user", { foreignKey: "userId" }),
+  },
+});
+```
+
+### Plain English
+
+- many sessions can point to one user
+- each session belongs to exactly one user
+
+## Many-to-many
+
+Many-to-many uses a join model.
+
+### Example
+
+```ts
+user: model({
+  table: "users",
+  fields: {
+    id: id(),
+  },
+  relations: {
+    organizations: manyToMany("organization", {
+      through: "membership",
+      from: "userId",
+      to: "organizationId",
+    }),
+  },
+});
+
+organization: model({
+  table: "organizations",
+  fields: {
+    id: id(),
+    name: string(),
+  },
+});
+
+membership: model({
+  table: "memberships",
+  fields: {
+    id: id(),
+    userId: string().references("user.id"),
+    organizationId: string().references("organization.id"),
+    role: string(),
+  },
+});
+```
+
+### What `through`, `from`, and `to` mean
+
+For this relation:
+
+```ts
+organizations: manyToMany("organization", {
+  through: "membership",
+  from: "userId",
+  to: "organizationId",
+})
+```
+
+the relation is read from the perspective of the current model, `user`:
+
+- `through: "membership"` means the join model is `membership`
+- `from: "userId"` means `membership.userId` points back to the current model
+- `to: "organizationId"` means `membership.organizationId` points to the target model
+
+That is why the reverse side would swap them.
+
+## Runtime selection examples
+
+### One-to-one
+
+```ts
+const user = await orm.user.findFirst({
+  where: { email: "ada@farminglabs.dev" },
+  select: {
+    id: true,
+    profile: {
+      select: {
+        bio: true,
+      },
+    },
+  },
+});
+```
+
+### One-to-many
+
+```ts
+const user = await orm.user.findFirst({
+  where: { email: "ada@farminglabs.dev" },
+  select: {
+    id: true,
+    sessions: {
+      select: {
+        token: true,
+      },
+      take: 5,
+    },
+  },
+});
+```
+
+## Current generator note
+
+At the moment, relation helpers are most fully realized in the runtime layer.
+Generators already rely on field references, but they do not yet exhaustively
+translate every higher-level relation helper into ORM-native relation DSL.
+
+That is a normal stage for this repo right now and part of why the current docs
+separate runtime explanations from generator explanations.

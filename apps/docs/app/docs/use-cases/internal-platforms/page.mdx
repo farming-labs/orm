@@ -1,0 +1,82 @@
+---
+title: "Internal Platforms"
+description: "Shared schema packages for organizations, permissions, and platform modules."
+order: 3
+icon: building
+---
+
+# Internal Platforms
+
+Internal platform teams often own models that many product teams consume.
+
+## Common platform-owned domains
+
+- organizations
+- memberships
+- roles
+- permissions
+- audit logs
+- feature flags
+- environment metadata
+
+## Why a shared schema helps
+
+Without a shared contract, every product team tends to drift:
+
+- different table names
+- different field names
+- different docs examples
+- different migration patterns
+
+## Platform package example
+
+```ts
+export const orgSchema = defineSchema({
+  organization: model({
+    table: "organizations",
+    fields: {
+      id: id(),
+      slug: string().unique(),
+      name: string(),
+      createdAt: datetime().defaultNow(),
+    },
+  }),
+  membership: model({
+    table: "memberships",
+    fields: {
+      id: id(),
+      userId: string(),
+      organizationId: string().references("organization.id"),
+      role: string().default("member"),
+    },
+  }),
+});
+```
+
+## Multi-package generation
+
+```ts
+import { defineConfig } from "@farming-labs/orm-cli";
+import { authSchema } from "@acme/auth";
+import { billingSchema } from "@acme/billing";
+import { orgSchema } from "@acme/org";
+
+export default defineConfig({
+  schemas: [authSchema, billingSchema, orgSchema],
+  targets: {
+    prisma: {
+      out: "./generated/prisma/schema.prisma",
+      provider: "postgresql",
+    },
+  },
+});
+```
+
+## Why platform teams care
+
+- one place to evolve shared models
+- one set of docs examples
+- fewer app-specific reinterpretations
+- cleaner onboarding for product teams
+
+This is one of the highest-leverage uses of the project in a monorepo.

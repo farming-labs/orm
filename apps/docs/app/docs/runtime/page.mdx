@@ -1,0 +1,132 @@
+---
+title: "Runtime"
+description: "What runtime means in Farming Labs ORM and how it differs from generation."
+order: 4
+icon: server
+---
+
+# Runtime
+
+In Farming Labs ORM, **runtime** means the part of the system that executes the
+typed query API against a driver.
+
+That is different from:
+
+- **schema authoring**, which defines the contract
+- **generation**, which emits Prisma, Drizzle, or SQL files
+
+## Short version
+
+- `defineSchema(...)` describes the data model
+- `createOrm(...)` creates the typed runtime client
+- a driver implements how queries actually run
+
+## What runtime is responsible for
+
+- typed model clients like `orm.user`
+- CRUD methods like `findFirst`, `findMany`, `create`, `update`, and `delete`
+- nested relation selection
+- transaction boundaries
+- returning typed results based on the `select` object
+
+## What runtime is not responsible for
+
+- generating Prisma or Drizzle files
+- deciding physical column names by itself
+- owning a second source of truth for schema semantics
+
+## Current runtime implementation in this repo
+
+Today, the implemented runtime driver is:
+
+- `createMemoryDriver(...)`
+
+That makes the runtime layer already useful for:
+
+- docs examples
+- tests
+- seeded demos
+- validating the query API shape before live drivers are added
+
+## The runtime shape
+
+```ts
+import { createMemoryDriver, createOrm } from "@farming-labs/orm";
+import { authSchema } from "./schema";
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createMemoryDriver(),
+});
+```
+
+That creates model clients from the schema:
+
+```ts
+orm.user.findFirst(...)
+orm.user.findMany(...)
+orm.user.create(...)
+orm.user.update(...)
+orm.user.delete(...)
+orm.transaction(...)
+```
+
+## Why the runtime matters
+
+The runtime is where a library package can expose one storage-facing API
+without forcing every consumer to think in raw generated artifacts.
+
+For example, an auth package can write one helper like:
+
+```ts
+async function findUserByEmail(orm: typeof authOrm, email: string) {
+  return orm.user.findFirst({
+    where: { email },
+    select: {
+      id: true,
+      email: true,
+      sessions: {
+        select: { token: true },
+      },
+    },
+  });
+}
+```
+
+That helper stays stable even as the app-side generation target changes.
+
+## Drivers
+
+A driver implements this kind of work:
+
+- execute `findMany`
+- execute `findFirst`
+- execute `create`
+- execute `update`
+- execute `delete`
+- run `transaction`
+
+The driver contract lives inside `@farming-labs/orm`, and `createOrm(...)`
+wraps that driver into typed model clients.
+
+## Current and future runtime story
+
+### Implemented now
+
+- `createMemoryDriver(...)`
+
+### Planned next
+
+- Prisma runtime package
+- Drizzle runtime package
+- Kysely runtime package
+- SQL runtime package
+
+The important design constraint is that those future drivers should plug into
+the same typed runtime contract instead of redefining the API from scratch.
+
+## Continue reading
+
+- [Query API](/docs/runtime/query-api)
+- [Memory driver](/docs/runtime/memory-driver)
+- [Schema relations](/docs/schema/relations)
