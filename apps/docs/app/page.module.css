@@ -1,7 +1,9 @@
 .page {
+  --color-hero-rule: rgba(255, 255, 255, 0.12);
   position: relative;
   min-height: 100vh;
-  overflow: clip;
+  overflow-x: clip;
+  overflow-y: visible;
   padding: 0 0 104px;
   background: #050507;
   color: #f8fafc;
@@ -22,6 +24,7 @@
   position: relative;
   z-index: 1;
   width: min(1380px, 100%);
+  max-width: 100%;
   margin: 0 auto;
 }
 
@@ -90,7 +93,7 @@
   z-index: 1;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   justify-content: center;
   width: 100%;
   min-height: 100svh;
@@ -101,14 +104,42 @@
     0 30px 80px rgba(0, 0, 0, 0.28);
 }
 
-.heroColumn {
+.heroContent {
   position: relative;
   z-index: 2;
   display: flex;
   flex-direction: column;
   gap: 20px;
   width: 100%;
-  max-width: min(72rem, 100%);
+  max-width: min(32rem, 100%);
+  align-self: flex-start;
+}
+
+.heroDivider {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: 100vw;
+  max-width: 100vw;
+  height: 1px;
+  margin-top: 1rem;
+  margin-bottom: 0;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  border: 0;
+  background: var(--color-hero-rule);
+  flex-shrink: 0;
+}
+
+.heroFeatureStrip {
+  position: relative;
+  z-index: 2;
+  width: 100vw;
+  max-width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  padding: 20px clamp(20px, 6vw, 72px) 0;
+  box-sizing: border-box;
 }
 
 .heroHead {
@@ -119,12 +150,12 @@
 }
 
 .heroFeatureBox {
-  margin-top: 6px;
   width: 100%;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1px;
   border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: none;
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -278,6 +309,18 @@
   padding-top: 104px;
 }
 
+.sectionAfterHero::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
+  height: 1px;
+  background: var(--color-hero-rule);
+  pointer-events: none;
+}
+
 .sectionIntro {
   display: grid;
   gap: 16px;
@@ -294,6 +337,7 @@
 
 .platformGrid {
   display: grid;
+  width: 100%;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
 }

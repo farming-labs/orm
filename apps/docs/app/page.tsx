@@ -2,6 +2,7 @@ import Link from "next/link";
 import BeamBackground from "@/components/ui/beam-background";
 import { PatternText } from "@/components/ui/pattern-text";
 import styles from "./page.module.css";
+import { cn } from "@/lib/utils";
 
 const platformCards = [
   {
@@ -89,7 +90,7 @@ export default function HomePage() {
         </div>
         <div className={styles.heroScrim} />
 
-        <div className={styles.heroColumn}>
+        <div className={styles.heroContent}>
           <div className={styles.heroHead}>
             <h1 className={styles.heroPatternTitle}>
               <PatternText
@@ -117,7 +118,11 @@ export default function HomePage() {
               </Link>
             </div>
           </div>
+        </div>
 
+        <hr className={styles.heroDivider} aria-hidden />
+
+        <div className={cn(styles.heroFeatureStrip , "-mt-5")}>
           <div className={styles.heroFeatureBox} aria-label="Features">
             {featureCards.map((card) => (
               <div key={card.title} className={styles.heroFeatureRow}>
@@ -129,7 +134,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="platform" className={styles.section}>
+      <section id="platform" className={`${styles.section} ${styles.sectionAfterHero}`}>
         <div className={styles.sectionIntro}>
           <span className={styles.kicker}>Platform</span>
           <h2 className={styles.sectionTitle}>

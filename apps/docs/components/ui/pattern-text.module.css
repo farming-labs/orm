@@ -13,19 +13,19 @@
 .fgLayer {
   position: relative;
   z-index: 1;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--color-pattern-fg, #f8fafc);
   text-shadow:
-    0.02em 0.02em 0 var(--color-pattern-bg, #050505),
-    0.03em 0.03em 0 var(--color-pattern-bg, #050505);
+    0.015em 0.015em 0 var(--color-pattern-bg, #050505),
+    0.02em 0.02em 0 var(--color-pattern-bg, #050505);
 }
 
 .fxLayer {
   position: absolute;
-  left: 0.12em;
-  top: 0.1em;
+  left: 0.04em;
+  top: 0.035em;
   z-index: 0;
-  font-weight: 700;
+  font-weight: 500;
   white-space: nowrap;
   color: transparent;
   pointer-events: none;
@@ -33,8 +33,8 @@
   background-image: linear-gradient(
     45deg,
     transparent 42%,
-    color-mix(in srgb, var(--color-pattern-fg, #f8fafc) 75%, transparent) 45%,
-    color-mix(in srgb, var(--color-pattern-fg, #f8fafc) 75%, transparent) 55%,
+    color-mix(in srgb, var(--color-pattern-fg, #f8fafc) 32%, transparent) 45%,
+    color-mix(in srgb, var(--color-pattern-fg, #f8fafc) 32%, transparent) 55%,
     transparent 58%
   );
   background-size: 0.12em 0.12em;
