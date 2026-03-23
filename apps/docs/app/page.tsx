@@ -54,24 +54,28 @@ const platformCards = [
   },
 ];
 
-const featureCards = [
+const heroFeatureCards = [
   {
-    title: "Schema as the interface",
-    body: "Treat the schema as the stable contract your library exposes to apps, runtimes, and generators.",
+    title: "Schema & relations",
+    body: "Model fields, references, and defaults in one TypeScript contract your app and generators both read from.",
+    href: "/docs/schema",
   },
   {
-    title: "Generator-first workflow",
-    body: "Point the CLI at exported schemas and emit target-specific artifacts without maintaining a parallel hand-written setup.",
+    title: "CLI: prisma, drizzle, sql",
+    body: "One config points at your schemas; the CLI writes Prisma, Drizzle, or SQL files so teams keep their usual stack.",
+    href: "/docs/cli",
   },
   {
-    title: "Runtime packages next",
-    body: "Keep the contract clean now so Prisma, Drizzle, Kysely, SQL, and Mongoose packages can layer in later without redesign.",
+    title: "Install & wire up",
+    body: "Add the packages, drop a farm-orm config, and map each target to an output path—docs walk the full setup.",
+    href: "/docs/getting-started",
   },
   {
-    title: "Honest support matrix",
-    body: "This repo stays explicit about what is already live and what is still planned, even as the product surface gets sharper.",
+    title: "Who it’s for",
+    body: "Auth and billing libraries, internal platforms, and any kit that needs one schema story across many ORMs.",
+    href: "/docs/use-cases",
   },
-];
+] as const;
 
 const useCases = [
   {
@@ -187,14 +191,21 @@ export default function HomePage() {
             )}
             aria-label="Features"
           >
-            {featureCards.map((card) => (
-              <div
-                key={card.title}
-                className="flex min-h-[min(11rem,28vw)] min-w-0 flex-col justify-center bg-[rgba(10,10,12,0.92)] px-5 py-7 max-md:min-h-0 max-md:py-6"
+            {heroFeatureCards.map((card) => (
+              <Link
+                key={card.href}
+                href={card.href}
+                className={cn(
+                  "group flex min-h-[min(11rem,28vw)] min-w-0 flex-col justify-center bg-[rgba(10,10,12,0.92)] px-5 py-7 transition-colors duration-150",
+                  "hover:bg-[rgba(14,14,16,0.96)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white/35",
+                  "max-md:min-h-0 max-md:py-6",
+                )}
               >
                 <h3
                   className={cn(
                     "mb-2 mt-0 font-mono text-[clamp(0.78rem,1.15vw,0.9rem)] font-medium uppercase leading-snug tracking-[0.06em] text-slate-200",
+                    "no-underline decoration-dotted underline-offset-[5px] transition-[text-decoration-color] duration-150",
+                    "group-hover:underline group-hover:decoration-dotted group-focus-visible:underline group-focus-visible:decoration-dotted",
                   )}
                 >
                   {card.title}
@@ -206,7 +217,7 @@ export default function HomePage() {
                 >
                   {card.body}
                 </p>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
