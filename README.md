@@ -7,16 +7,6 @@
 - `apps/demo` - working auth-shaped schema and generated output example
 - `apps/docs` - landing page and docs site for `docs.farming-labs.dev`
 
-## Commands
-
-```bash
-pnpm install
-pnpm build
-pnpm test
-pnpm dev:docs
-pnpm dev:demo
-```
-
 ## Demo CLI
 
 ```bash
