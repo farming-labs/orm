@@ -1,5 +1,6 @@
 import Link from "next/link";
 import BeamBackground from "@/components/ui/beam-background";
+import { PatternText } from "@/components/ui/pattern-text";
 import styles from "./page.module.css";
 
 const platformCards = [
@@ -89,23 +90,32 @@ export default function HomePage() {
         <div className={styles.heroScrim} />
 
         <div className={styles.heroColumn}>
-          <h1 className={styles.heroTitle}>
-            One schema.
-            <br />
-            Many outputs.
-          </h1>
-          <p className="text-white/70 text-lg tracking-tight font-light font-mono uppercase">
-            Define the data model once, then generate the storage layer each
-            app stack wants along with built-in cli.
-          </p>
+          <div className={styles.heroHead}>
+            <h1 className={styles.heroPatternTitle}>
+              <PatternText
+                as="span"
+                text="One schema."
+                className="block text-[clamp(2.25rem,6vw,4.75rem)]! tracking-[-0.08em]"
+              />
+              <PatternText
+                as="span"
+                text="Many outputs."
+                className="block text-[clamp(2.25rem,6vw,4.75rem)]! tracking-[-0.08em]"
+              />
+            </h1>
+            <p className="text-white/70 text-lg tracking-tight font-light font-mono uppercase">
+              Define the data model once, then generate the storage layer each
+              app stack wants along with built-in cli.
+            </p>
 
-          <div className={styles.heroActions}>
-            <Link href="/docs" className={styles.primaryButton}>
-              Explore the docs
-            </Link>
-            <Link href="/docs/getting-started" className={styles.secondaryButton}>
-              Start here
-            </Link>
+            <div className={styles.heroActions}>
+              <Link href="/docs" className={styles.primaryButton}>
+                Explore the docs
+              </Link>
+              <Link href="/docs/getting-started" className={styles.secondaryButton}>
+                Start here
+              </Link>
+            </div>
           </div>
 
           <div className={styles.heroFeatureBox} aria-label="Features">

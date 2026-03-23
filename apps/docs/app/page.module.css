@@ -86,7 +86,7 @@
 .hero {
   position: relative;
   isolation: isolate;
-  overflow: hidden;
+  overflow: visible;
   z-index: 1;
   display: flex;
   flex-direction: column;
@@ -106,16 +106,26 @@
   z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   width: 100%;
+  max-width: min(72rem, 100%);
+}
+
+.heroHead {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   max-width: min(32rem, 100%);
 }
 
 .heroFeatureBox {
   margin-top: 6px;
   width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(10, 10, 12, 0.82);
+  background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   box-shadow:
@@ -124,26 +134,35 @@
 }
 
 .heroFeatureRow {
-  padding: 16px 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.heroFeatureRow:last-child {
-  border-bottom: 0;
+  min-width: 0;
+  padding: 14px 12px;
+  background: rgba(10, 10, 12, 0.92);
 }
 
 .heroFeatureTitle {
-  margin: 0 0 8px;
-  font-size: 1.02rem;
+  margin: 0 0 6px;
+  font-size: clamp(0.82rem, 1.1vw, 0.95rem);
   line-height: 1.25;
   letter-spacing: -0.03em;
 }
 
 .heroFeatureBody {
   margin: 0;
-  font-size: 0.88rem;
-  line-height: 1.65;
+  font-size: clamp(0.72rem, 0.95vw, 0.82rem);
+  line-height: 1.55;
   color: rgba(226, 232, 240, 0.76);
+}
+
+@media (max-width: 960px) {
+  .heroFeatureBox {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .heroFeatureBox {
+    grid-template-columns: 1fr;
+  }
 }
 
 .heroBackground,
@@ -193,11 +212,13 @@
   letter-spacing: 0.04em;
 }
 
-.heroTitle {
-  margin: 0;
-  font-size: clamp(3rem, 6vw, 5rem);
-  line-height: 0.94;
-  letter-spacing: -0.08em;
+.heroPatternTitle {
+  margin: 0 0 0.2em;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.12em;
+  line-height: 1.05;
   text-wrap: balance;
 }
 
@@ -471,10 +492,6 @@
   .hero {
     min-height: 100svh;
     padding: 112px 20px 64px;
-  }
-
-  .heroTitle {
-    font-size: clamp(2.5rem, 14vw, 4rem);
   }
 
   .supportRow,

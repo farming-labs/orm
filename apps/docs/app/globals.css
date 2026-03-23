@@ -5,11 +5,23 @@
 @theme {
   --font-sans: var(--app-font-heading), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--app-font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --animate-shadanim: shadanim 15s linear infinite;
 }
 
 :root {
   --fd-font-sans: var(--app-font-heading), ui-sans-serif, system-ui, sans-serif;
   --fd-font-mono: var(--app-font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --color-pattern-bg: #050505;
+  --color-pattern-fg: #f8fafc;
+}
+
+@keyframes shadanim {
+  0% {
+    background-position: 100% -100%;
+  }
+  100% {
+    background-position: -100% 100%;
+  }
 }
 
 html,
