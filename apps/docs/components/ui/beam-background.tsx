@@ -1,19 +1,7 @@
 "use client";
 
-import {
-  forwardRef,
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-  type ReactNode,
-} from "react";
-import {
-  Canvas,
-  useFrame,
-  useThree,
-  type ThreeElements,
-} from "@react-three/fiber";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, type ReactNode } from "react";
+import { Canvas, useFrame, useThree, type ThreeElements } from "@react-three/fiber";
 import { Environment, PerspectiveCamera } from "@react-three/drei";
 import * as THREE from "three";
 
@@ -86,19 +74,12 @@ float cnoise(vec3 P){
 }`;
 
 const extendMaterial = (
-  BaseMaterial: new (
-    params?: THREE.MeshStandardMaterialParameters,
-  ) => THREE.MeshStandardMaterial,
+  BaseMaterial: new (params?: THREE.MeshStandardMaterialParameters) => THREE.MeshStandardMaterial,
   cfg: MaterialConfig,
 ) => {
   const physical = THREE.ShaderLib.physical;
-  const {
-    vertexShader: baseVert,
-    fragmentShader: baseFrag,
-    uniforms: baseUniforms,
-  } = physical;
-  const baseDefines =
-    (physical as { defines?: Record<string, unknown> }).defines ?? {};
+  const { vertexShader: baseVert, fragmentShader: baseFrag, uniforms: baseUniforms } = physical;
+  const baseDefines = (physical as { defines?: Record<string, unknown> }).defines ?? {};
   const uniforms = THREE.UniformsUtils.clone(baseUniforms);
   const defaults = new BaseMaterial(cfg.material || {});
 
@@ -112,9 +93,7 @@ const extendMaterial = (
 
   for (const [key, uniformValue] of Object.entries(cfg.uniforms ?? {})) {
     uniforms[key] =
-      uniformValue !== null &&
-      typeof uniformValue === "object" &&
-      "value" in uniformValue
+      uniformValue !== null && typeof uniformValue === "object" && "value" in uniformValue
         ? (uniformValue as THREE.IUniform)
         : { value: uniformValue };
   }
@@ -181,10 +160,7 @@ const createStackedPlanesBufferGeometry = (
       positions.set([...v0, ...v1], vertexOffset * 3);
 
       const uvY = segmentIndex / heightSegments;
-      uvs.set(
-        [uvXOffset, uvY + uvYOffset, uvXOffset + 1, uvY + uvYOffset],
-        uvOffset,
-      );
+      uvs.set([uvXOffset, uvY + uvYOffset, uvXOffset + 1, uvY + uvYOffset], uvOffset);
 
       if (segmentIndex < heightSegments) {
         const a = vertexOffset;
@@ -208,18 +184,12 @@ const createStackedPlanesBufferGeometry = (
 };
 
 const CanvasWrapper = ({ children }: { children: ReactNode }) => (
-  <Canvas
-    dpr={[1, 2]}
-    frameloop="always"
-    className="absolute inset-0 h-full w-full"
-  >
+  <Canvas dpr={[1, 2]} frameloop="always" className="absolute inset-0 h-full w-full">
     {children}
   </Canvas>
 );
 
-const DirectionalBeamLight = (
-  props: ThreeElements["directionalLight"] & { color: string },
-) => {
+const DirectionalBeamLight = (props: ThreeElements["directionalLight"] & { color: string }) => {
   const lightRef = useRef<THREE.DirectionalLight>(null!);
 
   useEffect(() => {
@@ -244,9 +214,7 @@ interface NoisePlanesProps {
 
 const NoisePlanes = forwardRef<THREE.Mesh, NoisePlanesProps>(
   ({ material, width, count, height }, ref) => {
-    const meshRef = useRef<
-      THREE.Mesh<THREE.BufferGeometry, THREE.ShaderMaterial> | null
-    >(null);
+    const meshRef = useRef<THREE.Mesh<THREE.BufferGeometry, THREE.ShaderMaterial> | null>(null);
 
     useImperativeHandle(ref, () => meshRef.current as THREE.Mesh);
 
@@ -260,14 +228,7 @@ const NoisePlanes = forwardRef<THREE.Mesh, NoisePlanesProps>(
       meshRef.current.material.uniforms.time.value += 0.1 * delta;
     });
 
-    return (
-      <mesh
-        ref={meshRef}
-        geometry={geometry}
-        material={material}
-        position={[0, 0, 0]}
-      />
-    );
+    return <mesh ref={meshRef} geometry={geometry} material={material} position={[0, 0, 0]} />;
   },
 );
 
@@ -352,10 +313,8 @@ export default function BeamBackground({
             return normalize(cross(tangentZ, tangentX));
           }`,
         vertex: {
-          "#include <begin_vertex>":
-            "transformed.z += getPos(transformed.xyz);",
-          "#include <beginnormal_vertex>":
-            "objectNormal = getNormal(position.xyz);",
+          "#include <begin_vertex>": "transformed.z += getPos(transformed.xyz);",
+          "#include <beginnormal_vertex>": "objectNormal = getNormal(position.xyz);",
         },
         fragment: {
           "#include <dithering_fragment>": `
@@ -381,10 +340,7 @@ export default function BeamBackground({
     <div className="absolute inset-0 opacity-25">
       <CanvasWrapper>
         <MouseInteraction>
-          <group
-            rotation={[0, 0, THREE.MathUtils.degToRad(rotation)]}
-            position={[0, 0, 0]}
-          >
+          <group rotation={[0, 0, THREE.MathUtils.degToRad(rotation)]} position={[0, 0, 0]}>
             <NoisePlanes
               material={beamMaterial}
               count={validBeamNumber}

@@ -27,39 +27,44 @@ export type SchemaManifest = {
 };
 
 export function createManifest<
-  TSchema extends SchemaDefinition<Record<string, AnyModelDefinition>>
+  TSchema extends SchemaDefinition<Record<string, AnyModelDefinition>>,
 >(schema: TSchema): SchemaManifest {
   const models = Object.fromEntries(
     (Object.entries(schema.models) as Array<[string, AnyModelDefinition]>).map(
       ([name, definition]) => {
-      const fields = Object.fromEntries(
-        (Object.entries(definition.fields) as Array<[string, AnyModelDefinition["fields"][string]]>).map(([fieldName, field]) => [
-          fieldName,
-          {
-            name: fieldName,
-            column: field.config.mappedName ?? fieldName,
-            kind: field.config.kind,
-            nullable: field.config.nullable,
-            unique: field.config.unique,
-            generated: field.config.generated,
-            defaultValue: field.config.defaultValue,
-            references: field.config.references,
-            description: field.config.description,
-          } satisfies ManifestField,
-        ]),
-      );
+        const fields = Object.fromEntries(
+          (
+            Object.entries(definition.fields) as Array<
+              [string, AnyModelDefinition["fields"][string]]
+            >
+          ).map(([fieldName, field]) => [
+            fieldName,
+            {
+              name: fieldName,
+              column: field.config.mappedName ?? fieldName,
+              kind: field.config.kind,
+              nullable: field.config.nullable,
+              unique: field.config.unique,
+              generated: field.config.generated,
+              defaultValue: field.config.defaultValue,
+              references: field.config.references,
+              description: field.config.description,
+            } satisfies ManifestField,
+          ]),
+        );
 
-      return [
-        name,
-        {
+        return [
           name,
-          table: definition.table,
-          description: definition.description,
-          fields,
-          relations: definition.relations,
-        } satisfies ManifestModel,
-      ];
-    }),
+          {
+            name,
+            table: definition.table,
+            description: definition.description,
+            fields,
+            relations: definition.relations,
+          } satisfies ManifestModel,
+        ];
+      },
+    ),
   );
 
   return { models };

@@ -63,11 +63,7 @@ function drizzleImports(dialect: DrizzleGenerationOptions["dialect"], manifest: 
     ].filter(Boolean);
   }
 
-  return [
-    "sqliteTable",
-    "text",
-    "integer",
-  ];
+  return ["sqliteTable", "text", "integer"];
 }
 
 function drizzleColumn(field: ManifestField, dialect: DrizzleGenerationOptions["dialect"]) {
@@ -80,7 +76,10 @@ function drizzleColumn(field: ManifestField, dialect: DrizzleGenerationOptions["
 
   if (field.kind === "string") {
     if (dialect === "mysql") {
-      const base = field.unique || field.references ? `varchar("${field.column}", { length: 191 })` : `text("${field.column}")`;
+      const base =
+        field.unique || field.references
+          ? `varchar("${field.column}", { length: 191 })`
+          : `text("${field.column}")`;
       return `${base}${field.nullable ? "" : ".notNull()"}${field.unique ? ".unique()" : ""}${
         field.defaultValue !== undefined ? `.default(${JSON.stringify(field.defaultValue)})` : ""
       }`;
@@ -161,7 +160,7 @@ export function renderPrismaSchema(
       const fieldType = prismaType(field);
       const modifiers: string[] = [];
       if (field.kind === "id") modifiers.push("@id");
-      if (field.generated === "id") modifiers.push('@default(cuid())');
+      if (field.generated === "id") modifiers.push("@default(cuid())");
       if (field.generated === "now") modifiers.push("@default(now())");
       if (field.defaultValue !== undefined && field.generated === undefined) {
         modifiers.push(
@@ -197,10 +196,12 @@ export function renderPrismaSchema(
     return `model ${modelName} {\n${lines.join("\n")}${mapLine}\n}`;
   });
 
-  return `generator ${generatorName} {\n  provider = "prisma-client-js"\n}\n\n` +
+  return (
+    `generator ${generatorName} {\n  provider = "prisma-client-js"\n}\n\n` +
     `datasource ${datasourceName} {\n  provider = "${provider}"\n  url      = ${
       provider === "sqlite" ? '"file:./dev.db"' : 'env("DATABASE_URL")'
-    }\n}\n\n${blocks.join("\n\n")}\n`;
+    }\n}\n\n${blocks.join("\n\n")}\n`
+  );
 }
 
 export function renderDrizzleSchema(
@@ -269,11 +270,7 @@ export function renderSafeSql(schema: SchemaDefinition<any>, options: SqlGenerat
   return `${statements.join("\n\n")}\n`;
 }
 
-export function replaceGeneratedBlock(input: {
-  current: string;
-  label: string;
-  content: string;
-}) {
+export function replaceGeneratedBlock(input: { current: string; label: string; content: string }) {
   const start = `// @farming-labs/orm:start:${input.label}`;
   const end = `// @farming-labs/orm:end:${input.label}`;
   const block = `${start}\n${input.content.trim()}\n${end}`;

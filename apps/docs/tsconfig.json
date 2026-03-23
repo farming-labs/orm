@@ -6,9 +6,7 @@
     "allowJs": false,
     "incremental": true,
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"]
     },
     "plugins": [
       {
@@ -18,13 +16,6 @@
     "noEmit": true,
     "isolatedModules": true
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    "**/*.mdx",
-    ".next/types/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["**/*.ts", "**/*.tsx", "**/*.mdx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
 }

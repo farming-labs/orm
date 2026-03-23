@@ -54,8 +54,8 @@ export default defineDocs({
       <div className="docs-sidebar-banner">
         <strong>Source of truth</strong>
         <p>
-          Define the schema once in <code>@farming-labs/orm</code>, then let
-          generation and docs orbit the same contract.
+          Define the schema once in <code>@farming-labs/orm</code>, then let generation and docs
+          orbit the same contract.
         </p>
       </div>
     ),

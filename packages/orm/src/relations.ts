@@ -2,7 +2,7 @@ export type RelationKind = "belongsTo" | "hasOne" | "hasMany" | "manyToMany";
 
 export type RelationDefinition<
   Target extends string = string,
-  Kind extends RelationKind = RelationKind
+  Kind extends RelationKind = RelationKind,
 > = Kind extends "manyToMany"
   ? {
       kind: Kind;
@@ -19,10 +19,7 @@ export type RelationDefinition<
 
 export type AnyRelation = RelationDefinition<string, RelationKind>;
 
-export function belongsTo<Target extends string>(
-  target: Target,
-  config: { foreignKey: string },
-) {
+export function belongsTo<Target extends string>(target: Target, config: { foreignKey: string }) {
   return {
     kind: "belongsTo",
     target,
@@ -30,10 +27,7 @@ export function belongsTo<Target extends string>(
   } satisfies RelationDefinition<Target, "belongsTo">;
 }
 
-export function hasOne<Target extends string>(
-  target: Target,
-  config: { foreignKey: string },
-) {
+export function hasOne<Target extends string>(target: Target, config: { foreignKey: string }) {
   return {
     kind: "hasOne",
     target,
@@ -41,10 +35,7 @@ export function hasOne<Target extends string>(
   } satisfies RelationDefinition<Target, "hasOne">;
 }
 
-export function hasMany<Target extends string>(
-  target: Target,
-  config: { foreignKey: string },
-) {
+export function hasMany<Target extends string>(target: Target, config: { foreignKey: string }) {
   return {
     kind: "hasMany",
     target,

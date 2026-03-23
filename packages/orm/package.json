@@ -1,6 +1,9 @@
 {
   "name": "@farming-labs/orm",
   "version": "0.1.0",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -12,9 +15,6 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "tsx ./scripts/build.ts",
     "test": "vitest run",

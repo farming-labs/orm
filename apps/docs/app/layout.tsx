@@ -20,9 +20,7 @@ export const metadata: Metadata = {
     "Unified schema, typed runtime, and generator-first tooling for Prisma, Drizzle, and safe SQL.",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${heading.className} ${heading.variable} ${mono.variable}`}>

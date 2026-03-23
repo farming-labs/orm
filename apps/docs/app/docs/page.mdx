@@ -51,7 +51,9 @@ order: 1
   </article>
   <article className="docs-overview-stat">
     <strong>1 consistent docs system</strong>
-    <p>The docs route stays on <code>@farming-labs/docs</code> with the pixel-border theme.</p>
+    <p>
+      The docs route stays on <code>@farming-labs/docs</code> with the pixel-border theme.
+    </p>
   </article>
 </div>
 
@@ -70,7 +72,10 @@ order: 1
   </a>
   <a className="docs-overview-link" href="/docs/cli">
     <strong>CLI generation</strong>
-    <p>Understand how the CLI loads <code>@farming-labs/orm</code> schemas directly and writes target-specific output.</p>
+    <p>
+      Understand how the CLI loads <code>@farming-labs/orm</code> schemas directly and writes
+      target-specific output.
+    </p>
     <span>Open section</span>
   </a>
   <a className="docs-overview-link" href="/docs/use-cases">
@@ -85,27 +90,36 @@ order: 1
 <div className="docs-overview-uses not-prose">
   <article className="docs-overview-use">
     <strong>Auth systems</strong>
-    <p>Replace one Prisma adapter, one Drizzle adapter, and one Kysely adapter with a single schema contract and targeted outputs.</p>
+    <p>
+      Replace one Prisma adapter, one Drizzle adapter, and one Kysely adapter with a single schema
+      contract and targeted outputs.
+    </p>
   </article>
   <article className="docs-overview-use">
     <strong>Reusable product kits</strong>
-    <p>Ship storage-aware packages for billing, organizations, permissions, and audit logs without dictating the consumer’s ORM.</p>
+    <p>
+      Ship storage-aware packages for billing, organizations, permissions, and audit logs without
+      dictating the consumer’s ORM.
+    </p>
   </article>
   <article className="docs-overview-use">
     <strong>Internal platforms</strong>
-    <p>Keep shared domain models stable across multiple apps and services while generating the local integration layer each team needs.</p>
+    <p>
+      Keep shared domain models stable across multiple apps and services while generating the local
+      integration layer each team needs.
+    </p>
   </article>
 </div>
 
 ## What ships today
 
-| Layer | Status | Notes |
-| --- | --- | --- |
-| `@farming-labs/orm` | Live | Schema DSL, manifest, generators, typed helpers, memory runtime |
-| `@farming-labs/orm-cli` | Live | Loads schemas directly and generates target artifacts |
-| Prisma generation | Live | PostgreSQL, MySQL, and SQLite providers |
-| Drizzle generation | Live | `pg`, `mysql`, and `sqlite` dialects |
-| Safe SQL generation | Live | Forward-safe SQL output for PostgreSQL, MySQL, and SQLite |
+| Layer                   | Status  | Notes                                                                 |
+| ----------------------- | ------- | --------------------------------------------------------------------- |
+| `@farming-labs/orm`     | Live    | Schema DSL, manifest, generators, typed helpers, memory runtime       |
+| `@farming-labs/orm-cli` | Live    | Loads schemas directly and generates target artifacts                 |
+| Prisma generation       | Live    | PostgreSQL, MySQL, and SQLite providers                               |
+| Drizzle generation      | Live    | `pg`, `mysql`, and `sqlite` dialects                                  |
+| Safe SQL generation     | Live    | Forward-safe SQL output for PostgreSQL, MySQL, and SQLite             |
 | Runtime driver packages | Planned | Prisma, Drizzle, Kysely, SQL, and Mongoose packages can layer on next |
 
 ## Why this docs route uses `@farming-labs/docs`

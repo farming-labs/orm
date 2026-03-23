@@ -6,7 +6,7 @@ export type RelationMap = Record<string, AnyRelation>;
 
 export type ModelDefinition<
   Fields extends FieldMap = FieldMap,
-  Relations extends RelationMap = RelationMap
+  Relations extends RelationMap = RelationMap,
 > = {
   readonly _tag: "model";
   readonly table: string;
@@ -18,16 +18,13 @@ export type ModelDefinition<
 export type AnyModelDefinition = ModelDefinition<FieldMap, RelationMap>;
 
 export type SchemaDefinition<
-  Models extends Record<string, AnyModelDefinition> = Record<string, AnyModelDefinition>
+  Models extends Record<string, AnyModelDefinition> = Record<string, AnyModelDefinition>,
 > = {
   readonly _tag: "schema";
   readonly models: Models;
 };
 
-export function model<
-  Fields extends FieldMap,
-  Relations extends RelationMap = {}
->(config: {
+export function model<Fields extends FieldMap, Relations extends RelationMap = {}>(config: {
   table: string;
   fields: Fields;
   relations?: Relations;
@@ -42,63 +39,52 @@ export function model<
   };
 }
 
-export function defineSchema<
-  Models extends Record<string, AnyModelDefinition>
->(models: Models): SchemaDefinition<Models> {
+export function defineSchema<Models extends Record<string, AnyModelDefinition>>(
+  models: Models,
+): SchemaDefinition<Models> {
   return {
     _tag: "schema",
     models,
   };
 }
 
-export type SchemaModels<TSchema> = TSchema extends SchemaDefinition<infer Models>
-  ? Models
-  : never;
+export type SchemaModels<TSchema> = TSchema extends SchemaDefinition<infer Models> ? Models : never;
 
 export type ModelName<TSchema> = keyof SchemaModels<TSchema> & string;
 
-export type ModelForName<
-  TSchema,
-  TName extends ModelName<TSchema>
-> = SchemaModels<TSchema>[TName];
+export type ModelForName<TSchema, TName extends ModelName<TSchema>> = SchemaModels<TSchema>[TName];
 
-export type ModelFields<
+export type ModelFields<TSchema, TName extends ModelName<TSchema>> = ModelForName<
   TSchema,
-  TName extends ModelName<TSchema>
-> = ModelForName<TSchema, TName>["fields"];
+  TName
+>["fields"];
 
-export type ModelRelations<
+export type ModelRelations<TSchema, TName extends ModelName<TSchema>> = ModelForName<
   TSchema,
-  TName extends ModelName<TSchema>
-> = ModelForName<TSchema, TName>["relations"];
+  TName
+>["relations"];
 
-export type ScalarRecord<
-  TSchema,
-  TName extends ModelName<TSchema>
-> = {
-  [K in keyof ModelFields<TSchema, TName> & string]: FieldOutput<
-    ModelFields<TSchema, TName>[K]
-  >;
+export type ScalarRecord<TSchema, TName extends ModelName<TSchema>> = {
+  [K in keyof ModelFields<TSchema, TName> & string]: FieldOutput<ModelFields<TSchema, TName>[K]>;
 };
 
-export type RelationName<
+export type RelationName<TSchema, TName extends ModelName<TSchema>> = keyof ModelRelations<
   TSchema,
-  TName extends ModelName<TSchema>
-> = keyof ModelRelations<TSchema, TName> & string;
+  TName
+> &
+  string;
 
 export type RelationForName<
   TSchema,
   TName extends ModelName<TSchema>,
-  TRelationName extends RelationName<TSchema, TName>
+  TRelationName extends RelationName<TSchema, TName>,
 > = ModelRelations<TSchema, TName>[TRelationName];
 
 export type RelationTarget<
   TSchema,
   TName extends ModelName<TSchema>,
-  TRelationName extends RelationName<TSchema, TName>
-> = RelationForName<TSchema, TName, TRelationName> extends RelationDefinition<
-  infer Target,
-  any
->
-  ? Extract<Target, ModelName<TSchema>>
-  : never;
+  TRelationName extends RelationName<TSchema, TName>,
+> =
+  RelationForName<TSchema, TName, TRelationName> extends RelationDefinition<infer Target, any>
+    ? Extract<Target, ModelName<TSchema>>
+    : never;

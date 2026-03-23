@@ -4,7 +4,7 @@ export type FieldReference = `${string}.${string}`;
 
 export type FieldConfig<
   Kind extends ScalarKind = ScalarKind,
-  Nullable extends boolean = boolean
+  Nullable extends boolean = boolean,
 > = {
   kind: Kind;
   nullable: Nullable;
@@ -18,17 +18,11 @@ export type FieldConfig<
 
 export type AnyFieldBuilder = FieldBuilder<ScalarKind, boolean>;
 
-const cloneField = <
-  Kind extends ScalarKind,
-  Nullable extends boolean = false
->(
+const cloneField = <Kind extends ScalarKind, Nullable extends boolean = false>(
   config: FieldConfig<Kind, Nullable>,
 ) => new FieldBuilder(config);
 
-export class FieldBuilder<
-  Kind extends ScalarKind,
-  Nullable extends boolean = false
-> {
+export class FieldBuilder<Kind extends ScalarKind, Nullable extends boolean = false> {
   readonly _tag = "field";
 
   constructor(readonly config: FieldConfig<Kind, Nullable>) {}
@@ -91,14 +85,12 @@ export type ScalarValue<Kind extends ScalarKind> = Kind extends "id"
       ? boolean
       : Date;
 
-export type FieldOutput<TField> = TField extends FieldBuilder<
-  infer Kind,
-  infer Nullable
->
-  ? Nullable extends true
-    ? ScalarValue<Kind> | null
-    : ScalarValue<Kind>
-  : never;
+export type FieldOutput<TField> =
+  TField extends FieldBuilder<infer Kind, infer Nullable>
+    ? Nullable extends true
+      ? ScalarValue<Kind> | null
+      : ScalarValue<Kind>
+    : never;
 
 export function id() {
   return new FieldBuilder({

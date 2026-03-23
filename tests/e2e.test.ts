@@ -27,16 +27,28 @@ describe("workspace end to end", () => {
     await runPnpm(["--filter", "@farming-labs/orm", "build"]);
     await runPnpm(["--filter", "@farming-labs/orm-cli", "build"]);
 
-    const prisma = await runNode([cliBin, "generate", "prisma", "-c", "./farm-orm.config.ts"], demoDir);
-    const drizzle = await runNode([cliBin, "generate", "drizzle", "-c", "./farm-orm.config.ts"], demoDir);
+    const prisma = await runNode(
+      [cliBin, "generate", "prisma", "-c", "./farm-orm.config.ts"],
+      demoDir,
+    );
+    const drizzle = await runNode(
+      [cliBin, "generate", "drizzle", "-c", "./farm-orm.config.ts"],
+      demoDir,
+    );
     const sql = await runNode([cliBin, "generate", "sql", "-c", "./farm-orm.config.ts"], demoDir);
 
     expect(prisma.stdout).toContain("Generated prisma output");
     expect(drizzle.stdout).toContain("Generated drizzle output");
     expect(sql.stdout).toContain("Generated sql output");
 
-    const prismaCheck = await runNode([cliBin, "check", "prisma", "-c", "./farm-orm.config.ts"], demoDir);
-    const drizzleCheck = await runNode([cliBin, "check", "drizzle", "-c", "./farm-orm.config.ts"], demoDir);
+    const prismaCheck = await runNode(
+      [cliBin, "check", "prisma", "-c", "./farm-orm.config.ts"],
+      demoDir,
+    );
+    const drizzleCheck = await runNode(
+      [cliBin, "check", "drizzle", "-c", "./farm-orm.config.ts"],
+      demoDir,
+    );
     const sqlCheck = await runNode([cliBin, "check", "sql", "-c", "./farm-orm.config.ts"], demoDir);
 
     expect(prismaCheck.stdout).toContain("up to date");
