@@ -181,7 +181,7 @@ export default function HomePage() {
         >
           <div
             className={cn(
-              "grid w-full grid-cols-4 gap-px border border-t-0 border-white/[0.08] bg-white/[0.08] backdrop-blur-md",
+              "grid w-full grid-cols-4 -mt-5 gap-px border border-t-0 border-b-0 border-white/[0.08] bg-white/[0.02] backdrop-blur-md",
               "shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_24px_60px_rgba(0,0,0,0.28)]",
               "max-[960px]:grid-cols-2 max-[480px]:grid-cols-1",
             )}
@@ -190,18 +190,18 @@ export default function HomePage() {
             {featureCards.map((card) => (
               <div
                 key={card.title}
-                className="min-w-0 bg-[rgba(10,10,12,0.92)] px-3 py-3.5"
+                className="flex min-h-[min(11rem,28vw)] min-w-0 flex-col justify-center bg-[rgba(10,10,12,0.92)] px-5 py-7 max-md:min-h-0 max-md:py-6"
               >
                 <h3
                   className={cn(
-                    "mb-1.5 mt-0 text-[clamp(0.82rem,1.1vw,0.95rem)] font-medium leading-tight tracking-tight",
+                    "mb-2 mt-0 font-mono text-[clamp(0.78rem,1.15vw,0.9rem)] font-medium uppercase leading-snug tracking-[0.06em] text-slate-200",
                   )}
                 >
                   {card.title}
                 </h3>
                 <p
                   className={cn(
-                    "m-0 text-[clamp(0.72rem,0.95vw,0.82rem)] leading-[1.55] text-slate-300/80",
+                    "m-0 text-[clamp(0.84rem,1.05vw,0.95rem)] leading-relaxed text-slate-300/90",
                   )}
                 >
                   {card.body}
@@ -210,6 +210,11 @@ export default function HomePage() {
             ))}
           </div>
         </div>
+
+        <hr
+          className="relative z-[2] mt-0 mb-0 block h-px w-screen max-w-[100vw] shrink-0 border-0 bg-white/12 ml-[calc(50%-50vw)] mr-[calc(50%-50vw)]"
+          aria-hidden
+        />
       </section>
 
       <section id="platform" className={cn(sectionShell, sectionTopRule)}>
@@ -253,7 +258,7 @@ export default function HomePage() {
         </div>
 
         <div className="grid grid-cols-1 gap-[18px]">
-          <article className={cn(panel, "p-6")}>
+          <article className={cn(panel, "border-b-0 p-6")}>
             <div className="grid gap-4">
               <div className="grid gap-3.5 border border-dashed border-white/[0.14] bg-white/[0.02] p-[18px]">
                 <span className={cardLabel}>Unified contract</span>
@@ -282,6 +287,11 @@ export default function HomePage() {
             </div>
           </article>
         </div>
+
+        <hr
+          className="col-span-full mt-10 mb-0 block h-px w-screen max-w-[100vw] shrink-0 border-0 bg-white/12 ml-[calc(50%-50vw)] mr-[calc(50%-50vw)]"
+          aria-hidden
+        />
       </section>
 
       <section id="use-cases" className={sectionShell}>
