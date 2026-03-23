@@ -1,6 +1,6 @@
 {
   "name": "farming-labs-orm",
-  "version": "0.0.1",
+  "version": "0.0.2-beta.1",
   "private": true,
   "scripts": {
     "build": "pnpm -r build",
@@ -19,6 +19,7 @@
     "bump:minor": "pnpm bump --release minor --yes",
     "bump:major": "pnpm bump --release major --yes",
     "bump:beta": "pnpm bump --release prerelease --preid beta --yes",
+    "release:latest": "bumpp --tag latest && pnpm --filter './packages/*' publish --access public --tag latest --no-git-checks",
     "publish:latest": "pnpm -r --filter @farming-labs/* build && pnpm -r --filter @farming-labs/* publish --access public --tag latest --no-git-checks",
     "publish:latest:dry-run": "pnpm -r --filter @farming-labs/* build && pnpm -r --filter @farming-labs/* publish --access public --tag latest --no-git-checks --dry-run",
     "publish:beta": "pnpm -r --filter @farming-labs/* build && pnpm -r --filter @farming-labs/* publish --access public --tag beta --no-git-checks",
