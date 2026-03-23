@@ -86,7 +86,7 @@ a {
 #nd-docs-layout {
   position: relative;
   background:
-    radial-gradient(circle at top center, rgba(247, 247, 247, 0.01), transparent 24%),
+    radial-gradient(circle at top center, rgba(28, 28, 28, 0.01), transparent 24%),
     radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.05), transparent 22%), #050505;
 }
 
@@ -95,6 +95,7 @@ a {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  opacity: 0.4;
   background:
     linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);

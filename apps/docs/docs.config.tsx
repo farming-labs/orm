@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { defineDocs } from "@farming-labs/docs";
 import { pixelBorder } from "@farming-labs/theme/pixel-border";
+import { siDrizzle, siPrisma } from "simple-icons";
 import {
   BookOpen,
   Boxes,
@@ -25,6 +26,19 @@ const icon = (node: ReactNode) => (
     {node}
   </span>
 );
+
+const brandIcon = (path: string, title: string) =>
+  icon(
+    <svg
+      aria-hidden="true"
+      fill="currentColor"
+      viewBox="0 0 24 24"
+      role="img"
+    >
+      <title>{title}</title>
+      <path d={path} />
+    </svg>,
+  );
 
 export default defineDocs({
   entry: "docs",
@@ -104,6 +118,8 @@ export default defineDocs({
     code: icon(<Code2 strokeWidth={1.5} />),
     package: icon(<Package strokeWidth={1.5} />),
     filecode: icon(<FileCode2 strokeWidth={1.5} />),
+    prisma: brandIcon(siPrisma.path, siPrisma.title),
+    drizzle: brandIcon(siDrizzle.path, siDrizzle.title),
     harddrive: icon(<HardDrive strokeWidth={1.5} />),
     terminal: icon(<Terminal strokeWidth={1.5} />),
     users: icon(<Users strokeWidth={1.5} />),
@@ -112,15 +128,15 @@ export default defineDocs({
     building: icon(<Building2 strokeWidth={1.5} />),
   },
   sidebar: {
-    banner: (
-      <div className="docs-sidebar-banner">
-        <strong>Source of truth</strong>
-        <p>
-          Define the schema once in <code>@farming-labs/orm</code>, then let generation and docs
-          orbit the same contract.
-        </p>
-      </div>
-    ),
+    // banner: (
+      // <div className="docs-sidebar-banner">
+      //   <strong>Source of truth</strong>
+      //   <p>
+      //     Define the schema once in <code>@farming-labs/orm</code>, then let generation and docs
+      //     orbit the same contract.
+      //   </p>
+      // </div>
+    // ),
     footer: (
       <div className="docs-sidebar-footer">
         <a href="/">Home</a>
