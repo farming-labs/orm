@@ -185,7 +185,7 @@ export default function HomePage() {
         >
           <div
             className={cn(
-              "grid w-full grid-cols-4 -mt-5 gap-px border border-t-0 border-b-0 border-white/[0.08] bg-white/[0.02] backdrop-blur-md",
+              "grid w-full grid-cols-4 -mt-5 gap-px border border-t-0 border-b-0 border-white/[0.08] bg-white/20 backdrop-blur-md",
               "shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_24px_60px_rgba(0,0,0,0.28)]",
               "max-[960px]:grid-cols-2 max-[480px]:grid-cols-1",
             )}
@@ -204,8 +204,11 @@ export default function HomePage() {
                 <h3
                   className={cn(
                     "mb-2 mt-0 font-mono text-[clamp(0.78rem,1.15vw,0.9rem)] font-medium uppercase leading-snug tracking-[0.06em] text-slate-200",
-                    "no-underline decoration-dotted underline-offset-[5px] transition-[text-decoration-color] duration-150",
-                    "group-hover:underline group-hover:decoration-dotted group-focus-visible:underline group-focus-visible:decoration-dotted",
+                    "underline decoration-dotted decoration-from-font underline-offset-[6px]",
+                    "decoration-transparent [text-decoration-skip-ink:none]",
+                    "transition-[text-decoration-color,text-underline-offset] duration-300 ease-out",
+                    "group-hover:decoration-slate-200/85 group-hover:underline-offset-[7px]",
+                    "group-focus-visible:decoration-slate-200/85 group-focus-visible:underline-offset-[7px]",
                   )}
                 >
                   {card.title}
