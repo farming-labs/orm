@@ -130,7 +130,7 @@ export default function HomePage() {
       >
         <div className="pointer-events-none absolute inset-0 opacity-[0.92]" aria-hidden="true">
           <BeamBackground
-            beamWidth={2.4}
+            beamWidth={1.05}
             beamHeight={24}
             beamNumber={16}
             lightColor="#ffffff"

@@ -309,7 +309,7 @@ const MouseInteraction = ({ children }: { children: ReactNode }) => {
 };
 
 export default function BeamBackground({
-  beamWidth = 2,
+  beamWidth = 0.85,
   beamHeight = 15,
   beamNumber = 12,
   lightColor = "#ffffff",
