@@ -1,6 +1,6 @@
 {
   "name": "@farming-labs/orm-cli",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "bin": {
     "farm-orm": "./dist/bin.js"
   },
@@ -17,6 +17,9 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     }
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsx ./scripts/build.ts",

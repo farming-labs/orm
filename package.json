@@ -1,6 +1,6 @@
 {
   "name": "farming-labs-orm",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "scripts": {
     "build": "pnpm -r build",
@@ -13,10 +13,20 @@
     "lint:fix": "oxlint --fix . --ignore-path .oxlintignore",
     "fmt": "oxfmt .",
     "fmt:check": "oxfmt --check .",
-    "check": "pnpm lint && pnpm fmt:check && pnpm typecheck"
+    "check": "pnpm lint && pnpm fmt:check && pnpm typecheck",
+    "bump": "bumpp packages/orm/package.json packages/cli/package.json --no-commit --no-tag --no-push --no-verify",
+    "bump:patch": "pnpm bump --release patch --yes",
+    "bump:minor": "pnpm bump --release minor --yes",
+    "bump:major": "pnpm bump --release major --yes",
+    "bump:beta": "pnpm bump --release prerelease --preid beta --yes",
+    "publish:latest": "pnpm -r --filter @farming-labs/* build && pnpm -r --filter @farming-labs/* publish --access public --tag latest --no-git-checks",
+    "publish:latest:dry-run": "pnpm -r --filter @farming-labs/* build && pnpm -r --filter @farming-labs/* publish --access public --tag latest --no-git-checks --dry-run",
+    "publish:beta": "pnpm -r --filter @farming-labs/* build && pnpm -r --filter @farming-labs/* publish --access public --tag beta --no-git-checks",
+    "publish:beta:dry-run": "pnpm -r --filter @farming-labs/* build && pnpm -r --filter @farming-labs/* publish --access public --tag beta --no-git-checks --dry-run"
   },
   "devDependencies": {
     "@types/node": "^22.13.10",
+    "bumpp": "^11.0.1",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
     "tsx": "^4.19.3",
