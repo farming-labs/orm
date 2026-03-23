@@ -149,7 +149,7 @@ organizations: manyToMany("organization", {
   through: "membership",
   from: "userId",
   to: "organizationId",
-})
+});
 ```
 
 the relation is read from the perspective of the current model, `user`:

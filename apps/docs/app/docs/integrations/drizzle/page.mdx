@@ -55,7 +55,7 @@ user: model({
     email: string().unique().map("email_address"),
     createdAt: datetime().defaultNow(),
   },
-})
+});
 ```
 
 the generator emits output shaped like:

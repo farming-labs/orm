@@ -29,12 +29,7 @@ const icon = (node: ReactNode) => (
 
 const brandIcon = (path: string, title: string) =>
   icon(
-    <svg
-      aria-hidden="true"
-      fill="currentColor"
-      viewBox="0 0 24 24"
-      role="img"
-    >
+    <svg aria-hidden="true" fill="currentColor" viewBox="0 0 24 24" role="img">
       <title>{title}</title>
       <path d={path} />
     </svg>,
@@ -103,7 +98,11 @@ export default defineDocs({
     },
     {
       slug: "use-cases",
-      children: [{ slug: "auth-libraries" }, { slug: "billing-modules" }, { slug: "internal-platforms" }],
+      children: [
+        { slug: "auth-libraries" },
+        { slug: "billing-modules" },
+        { slug: "internal-platforms" },
+      ],
     },
   ],
   themeToggle: { enabled: false },
@@ -129,13 +128,13 @@ export default defineDocs({
   },
   sidebar: {
     // banner: (
-      // <div className="docs-sidebar-banner">
-      //   <strong>Source of truth</strong>
-      //   <p>
-      //     Define the schema once in <code>@farming-labs/orm</code>, then let generation and docs
-      //     orbit the same contract.
-      //   </p>
-      // </div>
+    // <div className="docs-sidebar-banner">
+    //   <strong>Source of truth</strong>
+    //   <p>
+    //     Define the schema once in <code>@farming-labs/orm</code>, then let generation and docs
+    //     orbit the same contract.
+    //   </p>
+    // </div>
     // ),
     footer: (
       <div className="docs-sidebar-footer">

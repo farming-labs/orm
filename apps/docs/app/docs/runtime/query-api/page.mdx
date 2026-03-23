@@ -23,10 +23,10 @@ const orm = createOrm({
 you get model clients such as:
 
 ```ts
-orm.user
-orm.profile
-orm.session
-orm.account
+orm.user;
+orm.profile;
+orm.session;
+orm.account;
 ```
 
 Each model client supports:
@@ -186,7 +186,9 @@ const user = await orm.user.findFirst({
 ### Shorthand equality
 
 ```ts
-where: { email: "ada@farminglabs.dev" }
+where: {
+  email: "ada@farminglabs.dev";
+}
 ```
 
 ### Operator objects

@@ -105,24 +105,24 @@ export const appSchema = defineSchema({
 
 ### Scalar field types
 
-| Builder | Output type | Notes |
-| --- | --- | --- |
-| `id()` | `string` | Unique by default and generated as an id |
-| `string()` | `string` | Plain string scalar |
-| `boolean()` | `boolean` | Boolean scalar |
-| `datetime()` | `Date` | Represents a JavaScript `Date` in runtime typing |
+| Builder      | Output type | Notes                                            |
+| ------------ | ----------- | ------------------------------------------------ |
+| `id()`       | `string`    | Unique by default and generated as an id         |
+| `string()`   | `string`    | Plain string scalar                              |
+| `boolean()`  | `boolean`   | Boolean scalar                                   |
+| `datetime()` | `Date`      | Represents a JavaScript `Date` in runtime typing |
 
 ### Field methods
 
-| Method | Purpose |
-| --- | --- |
-| `.unique()` | Marks the field unique |
-| `.nullable()` | Makes the runtime output `T \| null` |
-| `.default(value)` | Stores a literal default |
-| `.defaultNow()` | Marks the field as generated from `now` |
-| `.references("model.field")` | Declares a foreign-key style reference |
-| `.map("column_name")` | Maps a field name to a different physical column name |
-| `.describe("...")` | Adds documentation metadata for the manifest/docs layer |
+| Method                       | Purpose                                                 |
+| ---------------------------- | ------------------------------------------------------- |
+| `.unique()`                  | Marks the field unique                                  |
+| `.nullable()`                | Makes the runtime output `T \| null`                    |
+| `.default(value)`            | Stores a literal default                                |
+| `.defaultNow()`              | Marks the field as generated from `now`                 |
+| `.references("model.field")` | Declares a foreign-key style reference                  |
+| `.map("column_name")`        | Maps a field name to a different physical column name   |
+| `.describe("...")`           | Adds documentation metadata for the manifest/docs layer |
 
 ## Relation helpers
 
@@ -194,7 +194,7 @@ In plain English:
 This field:
 
 ```ts
-email: string().unique().map("email_address")
+email: string().unique().map("email_address");
 ```
 
 means:

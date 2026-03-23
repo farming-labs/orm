@@ -89,7 +89,10 @@ export default defineConfig({
 The package also gets one runtime-facing contract for storage helpers:
 
 ```ts
-export async function findUserByEmail(orm: ReturnType<typeof createOrm<typeof authSchema>>, email: string) {
+export async function findUserByEmail(
+  orm: ReturnType<typeof createOrm<typeof authSchema>>,
+  email: string,
+) {
   return orm.user.findFirst({
     where: { email },
     select: {

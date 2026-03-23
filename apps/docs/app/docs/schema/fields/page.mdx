@@ -14,7 +14,7 @@ Field builders define the scalar shape of each model.
 ### `id()`
 
 ```ts
-id: id()
+id: id();
 ```
 
 - runtime output type: `string`
@@ -24,7 +24,7 @@ id: id()
 ### `string()`
 
 ```ts
-email: string()
+email: string();
 ```
 
 - runtime output type: `string`
@@ -32,7 +32,7 @@ email: string()
 ### `boolean()`
 
 ```ts
-emailVerified: boolean()
+emailVerified: boolean();
 ```
 
 - runtime output type: `boolean`
@@ -40,7 +40,7 @@ emailVerified: boolean()
 ### `datetime()`
 
 ```ts
-createdAt: datetime()
+createdAt: datetime();
 ```
 
 - runtime output type: `Date`
@@ -50,7 +50,7 @@ createdAt: datetime()
 ### `.unique()`
 
 ```ts
-email: string().unique()
+email: string().unique();
 ```
 
 Marks the field as unique in the schema and generated outputs.
@@ -58,7 +58,7 @@ Marks the field as unique in the schema and generated outputs.
 ### `.nullable()`
 
 ```ts
-bio: string().nullable()
+bio: string().nullable();
 ```
 
 Changes the runtime output type from `string` to `string | null`.
@@ -66,7 +66,7 @@ Changes the runtime output type from `string` to `string | null`.
 ### `.default(...)`
 
 ```ts
-role: string().default("member")
+role: string().default("member");
 ```
 
 Stores a literal default value.
@@ -74,7 +74,7 @@ Stores a literal default value.
 ### `.defaultNow()`
 
 ```ts
-createdAt: datetime().defaultNow()
+createdAt: datetime().defaultNow();
 ```
 
 Marks the field as generated from the current time.
@@ -82,7 +82,7 @@ Marks the field as generated from the current time.
 ### `.references("model.field")`
 
 ```ts
-userId: string().references("user.id")
+userId: string().references("user.id");
 ```
 
 Adds foreign-key-style metadata that generators can translate.
@@ -90,7 +90,7 @@ Adds foreign-key-style metadata that generators can translate.
 ### `.map("column_name")`
 
 ```ts
-email: string().map("email_address")
+email: string().map("email_address");
 ```
 
 Keeps the logical API field name as `email` while generating the physical column
@@ -99,7 +99,7 @@ name `email_address`.
 ### `.describe("...")`
 
 ```ts
-email: string().describe("Canonical login email")
+email: string().describe("Canonical login email");
 ```
 
 Adds descriptive metadata to the manifest/docs layer.
@@ -135,7 +135,7 @@ Field data is especially important because it drives:
 ## Mapping example
 
 ```ts
-email: string().unique().map("email_address")
+email: string().unique().map("email_address");
 ```
 
 Logical side:
