@@ -3,10 +3,68 @@ import BeamBackground from "@/components/ui/beam-background";
 import { PatternText } from "@/components/ui/pattern-text";
 import { cn } from "@/lib/utils";
 
-const bottomLink =
-  "font-mono text-[0.8rem] font-medium uppercase tracking-[0.12em] text-slate-400 transition-colors duration-200 hover:text-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white/35";
-
 const GITHUB_URL = "https://github.com/farming-labs/orms";
+
+const iconClass = "size-3.5 shrink-0 opacity-80";
+
+function IconUseCases({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.25" />
+      <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.25" />
+      <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.25" />
+      <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.25" />
+    </svg>
+  );
+}
+
+function IconInstall({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconDocs({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinecap="round"
+      />
+      <path
+        d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinejoin="round"
+      />
+      <path d="M8 7h8M8 11h6" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconGithub({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+    </svg>
+  );
+}
+
+const footerLinkClass = cn(
+  "font-mono text-[0.72rem] font-light uppercase tracking-tight text-slate-400",
+  "inline-flex items-center gap-1.5 transition-colors duration-200 hover:text-slate-100",
+  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white/35",
+);
 
 const heroFeatureCards = [
   {
@@ -40,6 +98,15 @@ export default function HomePage() {
           "shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_30px_80px_rgba(0,0,0,0.28)]",
         )}
       >
+        <div
+          className="pointer-events-none absolute inset-y-0 left-5 z-[3] w-px bg-white/12"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute inset-y-0 right-5 z-[3] w-px bg-white/12"
+          aria-hidden
+        />
+
         <div className="pointer-events-none absolute inset-0 opacity-[0.92]" aria-hidden="true">
           <BeamBackground
             beamWidth={1.05}
@@ -53,6 +120,14 @@ export default function HomePage() {
           />
         </div>
         <div className="pointer-events-none absolute inset-0 z-0 bg-[rgba(4,4,6,0.3)]" />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-[clamp(4.5rem,16vw,12rem)] bg-gradient-to-r from-[#050507] via-[#050507]/85 to-transparent"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-[clamp(4.5rem,16vw,12rem)] bg-gradient-to-l from-[#050507] via-[#050507]/85 to-transparent"
+        />
 
         <div className="relative z-2 flex min-h-0 w-full flex-1 flex-col">
           <div
@@ -91,18 +166,35 @@ export default function HomePage() {
 
             <div
               className={cn(
-                "relative z-2 box-border w-screen max-w-[100vw] px-[clamp(20px,6vw,72px)] pb-0 pt-5",
+                "relative z-2 box-border w-screen max-w-[100vw] pb-0",
                 "ml-[calc(50%-50vw)] mr-[calc(50%-50vw)]",
               )}
             >
               <div
-                className={cn(
-                  "grid w-full grid-cols-4 -mt-5 gap-px border border-t-0 border-b-0 border-white/[0.08] bg-white/20 backdrop-blur-md",
-                  "shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_24px_60px_rgba(0,0,0,0.28)]",
-                  "max-[960px]:grid-cols-2 max-[480px]:grid-cols-1",
-                )}
-                aria-label="Features"
-              >
+                aria-hidden
+                className="home-hero-gutter-pattern pointer-events-none absolute inset-y-0 z-0"
+                style={{
+                  left: "calc(1.25rem + 1px)",
+                  width: "max(0px, calc(clamp(20px, 6vw, 72px) - 1.25rem - 1px))",
+                }}
+              />
+              <div
+                aria-hidden
+                className="home-hero-gutter-pattern pointer-events-none absolute inset-y-0 z-0"
+                style={{
+                  right: "calc(1.25rem + 1px)",
+                  width: "max(0px, calc(clamp(20px, 6vw, 72px) - 1.25rem - 1px))",
+                }}
+              />
+              <div className="relative z-[1] px-[clamp(20px,6vw,72px)] pb-0 pt-5">
+                <div
+                  className={cn(
+                    "grid w-full grid-cols-4 -mt-5 gap-px border border-t-0 border-b-0 border-white/[0.08] bg-white/20 backdrop-blur-md",
+                    "shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_24px_60px_rgba(0,0,0,0.28)]",
+                    "max-[960px]:grid-cols-2 max-[480px]:grid-cols-1",
+                  )}
+                  aria-label="Features"
+                >
                 {heroFeatureCards.map((card) => (
                   <Link
                     key={card.href}
@@ -134,6 +226,7 @@ export default function HomePage() {
                     </p>
                   </Link>
                 ))}
+                </div>
               </div>
             </div>
 
@@ -145,21 +238,33 @@ export default function HomePage() {
 
           <nav
             className={cn(
-              "flex shrink-0 flex-wrap items-center justify-start gap-x-12 gap-y-3 px-[clamp(20px,6vw,72px)] pb-[max(28px,4vh)] pt-6",
-              "max-md:gap-x-10 max-md:px-5 max-md:pb-8",
+              "flex shrink-0 flex-wrap items-center justify-between gap-x-8 gap-y-4 px-[clamp(20px,6vw,72px)] pb-[max(28px,4vh)] pt-5",
+              "max-md:px-5 max-md:pb-8",
             )}
             aria-label="Site links"
           >
-            <Link href="/docs" className={bottomLink}>
-              [ DOCS ]
-            </Link>
+            <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+              <Link href="/docs/use-cases" className={footerLinkClass}>
+                <IconUseCases className={iconClass} />
+                <span>[ USE CASES ]</span>
+              </Link>
+              <Link href="/docs/getting-started" className={footerLinkClass}>
+                <IconInstall className={iconClass} />
+                <span>[ INSTALL ]</span>
+              </Link>
+              <Link href="/docs" className={footerLinkClass}>
+                <IconDocs className={iconClass} />
+                <span>[ DOCS ]</span>
+              </Link>
+            </div>
             <a
               href={GITHUB_URL}
-              className={bottomLink}
+              className={footerLinkClass}
               target="_blank"
               rel="noopener noreferrer"
             >
-              [ GITHUB ]
+              <IconGithub className={iconClass} />
+              <span>[ GITHUB ]</span>
             </a>
           </nav>
         </div>

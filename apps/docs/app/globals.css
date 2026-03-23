@@ -70,6 +70,17 @@ a {
   --color-fd-muted-foreground: #9aa4b2;
 }
 
+/* Home hero: diagonal stripe fill between outer rules and feature grid inset */
+.home-hero-gutter-pattern {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--color-fd-border) 7%, transparent),
+    color-mix(in srgb, var(--color-fd-foreground) 7%, transparent) 1px,
+    transparent 1px,
+    transparent 6px
+  );
+}
+
 #nd-docs-layout {
   position: relative;
   background:
