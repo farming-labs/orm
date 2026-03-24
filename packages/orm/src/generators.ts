@@ -114,7 +114,7 @@ function sqlType(field: ManifestField, dialect: SqlGenerationOptions["dialect"])
     return dialect === "mysql" ? "varchar(191)" : "text";
   }
   if (field.kind === "string") {
-    return dialect === "mysql" && field.unique ? "varchar(191)" : "text";
+    return dialect === "mysql" && (field.unique || field.references) ? "varchar(191)" : "text";
   }
   if (field.kind === "boolean") {
     return dialect === "sqlite" ? "integer" : "boolean";

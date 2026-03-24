@@ -147,13 +147,33 @@ function encodeValue(field: ManifestField, dialect: SqlDialect, value: unknown) 
   }
 
   if (field.kind === "datetime") {
-    return value instanceof Date ? value.toISOString() : value;
+    if (value instanceof Date) {
+      if (dialect === "mysql") {
+        return value.toISOString().slice(0, 19).replace("T", " ");
+      }
+      return value.toISOString();
+    }
+    return value;
   }
 
   return value;
 }
 
-function decodeValue(field: ManifestField, value: unknown) {
+function normalizeMysqlDate(value: Date) {
+  return new Date(
+    Date.UTC(
+      value.getFullYear(),
+      value.getMonth(),
+      value.getDate(),
+      value.getHours(),
+      value.getMinutes(),
+      value.getSeconds(),
+      value.getMilliseconds(),
+    ),
+  );
+}
+
+function decodeValue(field: ManifestField, dialect: SqlDialect, value: unknown) {
   if (value === undefined) return value;
   if (value === null) return null;
 
@@ -166,18 +186,20 @@ function decodeValue(field: ManifestField, value: unknown) {
   }
 
   if (field.kind === "datetime") {
-    if (value instanceof Date) return value;
+    if (value instanceof Date) {
+      return dialect === "mysql" ? normalizeMysqlDate(value) : value;
+    }
     return new Date(String(value));
   }
 
   return value;
 }
 
-function decodeRow(model: ManifestModel, row: SqlRow) {
+function decodeRow(model: ManifestModel, dialect: SqlDialect, row: SqlRow) {
   const output: SqlRow = {};
 
   for (const field of Object.values(model.fields)) {
-    output[field.name] = decodeValue(field, row[field.name]);
+    output[field.name] = decodeValue(field, dialect, row[field.name]);
   }
 
   return output;
@@ -890,7 +912,7 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
     const model = manifest.models[modelName];
     const statement = buildSelectStatement(model, adapter.dialect, args);
     const result = await adapter.query(statement.sql, statement.params);
-    const rows = result.rows.map((row) => decodeRow(model, row));
+    const rows = result.rows.map((row) => decodeRow(model, adapter.dialect, row));
 
     return Promise.all(rows.map((row) => projectRow(schema, modelName, row, args.select)));
   }
@@ -930,7 +952,7 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
     });
     const result = await adapter.query(statement.sql, statement.params);
     const row = result.rows[0];
-    return row ? decodeRow(model, row) : null;
+    return row ? decodeRow(model, adapter.dialect, row) : null;
   }
 
   async function projectRow<

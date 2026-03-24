@@ -52,12 +52,14 @@ describe("@farming-labs/orm core", () => {
     const prisma = renderPrismaSchema(schema, { provider: "postgresql" });
     const drizzle = renderDrizzleSchema(schema, { dialect: "pg" });
     const sql = renderSafeSql(schema, { dialect: "postgres" });
+    const mysqlSql = renderSafeSql(schema, { dialect: "mysql" });
 
     expect(prisma).toContain("model User");
     expect(prisma).toContain('@map("email_address")');
     expect(drizzle).toContain('export const user = pgTable("users"');
     expect(sql).toContain('create table if not exists "users"');
     expect(sql).toContain('references "users"("user_id")');
+    expect(mysqlSql).toContain("`userId` varchar(191) not null references `users`(`user_id`)");
   });
 
   it("supports nested relation selection in the memory driver", async () => {

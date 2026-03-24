@@ -576,7 +576,7 @@ async function createLocalPostgresClientOrm() {
 }
 
 async function createLocalMysqlPoolOrm() {
-  const adminUrl = process.env.FARM_ORM_LOCAL_MYSQL_ADMIN_URL ?? "mysql://root:root@127.0.0.1:3306";
+  const adminUrl = process.env.FARM_ORM_LOCAL_MYSQL_ADMIN_URL ?? "mysql://root@127.0.0.1:3306";
   const databaseName = createIsolatedName("farm_orm_mysql");
   const adminPool = mysql.createPool(adminUrl);
 
@@ -624,7 +624,7 @@ async function createLocalMysqlPoolOrm() {
 }
 
 async function createLocalMysqlConnectionOrm() {
-  const adminUrl = process.env.FARM_ORM_LOCAL_MYSQL_ADMIN_URL ?? "mysql://root:root@127.0.0.1:3306";
+  const adminUrl = process.env.FARM_ORM_LOCAL_MYSQL_ADMIN_URL ?? "mysql://root@127.0.0.1:3306";
   const databaseName = createIsolatedName("farm_orm_mysql_conn");
   const adminPool = mysql.createPool(adminUrl);
 
