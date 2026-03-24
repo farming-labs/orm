@@ -23,17 +23,17 @@ So when people ask “does this support Prisma or Drizzle?” the honest answer 
 
 ## Current support matrix
 
-| Layer                   | PostgreSQL | MySQL   | SQLite  | MongoDB | Notes                                                        |
-| ----------------------- | ---------- | ------- | ------- | ------- | ------------------------------------------------------------ |
-| Prisma generation       | Yes        | Yes     | Yes     | No      | Uses Prisma providers `postgresql`, `mysql`, `sqlite`        |
-| Drizzle generation      | Yes        | Yes     | Yes     | No      | Uses Drizzle dialects `pg`, `mysql`, `sqlite`                |
-| Safe SQL generation     | Yes        | Yes     | Yes     | No      | Uses SQL dialects `postgres`, `mysql`, `sqlite`              |
-| Memory runtime          | N/A        | N/A     | N/A     | N/A     | In-memory driver for tests, demos, and docs                  |
-| Direct SQL runtime      | Yes        | Yes     | Yes     | No      | `@farming-labs/orm-sql` for SQLite, MySQL, and PostgreSQL    |
+| Layer                   | PostgreSQL | MySQL   | SQLite  | MongoDB | Notes                                                           |
+| ----------------------- | ---------- | ------- | ------- | ------- | --------------------------------------------------------------- |
+| Prisma generation       | Yes        | Yes     | Yes     | No      | Uses Prisma providers `postgresql`, `mysql`, `sqlite`           |
+| Drizzle generation      | Yes        | Yes     | Yes     | No      | Uses Drizzle dialects `pg`, `mysql`, `sqlite`                   |
+| Safe SQL generation     | Yes        | Yes     | Yes     | No      | Uses SQL dialects `postgres`, `mysql`, `sqlite`                 |
+| Memory runtime          | N/A        | N/A     | N/A     | N/A     | In-memory driver for tests, demos, and docs                     |
+| Direct SQL runtime      | Yes        | Yes     | Yes     | No      | `@farming-labs/orm-sql` for SQLite, MySQL, and PostgreSQL       |
 | Prisma runtime driver   | Planned    | Planned | Planned | Later   | Future package; Mongo via Prisma is not part of this repo today |
-| Drizzle runtime driver  | Planned    | Planned | Planned | No      | Future package                                                |
-| Kysely runtime driver   | Planned    | Planned | Planned | No      | Future package                                                |
-| Mongoose / Mongo driver | No         | No      | No      | Planned | Future package for MongoDB-oriented apps                      |
+| Drizzle runtime driver  | Planned    | Planned | Planned | No      | Future package                                                  |
+| Kysely runtime driver   | Planned    | Planned | Planned | No      | Future package                                                  |
+| Mongoose / Mongo driver | No         | No      | No      | Planned | Future package for MongoDB-oriented apps                        |
 
 ## How to think about “fit”
 
