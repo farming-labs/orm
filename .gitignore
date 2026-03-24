@@ -4,3 +4,5 @@ dist
 coverage
 *.tsbuildinfo
 generated
+packages/prisma/test/fixtures/sqlite/dev.db
+packages/prisma/test/fixtures/sqlite/schema.prisma

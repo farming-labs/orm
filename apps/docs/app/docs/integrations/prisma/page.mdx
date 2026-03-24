@@ -1,41 +1,133 @@
 ---
 title: "Prisma"
-description: "How the unified schema generates Prisma schema output and fits into Prisma-based apps."
+description: "How the unified schema generates Prisma schema output and how the live Prisma runtime driver fits into Prisma-based apps."
 order: 1
 icon: prisma
 ---
 
 # Prisma
 
-Prisma integration in this repo is currently **generation-first**.
+Prisma support in this repo is now both:
+
+- **generation**, through `farm-orm generate prisma`
+- **runtime translation**, through `@farming-labs/orm-prisma`
 
 ## What Prisma support means today
 
 Today, Prisma support means:
 
 - your schema can generate `schema.prisma`
-- the consuming app can use that generated Prisma schema in its Prisma workflow
-
-It does **not** yet mean:
-
-- there is a live `@farming-labs/orm-prisma` runtime driver in this repo
+- the consuming app can keep its normal Prisma workflow
+- the unified runtime API can execute through a real `PrismaClient`
 
 ## Runtime translation status
 
-The unified query methods do **not** translate to `PrismaClient` in this repo
-today.
+The unified query methods now translate into Prisma delegate calls through
+`@farming-labs/orm-prisma`.
 
-What exists today:
+That means code like this:
 
-- schema generation into `schema.prisma`
-- app-side Prisma workflows after generation
+```ts
+await orm.user.findUnique({
+  where: { email: "ada@farminglabs.dev" },
+  select: {
+    id: true,
+    email: true,
+    sessions: {
+      select: {
+        token: true,
+      },
+    },
+  },
+});
+```
 
-What is planned:
+can execute through `PrismaClient` without the library author rewriting the
+same storage helper for Prisma separately.
 
-- a future Prisma runtime driver that maps the same `orm.user.*` methods onto
-  Prisma model operations
+## Runtime setup
 
-## Basic config
+```ts
+import { createOrm } from "@farming-labs/orm";
+import { createPrismaDriver } from "@farming-labs/orm-prisma";
+import { PrismaClient } from "@prisma/client";
+import { authSchema } from "./schema";
+
+const prisma = new PrismaClient();
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createPrismaDriver({
+    client: prisma,
+  }),
+});
+```
+
+From there, the unified runtime methods execute through Prisma:
+
+```ts
+const user = await orm.user.findUnique({
+  where: {
+    email: "ada@farminglabs.dev",
+  },
+  select: {
+    id: true,
+    email: true,
+    profile: {
+      select: {
+        bio: true,
+      },
+    },
+    sessions: {
+      orderBy: {
+        token: "asc",
+      },
+      select: {
+        token: true,
+      },
+    },
+  },
+});
+```
+
+## Relation support
+
+The Prisma runtime package already covers:
+
+- `belongsTo(...)`
+- `hasOne(...)`
+- `hasMany(...)`
+- explicit join-table `manyToMany(...)`
+
+The important detail is that explicit join-table `manyToMany(...)` traversal is
+still handled by the Farming ORM runtime layer itself. It does not rely on
+Prisma implicit many-to-many shortcuts.
+
+That keeps the runtime behavior aligned with the same schema contract used by
+the SQL and Mongoose drivers.
+
+## Optional model mapping
+
+If the logical model name and the Prisma delegate name do not match exactly,
+you can pass delegate overrides:
+
+```ts
+const orm = createOrm({
+  schema: authSchema,
+  driver: createPrismaDriver({
+    client: prisma,
+    models: {
+      user: "user",
+      session: "session",
+    },
+  }),
+});
+```
+
+Most apps that generate Prisma from the same Farming ORM schema do not need
+this.
+
+## Basic generator config
 
 ```ts
 import { defineConfig } from "@farming-labs/orm-cli";
@@ -59,6 +151,10 @@ export default defineConfig({
 - `mysql`
 - `sqlite`
 
+The runtime driver talks to `PrismaClient`, so it follows Prisma’s provider
+surface for relational apps. In this repo, the real local integration coverage
+is currently exercised against SQLite.
+
 ## What gets generated
 
 Given this field:
@@ -73,17 +169,14 @@ the Prisma output looks like:
 email String @unique @map("email_address")
 ```
 
-For relations, the generator now covers the direct cases cleanly:
+For relations, the generator covers the direct cases cleanly:
 
 - `belongsTo(...)` renders the owning relation field with `@relation(...)`
 - `hasOne(...)` renders an optional inverse relation field
 - `hasMany(...)` renders an array relation field
-- join-table-backed `manyToMany(...)` still flows through the explicit join model rather
-  than becoming an implicit Prisma many-to-many field
+- join-table-backed `manyToMany(...)` still flows through the explicit join model
 
 ## Example generated model
-
-From a simple user model, the Prisma generator produces output shaped like:
 
 ```prisma
 model User {
@@ -102,10 +195,12 @@ Typical flow:
 
 1. define schema in `@farming-labs/orm`
 2. run `farm-orm generate prisma`
-3. point your Prisma workflow at the generated file
-4. run normal Prisma commands such as client generation in the app
+3. run normal Prisma commands in the app
+4. create the typed runtime with `createPrismaDriver({ client: prisma })`
+5. keep library storage helpers on the unified API instead of rewriting them for Prisma
 
-In other words, Farming Labs ORM does not replace Prisma. It feeds Prisma.
+In other words, Farming Labs ORM can now both feed Prisma and execute through
+Prisma.
 
 ## Replace mode vs block mode
 
@@ -134,13 +229,27 @@ prisma: {
 }
 ```
 
-## When Prisma is a strong fit
+## Verification in this repo
 
-- apps already using Prisma client and migrations
-- teams that want generated Prisma models from reusable package schemas
-- monorepos where several packages contribute models into one Prisma schema
+The repo currently verifies Prisma support in two ways:
+
+- fast unit tests against a recording Prisma-like delegate layer
+- a real local integration test that generates a real `PrismaClient` and runs
+  one-to-one, one-to-many, belongs-to, many-to-many, mutations, and transaction
+  rollback against local SQLite
+
+Run it with:
+
+```bash
+pnpm test:local:prisma
+```
 
 ## What comes next
 
-A future Prisma runtime driver would let the typed runtime API execute through
-Prisma directly. That is a future layer, not today’s implementation.
+The Prisma runtime package now exists. The next runtime-driver layers are:
+
+- Drizzle
+- Kysely
+
+The important constraint is that they should plug into the same query contract
+instead of redefining the API.

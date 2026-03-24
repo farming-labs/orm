@@ -1,0 +1,39 @@
+{
+  "name": "@farming-labs/orm-prisma",
+  "version": "0.0.2",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsx ./scripts/build.ts",
+    "test": "vitest run",
+    "test:local": "pnpm run prisma:prepare && vitest run --config vitest.local.config.ts",
+    "prisma:prepare": "tsx ./test/fixtures/sqlite/prepare.ts && prisma generate --schema ./test/fixtures/sqlite/schema.prisma",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@farming-labs/orm": "workspace:*"
+  },
+  "devDependencies": {
+    "@prisma/client": "^6.5.0",
+    "prisma": "^6.5.0",
+    "tsup": "^8.4.0"
+  },
+  "peerDependencies": {
+    "@prisma/client": "^6.0.0"
+  }
+}
