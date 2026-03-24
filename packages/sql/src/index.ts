@@ -143,7 +143,7 @@ function encodeValue(field: ManifestField, dialect: SqlDialect, value: unknown) 
 
   if (field.kind === "boolean") {
     if (dialect === "postgres") return Boolean(value);
-    return Boolean(value) ? 1 : 0;
+    return value ? 1 : 0;
   }
 
   if (field.kind === "datetime") {
