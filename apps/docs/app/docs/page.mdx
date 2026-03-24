@@ -16,12 +16,13 @@ different storage adapter for every ORM.
 - A schema DSL in `@farming-labs/orm`
 - A typed client surface built around `createOrm(...)`
 - A memory runtime driver that already supports nested relation selection
+- A direct SQL runtime package for SQLite, MySQL, and PostgreSQL
 - A generator CLI that writes Prisma, Drizzle, and safe SQL output
 
 ## What this project is not
 
 - It is not a second full ORM with its own migrations, query planner, and SQL execution engine.
-- It does not yet ship live Prisma, Drizzle, or Kysely runtime drivers in this repo.
+- It does not yet ship live Prisma, Drizzle, Kysely, or Mongoose runtime drivers in this repo.
 - Higher-level relation helpers are currently most useful for runtime helpers and docs, not for current code generators.
 
 ## Recommended reading order

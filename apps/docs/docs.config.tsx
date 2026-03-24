@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { defineDocs } from "@farming-labs/docs";
 import { pixelBorder } from "@farming-labs/theme/pixel-border";
-import { siDrizzle, siPrisma } from "simple-icons";
+import { siDrizzle, siMongodb, siPrisma } from "simple-icons";
 import {
   BookOpen,
   Boxes,
@@ -94,7 +94,12 @@ export default defineDocs({
     { slug: "cli" },
     {
       slug: "integrations",
-      children: [{ slug: "prisma" }, { slug: "drizzle" }, { slug: "sql-databases" }],
+      children: [
+        { slug: "prisma" },
+        { slug: "drizzle" },
+        { slug: "sql-databases" },
+        { slug: "mongodb" },
+      ],
     },
     {
       slug: "use-cases",
@@ -119,6 +124,7 @@ export default defineDocs({
     filecode: icon(<FileCode2 strokeWidth={1.5} />),
     prisma: brandIcon(siPrisma.path, siPrisma.title),
     drizzle: brandIcon(siDrizzle.path, siDrizzle.title),
+    mongodb: brandIcon(siMongodb.path, siMongodb.title),
     harddrive: icon(<HardDrive strokeWidth={1.5} />),
     terminal: icon(<Terminal strokeWidth={1.5} />),
     users: icon(<Users strokeWidth={1.5} />),

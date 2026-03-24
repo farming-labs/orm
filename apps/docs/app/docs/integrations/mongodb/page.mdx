@@ -1,0 +1,70 @@
+---
+title: "MongoDB and Mongoose"
+description: "How MongoDB fits into the Farming Labs ORM roadmap and where Mongoose support would live."
+order: 4
+icon: mongodb
+---
+
+# MongoDB and Mongoose
+
+MongoDB support is a **planned integration**, not a live runtime package in
+this repo today.
+
+## Current status
+
+Today, this repo does **not** ship:
+
+- a MongoDB generator target
+- a Mongoose-backed runtime driver
+- a live `@farming-labs/orm-mongoose` package
+
+What it does ship today:
+
+- the unified schema DSL
+- the typed query API contract
+- live runtime translation for memory and direct SQL backends
+
+## How MongoDB would fit
+
+The intended shape is:
+
+- library authors still define one schema in `@farming-labs/orm`
+- library authors still write one set of storage helpers against `createOrm(...)`
+- MongoDB apps would bind a future Mongoose or MongoDB driver package
+
+That future package would translate calls like:
+
+```ts
+orm.user.findUnique(...)
+orm.user.findMany(...)
+orm.user.create(...)
+orm.user.update(...)
+orm.user.upsert(...)
+orm.user.delete(...)
+```
+
+into MongoDB- or Mongoose-backed operations.
+
+## Why it is a separate future package
+
+MongoDB is not just “another SQL dialect.”
+
+Important differences include:
+
+- document modeling instead of relational tables
+- no direct equivalent to foreign keys and safe SQL migrations
+- different transaction constraints
+- relation loading that may rely on follow-up queries or Mongoose-specific patterns
+
+Because of that, MongoDB support should reuse the same query API contract but
+ship with its own capability profile and docs.
+
+## Best way to read the roadmap
+
+- SQL runtime is live now
+- Prisma and Drizzle are generation-first today
+- MongoDB and Mongoose are planned runtime targets
+
+So if you need MongoDB support immediately, this repo is not there yet. If you
+need the schema contract and runtime shape that Mongo support would plug into,
+those layers already exist.

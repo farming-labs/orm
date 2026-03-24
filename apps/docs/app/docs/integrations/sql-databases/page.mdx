@@ -15,6 +15,11 @@ Farming Labs ORM supports SQL-backed teams in 2 different ways:
 That means teams can either generate SQL artifacts, run the unified runtime
 against a real SQL client, or do both.
 
+This is the integration path where method translation is already live today.
+The same typed calls such as `findUnique`, `findMany`, `create`, `update`,
+`upsert`, and `deleteMany` are compiled by the SQL driver into the target
+dialect at runtime.
+
 ## Supported SQL dialects
 
 - `postgres`

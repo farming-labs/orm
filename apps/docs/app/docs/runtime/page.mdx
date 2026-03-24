@@ -46,6 +46,7 @@ Today, the implemented runtime drivers are:
 - `createSqliteDriver(...)` from `@farming-labs/orm-sql`
 - `createMysqlDriver(...)` from `@farming-labs/orm-sql`
 - `createPgPoolDriver(...)` from `@farming-labs/orm-sql`
+- `createPgClientDriver(...)` from `@farming-labs/orm-sql`
 
 That makes the runtime layer already useful for:
 
@@ -156,6 +157,15 @@ A driver implements this kind of work:
 The driver contract lives inside `@farming-labs/orm`, and `createOrm(...)`
 wraps that driver into typed model clients.
 
+Today, the live method-translation layers in this repo are:
+
+- memory, through `createMemoryDriver(...)`
+- direct SQL, through `@farming-labs/orm-sql`
+
+So the full query API already translates to SQLite, MySQL, and PostgreSQL
+queries today. Prisma, Drizzle, Kysely, and MongoDB/Mongoose are still future
+runtime packages.
+
 ## Current and future runtime story
 
 ### Implemented now
@@ -173,6 +183,7 @@ Prisma/Drizzle/Kysely-specific runtime packages are still the next step.
 - Prisma runtime driver package
 - Drizzle runtime driver package
 - Kysely runtime driver package
+- MongoDB / Mongoose runtime driver package
 - The important design constraint is that those future drivers should plug into
   the same typed runtime contract instead of redefining the API from scratch.
 

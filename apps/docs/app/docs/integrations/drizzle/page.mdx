@@ -20,6 +20,21 @@ It does **not** yet mean:
 
 - there is already a live `@farming-labs/orm-drizzle` runtime driver in this repo
 
+## Runtime translation status
+
+The unified query methods do **not** translate to Drizzle builders in this repo
+today.
+
+What exists today:
+
+- generated Drizzle table output
+- normal app-side Drizzle usage after generation
+
+What is planned:
+
+- a future Drizzle runtime driver that maps the same `orm.user.*` methods onto
+  Drizzle query builders and relation-loading helpers
+
 ## Basic config
 
 ```ts

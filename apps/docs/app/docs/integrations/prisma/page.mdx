@@ -20,6 +20,21 @@ It does **not** yet mean:
 
 - there is a live `@farming-labs/orm-prisma` runtime driver in this repo
 
+## Runtime translation status
+
+The unified query methods do **not** translate to `PrismaClient` in this repo
+today.
+
+What exists today:
+
+- schema generation into `schema.prisma`
+- app-side Prisma workflows after generation
+
+What is planned:
+
+- a future Prisma runtime driver that maps the same `orm.user.*` methods onto
+  Prisma model operations
+
 ## Basic config
 
 ```ts

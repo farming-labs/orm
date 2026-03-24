@@ -12,7 +12,7 @@ The recommended path is:
 1. Define a schema in `@farming-labs/orm`
 2. Add a `farm-orm.config.ts`
 3. Generate target output with `@farming-labs/orm-cli`
-4. Pick a runtime driver: memory for tests/demos or direct SQL for SQLite, MySQL, and PostgreSQL
+4. Pick a runtime driver: memory for tests/demos or direct SQL for SQLite, MySQL, and PostgreSQL today
 
 ## Step 1: Define a real schema
 
@@ -217,8 +217,13 @@ const orm = createOrm({
 There are matching factories for:
 
 - `createPgPoolDriver(pool)`
+- `createPgClientDriver(client)`
 - `createMysqlDriver(poolOrConnection)`
 - `createSqliteDriver(database)`
+
+Those are the live runtime translators in this repo right now. Prisma and
+Drizzle are generation-first integrations today, and MongoDB/Mongoose is still
+a planned runtime target.
 
 ## Step 5: Understand what gets generated
 
@@ -234,6 +239,7 @@ From the schema above:
 - [Prisma integration](/docs/integrations/prisma)
 - [Drizzle integration](/docs/integrations/drizzle)
 - [SQL databases](/docs/integrations/sql-databases)
+- [MongoDB and Mongoose](/docs/integrations/mongodb)
 
 ## Common first tasks
 

@@ -1,6 +1,6 @@
 ---
 title: "Integrations"
-description: "How Farming Labs ORM fits into Prisma, Drizzle, SQL-first, and supported database workflows."
+description: "How Farming Labs ORM fits into Prisma, Drizzle, SQL-first, and MongoDB-oriented workflows."
 order: 6
 icon: package
 ---
@@ -19,19 +19,21 @@ So when people ask “does this support Prisma or Drizzle?” the honest answer 
 
 - **yes for generation today**
 - **not yet for live runtime execution in this repo**
+- **yes for live runtime execution today only through memory and direct SQL drivers**
 
 ## Current support matrix
 
-| Layer                  | PostgreSQL | MySQL   | SQLite  | Notes                                                     |
-| ---------------------- | ---------- | ------- | ------- | --------------------------------------------------------- |
-| Prisma generation      | Yes        | Yes     | Yes     | Uses Prisma providers `postgresql`, `mysql`, `sqlite`     |
-| Drizzle generation     | Yes        | Yes     | Yes     | Uses Drizzle dialects `pg`, `mysql`, `sqlite`             |
-| Safe SQL generation    | Yes        | Yes     | Yes     | Uses SQL dialects `postgres`, `mysql`, `sqlite`           |
-| Memory runtime         | N/A        | N/A     | N/A     | In-memory driver for tests, demos, and docs               |
-| Direct SQL runtime     | Yes        | Yes     | Yes     | `@farming-labs/orm-sql` with SQLite, MySQL, and `pg.Pool` |
-| Prisma runtime driver  | Planned    | Planned | Planned | Future package                                            |
-| Drizzle runtime driver | Planned    | Planned | Planned | Future package                                            |
-| Kysely runtime driver  | Planned    | Planned | Planned | Future package                                            |
+| Layer                   | PostgreSQL | MySQL   | SQLite  | MongoDB | Notes                                                        |
+| ----------------------- | ---------- | ------- | ------- | ------- | ------------------------------------------------------------ |
+| Prisma generation       | Yes        | Yes     | Yes     | No      | Uses Prisma providers `postgresql`, `mysql`, `sqlite`        |
+| Drizzle generation      | Yes        | Yes     | Yes     | No      | Uses Drizzle dialects `pg`, `mysql`, `sqlite`                |
+| Safe SQL generation     | Yes        | Yes     | Yes     | No      | Uses SQL dialects `postgres`, `mysql`, `sqlite`              |
+| Memory runtime          | N/A        | N/A     | N/A     | N/A     | In-memory driver for tests, demos, and docs                  |
+| Direct SQL runtime      | Yes        | Yes     | Yes     | No      | `@farming-labs/orm-sql` for SQLite, MySQL, and PostgreSQL    |
+| Prisma runtime driver   | Planned    | Planned | Planned | Later   | Future package; Mongo via Prisma is not part of this repo today |
+| Drizzle runtime driver  | Planned    | Planned | Planned | No      | Future package                                                |
+| Kysely runtime driver   | Planned    | Planned | Planned | No      | Future package                                                |
+| Mongoose / Mongo driver | No         | No      | No      | Planned | Future package for MongoDB-oriented apps                      |
 
 ## How to think about “fit”
 
@@ -51,14 +53,34 @@ The consuming app chooses:
 - Drizzle generation
 - safe SQL generation
 - or direct SQL runtime with `@farming-labs/orm-sql`
+- and later, a MongoDB/Mongoose runtime package when that lands
 
 That means the application keeps control over its own persistence toolchain.
+
+## How method translation works
+
+Every model method follows the same path:
+
+```ts
+orm.user.findUnique(...)
+orm.user.findMany(...)
+orm.user.create(...)
+orm.user.update(...)
+orm.user.upsert(...)
+```
+
+Those calls are handed to the active runtime driver.
+
+- In `@farming-labs/orm-sql`, they already compile into SQLite, MySQL, and PostgreSQL queries.
+- In the memory driver, they execute against in-memory rows for tests and demos.
+- In future Prisma, Drizzle, Kysely, and Mongoose drivers, those same methods would translate into the target client’s operations instead of SQL strings.
 
 ## Integration guides
 
 - [Prisma](/docs/integrations/prisma)
 - [Drizzle](/docs/integrations/drizzle)
 - [SQL databases](/docs/integrations/sql-databases)
+- [MongoDB and Mongoose](/docs/integrations/mongodb)
 
 ## What “supported” means in practice
 
