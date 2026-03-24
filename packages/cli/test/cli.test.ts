@@ -80,7 +80,7 @@ describe("@farming-labs/orm-cli", () => {
 
       expect(await readFile(prismaPath, "utf8")).toContain("model User");
       expect(await readFile(drizzlePath, "utf8")).toContain("pgTable");
-      expect(await readFile(sqlPath, "utf8")).toContain("create table if not exists users");
+      expect(await readFile(sqlPath, "utf8")).toContain('create table if not exists "users"');
     } finally {
       process.chdir(cwd);
     }

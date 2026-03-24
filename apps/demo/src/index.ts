@@ -1,10 +1,10 @@
 import { createMemoryDriver, createOrm } from "@farming-labs/orm";
-import { createAuthStore } from "./auth-store";
+import { createAuthStore, type AuthOrm } from "./auth-store";
 import { authSchema } from "./schema";
 
-const orm = createOrm({
+const orm: AuthOrm = createOrm({
   schema: authSchema,
-  driver: createMemoryDriver({
+  driver: createMemoryDriver<typeof authSchema>({
     user: [
       {
         id: "user_1",

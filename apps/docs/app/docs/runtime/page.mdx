@@ -40,16 +40,20 @@ That is different from:
 
 ## Current runtime implementation in this repo
 
-Today, the implemented runtime driver is:
+Today, the implemented runtime drivers are:
 
-- `createMemoryDriver(...)`
+- `createMemoryDriver(...)` from `@farming-labs/orm`
+- `createSqliteDriver(...)` from `@farming-labs/orm-sql`
+- `createMysqlDriver(...)` from `@farming-labs/orm-sql`
+- `createPgPoolDriver(...)` from `@farming-labs/orm-sql`
 
 That makes the runtime layer already useful for:
 
 - docs examples
 - tests
 - seeded demos
-- validating the query API shape before live drivers are added
+- direct SQL-backed apps using SQLite, MySQL, or PostgreSQL pools
+- validating the query API shape before Prisma/Drizzle/Kysely drivers are added
 
 ## The runtime shape
 
@@ -158,20 +162,19 @@ wraps that driver into typed model clients.
 
 - the unified runtime contract inside `@farming-labs/orm`
 - `createMemoryDriver(...)` as the first concrete runtime driver
+- `@farming-labs/orm-sql` for SQLite, MySQL, and `pg.Pool`
 
 That means libraries can already standardize on one query and mutation API
-today, even though the live database-specific runtime drivers are still the next
-step.
+today, and direct SQL consumers can run that API against real databases while
+Prisma/Drizzle/Kysely-specific runtime packages are still the next step.
 
 ### Planned next
 
 - Prisma runtime driver package
 - Drizzle runtime driver package
 - Kysely runtime driver package
-- SQL runtime driver package
-
-The important design constraint is that those future drivers should plug into
-the same typed runtime contract instead of redefining the API from scratch.
+- The important design constraint is that those future drivers should plug into
+  the same typed runtime contract instead of redefining the API from scratch.
 
 ## Continue reading
 

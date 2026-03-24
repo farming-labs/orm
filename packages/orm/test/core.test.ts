@@ -56,7 +56,7 @@ describe("@farming-labs/orm core", () => {
     expect(prisma).toContain("model User");
     expect(prisma).toContain('@map("email_address")');
     expect(drizzle).toContain('export const user = pgTable("users"');
-    expect(sql).toContain("create table if not exists users");
+    expect(sql).toContain('create table if not exists "users"');
   });
 
   it("supports nested relation selection in the memory driver", async () => {

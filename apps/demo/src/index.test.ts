@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { createMemoryDriver, createOrm } from "@farming-labs/orm";
-import { createAuthStore } from "./auth-store";
+import { createAuthStore, type AuthOrm } from "./auth-store";
 import { authSchema } from "./schema";
 
 describe("demo app", () => {
   it("loads a nested auth-shaped record through the typed API", async () => {
-    const orm = createOrm({
+    const orm: AuthOrm = createOrm({
       schema: authSchema,
-      driver: createMemoryDriver({
+      driver: createMemoryDriver<typeof authSchema>({
         user: [
           {
             id: "user_1",
@@ -49,9 +49,9 @@ describe("demo app", () => {
   });
 
   it("shows how an auth library can write one storage layer against the unified runtime", async () => {
-    const orm = createOrm({
+    const orm: AuthOrm = createOrm({
       schema: authSchema,
-      driver: createMemoryDriver({
+      driver: createMemoryDriver<typeof authSchema>({
         user: [
           {
             id: "user_1",

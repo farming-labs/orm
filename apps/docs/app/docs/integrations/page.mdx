@@ -13,7 +13,7 @@ The most important idea is this:
 
 - `@farming-labs/orm` is the schema contract
 - `@farming-labs/orm-cli` generates artifacts for app-side tools
-- the current live runtime driver is memory-only
+- `@farming-labs/orm-sql` runs the unified runtime directly against SQL backends
 
 So when people ask “does this support Prisma or Drizzle?” the honest answer is:
 
@@ -28,10 +28,10 @@ So when people ask “does this support Prisma or Drizzle?” the honest answer 
 | Drizzle generation        | Yes        | Yes     | Yes     | Uses Drizzle dialects `pg`, `mysql`, `sqlite`         |
 | Safe SQL generation       | Yes        | Yes     | Yes     | Uses SQL dialects `postgres`, `mysql`, `sqlite`       |
 | Memory runtime            | N/A        | N/A     | N/A     | In-memory driver for tests, demos, and docs           |
+| Direct SQL runtime        | Yes        | Yes     | Yes     | `@farming-labs/orm-sql` with SQLite, MySQL, and `pg.Pool` |
 | Prisma runtime driver     | Planned    | Planned | Planned | Future package                                        |
 | Drizzle runtime driver    | Planned    | Planned | Planned | Future package                                        |
 | Kysely runtime driver     | Planned    | Planned | Planned | Future package                                        |
-| Direct SQL runtime driver | Planned    | Planned | Planned | Future package                                        |
 
 ## How to think about “fit”
 
@@ -50,6 +50,7 @@ The consuming app chooses:
 - Prisma generation
 - Drizzle generation
 - safe SQL generation
+- or direct SQL runtime with `@farming-labs/orm-sql`
 
 That means the application keeps control over its own persistence toolchain.
 
@@ -68,6 +69,12 @@ When we say Prisma or Drizzle is supported **today**, we mean:
 
 It does **not** mean that this repo already ships a live runtime executor backed
 by `PrismaClient` or `drizzle-orm` at runtime.
+
+It **does** mean the repo now ships a live SQL runtime package for:
+
+- SQLite
+- MySQL
+- PostgreSQL via `pg.Pool`
 
 That distinction matters a lot in the docs, because otherwise “support” becomes
 too vague to be useful.
