@@ -19,19 +19,23 @@ function matchesFilter(value: unknown, filter: unknown) {
   if ("not" in filter && value === filter.not) return false;
   if ("gt" in filter) {
     const next = filter.gt as any;
-    if (!(value instanceof Date && next instanceof Date ? value > next : (value as any) > next)) return false;
+    if (!(value instanceof Date && next instanceof Date ? value > next : (value as any) > next))
+      return false;
   }
   if ("gte" in filter) {
     const next = filter.gte as any;
-    if (!(value instanceof Date && next instanceof Date ? value >= next : (value as any) >= next)) return false;
+    if (!(value instanceof Date && next instanceof Date ? value >= next : (value as any) >= next))
+      return false;
   }
   if ("lt" in filter) {
     const next = filter.lt as any;
-    if (!(value instanceof Date && next instanceof Date ? value < next : (value as any) < next)) return false;
+    if (!(value instanceof Date && next instanceof Date ? value < next : (value as any) < next))
+      return false;
   }
   if ("lte" in filter) {
     const next = filter.lte as any;
-    if (!(value instanceof Date && next instanceof Date ? value <= next : (value as any) <= next)) return false;
+    if (!(value instanceof Date && next instanceof Date ? value <= next : (value as any) <= next))
+      return false;
   }
   return true;
 }
@@ -39,11 +43,18 @@ function matchesFilter(value: unknown, filter: unknown) {
 function matchesWhere(row: PrismaRow, where?: PrismaWhereInput) {
   if (!where) return true;
 
-  if (Array.isArray(where.AND) && !where.AND.every((entry) => matchesWhere(row, entry as PrismaWhereInput))) {
+  if (
+    Array.isArray(where.AND) &&
+    !where.AND.every((entry) => matchesWhere(row, entry as PrismaWhereInput))
+  ) {
     return false;
   }
 
-  if (Array.isArray(where.OR) && where.OR.length > 0 && !where.OR.some((entry) => matchesWhere(row, entry as PrismaWhereInput))) {
+  if (
+    Array.isArray(where.OR) &&
+    where.OR.length > 0 &&
+    !where.OR.some((entry) => matchesWhere(row, entry as PrismaWhereInput))
+  ) {
     return false;
   }
 

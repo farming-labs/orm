@@ -79,7 +79,9 @@ describe("prisma local integration", () => {
   it(
     "supports updates, upserts, deletes, and transaction rollback against a real Prisma client",
     async () => {
-      await withLocalOrm((orm) => assertMutationQueries(orm, expect, { expectTransactionRollback: true }));
+      await withLocalOrm((orm) =>
+        assertMutationQueries(orm, expect, { expectTransactionRollback: true }),
+      );
     },
     LOCAL_TIMEOUT_MS,
   );

@@ -35,11 +35,7 @@ type PrismaDelegateLike = {
   create(args: { data: PrismaRow }): Promise<PrismaRow>;
   update?(args: { where: PrismaRow; data: PrismaRow }): Promise<PrismaRow>;
   updateMany(args: { where?: PrismaWhereInput; data: PrismaRow }): Promise<{ count?: number }>;
-  upsert?(args: {
-    where: PrismaRow;
-    create: PrismaRow;
-    update: PrismaRow;
-  }): Promise<PrismaRow>;
+  upsert?(args: { where: PrismaRow; create: PrismaRow; update: PrismaRow }): Promise<PrismaRow>;
   delete?(args: { where: PrismaRow }): Promise<PrismaRow>;
   deleteMany(args: { where?: PrismaWhereInput }): Promise<{ count?: number }>;
 };
@@ -286,7 +282,9 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
     const key = config.models?.[modelName] ?? modelName;
     const delegate = config.client[key];
     if (!delegate) {
-      throw new Error(`Prisma delegate "${String(key)}" for model "${String(modelName)}" is missing.`);
+      throw new Error(
+        `Prisma delegate "${String(key)}" for model "${String(modelName)}" is missing.`,
+      );
     }
     return delegate;
   }
@@ -294,11 +292,7 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
   async function loadRows<
     TModelName extends ModelName<TSchema>,
     TSelect extends SelectShape<TSchema, TModelName> | undefined,
-  >(
-    schema: TSchema,
-    modelName: TModelName,
-    args: FindManyArgs<TSchema, TModelName, TSelect>,
-  ) {
+  >(schema: TSchema, modelName: TModelName, args: FindManyArgs<TSchema, TModelName, TSelect>) {
     const manifest = getManifest(schema);
     const model = manifest.models[modelName];
     const rows = await getDelegate(modelName).findMany({
@@ -633,14 +627,13 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
         conflict,
       );
 
-      const row = await (
-        delegate.upsert?.({
-          where: {
-            [conflict.field.name]: conflict.value,
-          },
-          create: createData,
-          update: updateData,
-        }) ??
+      const row = await (delegate.upsert?.({
+        where: {
+          [conflict.field.name]: conflict.value,
+        },
+        create: createData,
+        update: updateData,
+      }) ??
         runTransaction(async (txDriver) => {
           const existing = await txDriver.findUnique(schema, model, {
             where: args.where as any,
@@ -660,8 +653,7 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
           return txDriver.create(schema, model, {
             data: args.create as any,
           } as CreateArgs<TSchema, ModelName<TSchema>, undefined>) as Promise<PrismaRow>;
-        })
-      );
+        }));
 
       return projectRow(schema, model, row, args.select) as Promise<any>;
     },

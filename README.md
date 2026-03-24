@@ -1,4 +1,4 @@
-# @farming-labs/orm 
+# @farming-labs/orm
 
 One schema. Many stacks.
 
@@ -51,15 +51,7 @@ Drizzle is a generator target in this repo today, not a runtime driver yet.
 ## Simple example
 
 ```ts
-import {
-  belongsTo,
-  createOrm,
-  defineSchema,
-  hasMany,
-  id,
-  model,
-  string,
-} from "@farming-labs/orm";
+import { belongsTo, createOrm, defineSchema, hasMany, id, model, string } from "@farming-labs/orm";
 import { createPgPoolDriver } from "@farming-labs/orm-sql";
 import { Pool } from "pg";
 
