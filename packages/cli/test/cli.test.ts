@@ -26,7 +26,15 @@ async function createFixture() {
   const schemaPath = path.join(workspace, "schema.ts");
   await writeFile(
     schemaPath,
-    `import { defineSchema, model, id, string } from ${JSON.stringify(ormSourcePath)};
+    `import {
+  belongsTo,
+  defineSchema,
+  hasMany,
+  hasOne,
+  id,
+  model,
+  string,
+} from ${JSON.stringify(ormSourcePath)};
 
 export const schema = defineSchema({
   user: model({
@@ -35,6 +43,32 @@ export const schema = defineSchema({
       id: id(),
       email: string().unique(),
       name: string(),
+    },
+    relations: {
+      profile: hasOne("profile", { foreignKey: "userId" }),
+      sessions: hasMany("session", { foreignKey: "userId" }),
+    },
+  }),
+  profile: model({
+    table: "profiles",
+    fields: {
+      id: id(),
+      userId: string().unique().references("user.id"),
+      bio: string(),
+    },
+    relations: {
+      user: belongsTo("user", { foreignKey: "userId" }),
+    },
+  }),
+  session: model({
+    table: "sessions",
+    fields: {
+      id: id(),
+      userId: string().references("user.id"),
+      token: string().unique(),
+    },
+    relations: {
+      user: belongsTo("user", { foreignKey: "userId" }),
     },
   }),
 });
@@ -79,8 +113,13 @@ describe("@farming-labs/orm-cli", () => {
       expect(existsSync(sqlPath)).toBe(true);
 
       expect(await readFile(prismaPath, "utf8")).toContain("model User");
+      expect(await readFile(prismaPath, "utf8")).toContain("profile Profile?");
+      expect(await readFile(prismaPath, "utf8")).toContain("sessions Session[]");
       expect(await readFile(drizzlePath, "utf8")).toContain("pgTable");
+      expect(await readFile(drizzlePath, "utf8")).toContain("export const userRelations");
+      expect(await readFile(drizzlePath, "utf8")).toContain("profile: one(profile)");
       expect(await readFile(sqlPath, "utf8")).toContain('create table if not exists "users"');
+      expect(await readFile(sqlPath, "utf8")).toContain('create table if not exists "profiles"');
     } finally {
       process.chdir(cwd);
     }

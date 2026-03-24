@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { readFile } from "node:fs/promises";
 import { promisify } from "node:util";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -54,6 +55,16 @@ describe("workspace end to end", () => {
     expect(prismaCheck.stdout).toContain("up to date");
     expect(drizzleCheck.stdout).toContain("up to date");
     expect(sqlCheck.stdout).toContain("up to date");
+
+    const prismaSchema = await readFile(path.join(demoDir, "generated/prisma/schema.prisma"), "utf8");
+    const drizzleSchema = await readFile(path.join(demoDir, "generated/drizzle/schema.ts"), "utf8");
+    expect(prismaSchema).toContain("profile Profile?");
+    expect(prismaSchema).toContain("accounts Account[]");
+    expect(prismaSchema).toContain("sessions Session[]");
+    expect(drizzleSchema).toContain("export const userRelations");
+    expect(drizzleSchema).toContain("profile: one(profile)");
+    expect(drizzleSchema).toContain("accounts: many(account)");
+    expect(drizzleSchema).toContain("sessions: many(session)");
 
     const demoRun = await runPnpm(["exec", "tsx", "src/index.ts"], demoDir);
     expect(demoRun.stdout).toContain('"name": "Ada Lovelace"');

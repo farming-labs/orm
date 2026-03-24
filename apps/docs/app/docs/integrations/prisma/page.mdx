@@ -73,6 +73,14 @@ the Prisma output looks like:
 email String @unique @map("email_address")
 ```
 
+For relations, the generator now covers the direct cases cleanly:
+
+- `belongsTo(...)` renders the owning relation field with `@relation(...)`
+- `hasOne(...)` renders an optional inverse relation field
+- `hasMany(...)` renders an array relation field
+- join-table-backed `manyToMany(...)` still flows through the explicit join model rather
+  than becoming an implicit Prisma many-to-many field
+
 ## Example generated model
 
 From a simple user model, the Prisma generator produces output shaped like:

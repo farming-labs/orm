@@ -83,6 +83,15 @@ export const user = pgTable("users", {
 });
 ```
 
+For direct relations, the generator also emits `relations(...)` helpers for:
+
+- `belongsTo(...)`
+- `hasOne(...)`
+- `hasMany(...)`
+
+Join-table-backed `manyToMany(...)` is still represented through the explicit join
+model rather than a direct Drizzle relation shortcut.
+
 ## How it fits into a Drizzle app
 
 Typical flow:
@@ -102,9 +111,6 @@ So again, Farming Labs ORM is feeding the app-side stack rather than replacing i
 
 ## Important nuance
 
-The current generator is focused on field and reference output first. Higher-level
-relation helpers are more fully realized in the runtime layer today than in the
-Drizzle generator itself.
-
-That is why the docs keep field/reference generation and runtime relation docs
-clearly separated.
+The Drizzle generator now covers the direct relation helpers above, but explicit
+many-to-many traversal still belongs to the runtime layer or the app’s own join-model
+queries.

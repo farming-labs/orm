@@ -23,6 +23,43 @@ export type SqlGenerationOptions = {
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 const pluralize = (value: string) => (value.endsWith("s") ? value : `${value}s`);
 
+function resolveReferenceTarget(
+  manifest: SchemaManifest,
+  model: ManifestModel,
+  foreignKey: string,
+  fallbackTarget: string,
+) {
+  const reference = model.fields[foreignKey]?.references;
+  if (!reference) {
+    return {
+      targetModel: fallbackTarget,
+      targetField: "id",
+    };
+  }
+
+  const [targetModel, targetField = "id"] = reference.split(".");
+  return {
+    targetModel,
+    targetField,
+  };
+}
+
+function hasExplicitInverseRelation(
+  manifest: SchemaManifest,
+  modelName: string,
+  sourceModel: string,
+  foreignKey: string,
+) {
+  const model = manifest.models[modelName];
+  if (!model) return false;
+
+  return Object.values(model.relations).some((relation) => {
+    if (relation.target !== sourceModel) return false;
+    if (relation.kind === "belongsTo" || relation.kind === "manyToMany") return false;
+    return relation.foreignKey === foreignKey;
+  });
+}
+
 function prismaType(field: ManifestField) {
   switch (field.kind) {
     case "id":
@@ -144,7 +181,10 @@ export function renderPrismaSchema(
   const provider = options.provider ?? "postgresql";
   const generatorName = options.generatorName ?? "client";
   const datasourceName = options.datasourceName ?? "db";
-  const reverseRelations = new Map<string, Array<{ sourceModel: string; many: boolean }>>();
+  const reverseRelations = new Map<
+    string,
+    Array<{ sourceModel: string; foreignKey: string; many: boolean }>
+  >();
 
   for (const model of Object.values(manifest.models) as ManifestModel[]) {
     for (const field of Object.values(model.fields)) {
@@ -154,6 +194,7 @@ export function renderPrismaSchema(
         ...(reverseRelations.get(targetModel) ?? []),
         {
           sourceModel: model.name,
+          foreignKey: field.name,
           many: !field.unique,
         },
       ]);
@@ -163,6 +204,8 @@ export function renderPrismaSchema(
   const blocks = (Object.values(manifest.models) as ManifestModel[]).map((model) => {
     const lines: string[] = [];
     const modelName = capitalize(model.name);
+    const relationFieldNames = new Set<string>();
+    const handledForeignKeys = new Set<string>();
 
     for (const field of Object.values(model.fields)) {
       const fieldType = prismaType(field);
@@ -183,20 +226,57 @@ export function renderPrismaSchema(
       lines.push(
         `  ${field.name} ${fieldType}${field.nullable ? "?" : ""}${modifiers.length ? ` ${modifiers.join(" ")}` : ""}`,
       );
+    }
 
-      if (field.references) {
-        const [targetModel, targetField] = field.references.split(".");
-        lines.push(
-          `  ${targetModel} ${capitalize(targetModel)} @relation(fields: [${field.name}], references: [${targetField}])`,
+    for (const [relationName, relation] of Object.entries(model.relations)) {
+      if (relation.kind === "manyToMany") continue;
+
+      relationFieldNames.add(relationName);
+
+      if (relation.kind === "belongsTo") {
+        const { targetField } = resolveReferenceTarget(
+          manifest,
+          model,
+          relation.foreignKey,
+          relation.target,
         );
+        handledForeignKeys.add(relation.foreignKey);
+        lines.push(
+          `  ${relationName} ${capitalize(relation.target)} @relation(fields: [${relation.foreignKey}], references: [${targetField}])`,
+        );
+        continue;
       }
+
+      if (relation.kind === "hasOne") {
+        lines.push(`  ${relationName} ${capitalize(relation.target)}?`);
+        continue;
+      }
+
+      lines.push(`  ${relationName} ${capitalize(relation.target)}[]`);
+    }
+
+    for (const field of Object.values(model.fields)) {
+      if (!field.references || handledForeignKeys.has(field.name)) continue;
+      const [targetModel, targetField] = field.references.split(".");
+      if (relationFieldNames.has(targetModel)) continue;
+      lines.push(
+        `  ${targetModel} ${capitalize(targetModel)} @relation(fields: [${field.name}], references: [${targetField}])`,
+      );
     }
 
     for (const relation of reverseRelations.get(model.name) ?? []) {
+      if (
+        hasExplicitInverseRelation(manifest, model.name, relation.sourceModel, relation.foreignKey)
+      ) {
+        continue;
+      }
+
+      const relationName = relation.many ? pluralize(relation.sourceModel) : relation.sourceModel;
+      if (relationFieldNames.has(relationName)) continue;
       lines.push(
         relation.many
-          ? `  ${pluralize(relation.sourceModel)} ${capitalize(relation.sourceModel)}[]`
-          : `  ${relation.sourceModel} ${capitalize(relation.sourceModel)}?`,
+          ? `  ${relationName} ${capitalize(relation.sourceModel)}[]`
+          : `  ${relationName} ${capitalize(relation.sourceModel)}?`,
       );
     }
 
@@ -217,7 +297,7 @@ export function renderDrizzleSchema(
   options: DrizzleGenerationOptions,
 ) {
   const manifest = createManifest(schema);
-  const imports = drizzleImports(options.dialect, manifest).join(", ");
+  const coreImports = drizzleImports(options.dialect, manifest).join(", ");
   const tableFactory =
     options.dialect === "pg"
       ? "pgTable"
@@ -238,13 +318,54 @@ export function renderDrizzleSchema(
     return `export const ${model.name} = ${tableFactory}("${model.table}", {\n${lines.join(",\n")}\n});`;
   });
 
-  return `import { ${imports} } from "drizzle-orm/${
-    options.dialect === "pg"
-      ? "pg-core"
-      : options.dialect === "mysql"
-        ? "mysql-core"
-        : "sqlite-core"
-  }";\n\n${modelBlocks.join("\n\n")}\n`;
+  const relationBlocks = (Object.values(manifest.models) as ManifestModel[])
+    .map((model) => {
+      const lines = Object.entries(model.relations)
+        .flatMap(([relationName, relation]) => {
+          if (relation.kind === "manyToMany") {
+            return [];
+          }
+
+          if (relation.kind === "belongsTo") {
+            const { targetField } = resolveReferenceTarget(
+              manifest,
+              model,
+              relation.foreignKey,
+              relation.target,
+            );
+            return [
+              `  ${relationName}: one(${relation.target}, { fields: [${model.name}.${relation.foreignKey}], references: [${relation.target}.${targetField}] })`,
+            ];
+          }
+
+          if (relation.kind === "hasOne") {
+            return [`  ${relationName}: one(${relation.target})`];
+          }
+
+          return [`  ${relationName}: many(${relation.target})`];
+        })
+        .filter(Boolean);
+
+      if (!lines.length) return null;
+
+      return `export const ${model.name}Relations = relations(${model.name}, ({ one, many }) => ({\n${lines.join(",\n")}\n}));`;
+    })
+    .filter(Boolean);
+
+  const imports = [
+    `import { ${coreImports} } from "drizzle-orm/${
+      options.dialect === "pg"
+        ? "pg-core"
+        : options.dialect === "mysql"
+          ? "mysql-core"
+          : "sqlite-core"
+    }";`,
+    relationBlocks.length ? `import { relations } from "drizzle-orm";` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return `${imports}\n\n${[...modelBlocks, ...relationBlocks].join("\n\n")}\n`;
 }
 
 export function renderSafeSql(schema: SchemaDefinition<any>, options: SqlGenerationOptions) {

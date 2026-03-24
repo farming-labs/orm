@@ -77,6 +77,16 @@ Those calls are handed to the active runtime driver.
 - In the memory driver, they execute against in-memory rows for tests and demos.
 - In future Prisma, Drizzle, and Kysely drivers, those same methods would translate into the target client’s operations instead of SQL strings.
 
+For generated Prisma and Drizzle output, direct relation definitions are also covered
+today:
+
+- `belongsTo`
+- `hasOne`
+- `hasMany`
+
+Explicit join-table `manyToMany` relationships still flow through the join model in
+generated Prisma and Drizzle output.
+
 ## Integration guides
 
 - [Prisma](/docs/integrations/prisma)
