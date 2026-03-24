@@ -20,7 +20,8 @@
     "fmt": "oxfmt .",
     "fmt:check": "oxfmt --check .",
     "check": "pnpm lint && pnpm fmt:check && pnpm typecheck",
-    "release": "bumpp packages/orm/package.json packages/cli/package.json packages/sql/package.json packages/mongoose/package.json --no-commit --no-tag --no-push --no-verify",
+    "release": "bumpp packages/orm/package.json packages/cli/package.json packages/sql/package.json packages/mongoose/package.json --commit 'chore: release v%s' --tag 'v%s' --no-push --no-verify",
+    "release:latest": "pnpm release",
     "release:patch": "pnpm release --release patch --yes",
     "release:minor": "pnpm release --release minor --yes",
     "release:major": "pnpm release --release major --yes",
@@ -33,9 +34,7 @@
     "publish:latest": "pnpm --filter './packages/*' run build && pnpm --filter './packages/*' publish --access public --no-git-checks",
     "publish:latest:dry-run": "pnpm --filter './packages/*' run build && pnpm --filter './packages/*' publish --access public --no-git-checks --dry-run",
     "publish:beta": "pnpm --filter './packages/*' run build && pnpm --filter './packages/*' publish --access public --tag beta --no-git-checks",
-    "publish:beta:dry-run": "pnpm --filter './packages/*' run build && pnpm --filter './packages/*' publish --access public --tag beta --no-git-checks --dry-run",
-    "release:latest": "pnpm release && pnpm publish:latest",
-    "release:beta:publish": "pnpm release:beta && pnpm publish:beta"
+    "publish:beta:dry-run": "pnpm --filter './packages/*' run build && pnpm --filter './packages/*' publish --access public --tag beta --no-git-checks --dry-run"
   },
   "devDependencies": {
     "@types/node": "^22.13.10",
