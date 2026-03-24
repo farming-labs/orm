@@ -3,12 +3,14 @@ import { authSchema } from "./schema";
 
 export type AuthOrm = OrmClient<typeof authSchema>;
 
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
+
 export function createAuthStore(db: AuthOrm) {
   return {
     findUserByEmail(email: string) {
       return db.user.findUnique({
         where: {
-          email: email.toLowerCase(),
+          email: normalizeEmail(email),
         },
         select: {
           id: true,
@@ -47,7 +49,7 @@ export function createAuthStore(db: AuthOrm) {
         const user = await tx.user.create({
           data: {
             name: input.name,
-            email: input.email.toLowerCase(),
+            email: normalizeEmail(input.email),
           },
           select: {
             id: true,

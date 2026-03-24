@@ -430,12 +430,14 @@ to keep each internal query simple and typed.
 ## Auth-style storage example
 
 ```ts
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
+
 export function createAuthStore(orm: typeof authOrm) {
   return {
     findUserByEmail(email: string) {
       return orm.user.findUnique({
         where: {
-          email: email.toLowerCase(),
+          email: normalizeEmail(email),
         },
         select: {
           id: true,
@@ -462,6 +464,40 @@ export function createAuthStore(orm: typeof authOrm) {
             },
           },
         },
+      });
+    },
+
+    createOAuthUser(input: {
+      name: string;
+      email: string;
+      provider: string;
+      accountId: string;
+    }) {
+      return orm.transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            name: input.name,
+            email: normalizeEmail(input.email),
+          },
+          select: {
+            id: true,
+            email: true,
+          },
+        });
+
+        const account = await tx.account.create({
+          data: {
+            userId: user.id,
+            provider: input.provider,
+            accountId: input.accountId,
+          },
+          select: {
+            provider: true,
+            accountId: true,
+          },
+        });
+
+        return { user, account };
       });
     },
 
@@ -495,6 +531,9 @@ export function createAuthStore(orm: typeof authOrm) {
   };
 }
 ```
+
+If the storage layer normalizes emails, normalize them on write as well as on
+lookup. A lookup-only `toLowerCase()` can miss legacy or mixed-case rows.
 
 This is the main point of the runtime contract: an auth package can write its
 storage layer once and then plug that same logic into whichever runtime driver

@@ -119,14 +119,12 @@ function parseReference(reference?: string) {
 }
 
 function identityField(model: ManifestModel) {
-  if (model.fields.id) return "id";
+  if (model.fields.id) return model.fields.id;
   const uniqueField = Object.values(model.fields).find((field) => field.unique);
-  if (uniqueField) return uniqueField.name;
-  const firstField = Object.values(model.fields)[0];
-  if (!firstField) {
-    throw new Error(`Model "${model.name}" has no fields and cannot be used by the SQL runtime.`);
-  }
-  return firstField.name;
+  if (uniqueField) return uniqueField;
+  throw new Error(
+    `Model "${model.name}" requires an "id" field or a unique field for the SQL runtime.`,
+  );
 }
 
 function applyDefault(value: unknown, field: ManifestField) {
@@ -198,6 +196,93 @@ function isFilterObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !(value instanceof Date) && !Array.isArray(value);
 }
 
+function extractEqualityValue(filter: unknown) {
+  if (!isFilterObject(filter)) {
+    return {
+      supported: true,
+      value: filter,
+    };
+  }
+
+  const keys = Object.keys(filter);
+  if (keys.length === 1 && "eq" in filter) {
+    return {
+      supported: true,
+      value: filter.eq,
+    };
+  }
+
+  return {
+    supported: false,
+    value: undefined,
+  };
+}
+
+function extractUpsertConflict(model: ManifestModel, where: SqlWhere) {
+  const keys = Object.keys(where).filter((key) => key !== "AND" && key !== "OR" && key !== "NOT");
+
+  if ("AND" in where || "OR" in where || "NOT" in where || keys.length !== 1) {
+    throw new Error(
+      `Upsert on model "${model.name}" requires a single unique equality filter in "where".`,
+    );
+  }
+
+  const fieldName = keys[0]!;
+  const field = model.fields[fieldName];
+  if (!field) {
+    throw new Error(`Unknown field "${fieldName}" on model "${model.name}".`);
+  }
+
+  if (!(field.kind === "id" || field.unique)) {
+    throw new Error(
+      `Upsert on model "${model.name}" requires the "where" field "${fieldName}" to be unique or an id field.`,
+    );
+  }
+
+  const { supported, value } = extractEqualityValue(where[fieldName]);
+  if (!supported || value === undefined || value === null) {
+    throw new Error(
+      `Upsert on model "${model.name}" requires the "where" field "${fieldName}" to use a single non-null equality value.`,
+    );
+  }
+
+  return {
+    field,
+    value,
+  };
+}
+
+function mergeUpsertCreateData(
+  model: ManifestModel,
+  createData: Partial<Record<string, unknown>>,
+  conflict: { field: ManifestField; value: unknown },
+) {
+  const currentValue = createData[conflict.field.name];
+  if (currentValue !== undefined && currentValue !== conflict.value) {
+    throw new Error(
+      `Upsert on model "${model.name}" requires create.${conflict.field.name} to match where.${conflict.field.name}.`,
+    );
+  }
+
+  return {
+    ...createData,
+    [conflict.field.name]: currentValue ?? conflict.value,
+  };
+}
+
+function validateUpsertUpdateData(
+  model: ManifestModel,
+  updateData: Partial<Record<string, unknown>>,
+  conflict: { field: ManifestField; value: unknown },
+) {
+  const nextValue = updateData[conflict.field.name];
+  if (nextValue !== undefined && nextValue !== conflict.value) {
+    throw new Error(
+      `Upsert on model "${model.name}" cannot change the conflict field "${conflict.field.name}".`,
+    );
+  }
+}
+
 function compileFieldFilter(
   model: ManifestModel,
   fieldName: string,
@@ -255,8 +340,12 @@ function compileFieldFilter(
   }
 
   if ("contains" in filter) {
-    const placeholder = createPlaceholder(dialect, state, `%${String(filter.contains ?? "")}%`);
-    clauses.push(`${column} like ${placeholder}`);
+    const placeholder = createPlaceholder(dialect, state, String(filter.contains ?? ""));
+    clauses.push(
+      dialect === "postgres"
+        ? `strpos(${column}, ${placeholder}) > 0`
+        : `instr(${column}, ${placeholder}) > 0`,
+    );
   }
 
   if ("gt" in filter) {
@@ -424,9 +513,15 @@ function buildInsertRow(model: ManifestModel, data: Partial<Record<string, unkno
 }
 
 function buildIdentityWhere(model: ManifestModel, row: SqlRow) {
-  const fieldName = identityField(model);
+  const field = identityField(model);
+  const value = row[field.name];
+  if (value === undefined) {
+    throw new Error(
+      `Model "${model.name}" could not resolve the identity field "${field.name}" from the current row.`,
+    );
+  }
   return {
-    [fieldName]: row[fieldName],
+    [field.name]: value,
   } as SqlWhere;
 }
 
@@ -440,6 +535,69 @@ function buildInsertStatement(model: ManifestModel, dialect: SqlDialect, row: Sq
 
   return {
     sql: `insert into ${quoteIdentifier(model.table, dialect)} (${columns.join(", ")}) values (${values.join(", ")})`,
+    params: state.params,
+  };
+}
+
+function buildUpsertStatement(
+  model: ManifestModel,
+  dialect: SqlDialect,
+  row: SqlRow,
+  updateData: Partial<Record<string, unknown>>,
+  conflictField: ManifestField,
+) {
+  const state: QueryState = { params: [] };
+  const insertFields = Object.values(model.fields).filter((field) => row[field.name] !== undefined);
+  const columns = insertFields.map((field) => quoteIdentifier(field.column, dialect));
+  const values = insertFields.map((field) =>
+    createPlaceholder(dialect, state, encodeValue(field, dialect, row[field.name])),
+  );
+  const updateEntries = Object.entries(updateData).filter(([, value]) => value !== undefined);
+  const conflictColumn = quoteIdentifier(conflictField.column, dialect);
+
+  let sql = `insert into ${quoteIdentifier(model.table, dialect)} (${columns.join(", ")}) values (${values.join(", ")})`;
+
+  if (dialect === "mysql") {
+    const updateClause = updateEntries.length
+      ? updateEntries.map(([fieldName, value]) => {
+          const field = model.fields[fieldName];
+          if (!field) {
+            throw new Error(`Unknown field "${fieldName}" on model "${model.name}".`);
+          }
+          const placeholder = createPlaceholder(dialect, state, encodeValue(field, dialect, value));
+          return `${quoteIdentifier(field.column, dialect)} = ${placeholder}`;
+        })
+      : [`${conflictColumn} = ${conflictColumn}`];
+
+    sql += ` on duplicate key update ${updateClause.join(", ")}`;
+
+    return {
+      sql,
+      params: state.params,
+    };
+  }
+
+  if (!updateEntries.length) {
+    sql += ` on conflict (${conflictColumn}) do nothing`;
+    return {
+      sql,
+      params: state.params,
+    };
+  }
+
+  const updateClause = updateEntries.map(([fieldName, value]) => {
+    const field = model.fields[fieldName];
+    if (!field) {
+      throw new Error(`Unknown field "${fieldName}" on model "${model.name}".`);
+    }
+    const placeholder = createPlaceholder(dialect, state, encodeValue(field, dialect, value));
+    return `${quoteIdentifier(field.column, dialect)} = ${placeholder}`;
+  });
+
+  sql += ` on conflict (${conflictColumn}) do update set ${updateClause.join(", ")}`;
+
+  return {
+    sql,
     params: state.params,
   };
 }
@@ -834,7 +992,8 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
     if (relation.kind === "belongsTo") {
       const foreignField = manifest.models[modelName].fields[relation.foreignKey];
       const targetReference = parseReference(foreignField?.references);
-      const targetField = targetReference?.field ?? identityField(manifest.models[relation.target]);
+      const targetField =
+        targetReference?.field ?? identityField(manifest.models[relation.target]).name;
       const foreignValue = row[relation.foreignKey];
 
       if (foreignValue == null) return null;
@@ -855,7 +1014,7 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
       const targetModel = manifest.models[relation.target];
       const foreignField = targetModel.fields[relation.foreignKey];
       const sourceReference = parseReference(foreignField?.references);
-      const sourceField = sourceReference?.field ?? identityField(manifest.models[modelName]);
+      const sourceField = sourceReference?.field ?? identityField(manifest.models[modelName]).name;
       const sourceValue = row[sourceField];
 
       if (sourceValue == null) return null;
@@ -876,7 +1035,7 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
       const targetModel = manifest.models[relation.target];
       const foreignField = targetModel.fields[relation.foreignKey];
       const sourceReference = parseReference(foreignField?.references);
-      const sourceField = sourceReference?.field ?? identityField(manifest.models[modelName]);
+      const sourceField = sourceReference?.field ?? identityField(manifest.models[modelName]).name;
       const sourceValue = row[sourceField];
 
       if (sourceValue == null) return [];
@@ -898,9 +1057,9 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
     const throughModel = manifest.models[relation.through];
     const throughFromReference = parseReference(throughModel.fields[relation.from]?.references);
     const throughToReference = parseReference(throughModel.fields[relation.to]?.references);
-    const sourceField = throughFromReference?.field ?? identityField(manifest.models[modelName]);
+    const sourceField = throughFromReference?.field ?? identityField(manifest.models[modelName]).name;
     const targetField =
-      throughToReference?.field ?? identityField(manifest.models[relation.target]);
+      throughToReference?.field ?? identityField(manifest.models[relation.target]).name;
     const sourceValue = row[sourceField];
 
     if (sourceValue == null) return [];
@@ -956,6 +1115,7 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
     },
     async create(schema, model, args) {
       const manifest = getManifest(schema);
+      identityField(manifest.models[model]);
       const row = buildInsertRow(
         manifest.models[model],
         args.data as Partial<Record<string, unknown>>,
@@ -1017,22 +1177,36 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
       return result.affectedRows;
     },
     async upsert(schema, model, args) {
-      const existing = await loadRawOneRow(schema, model, {
+      const manifest = getManifest(schema);
+      const modelManifest = manifest.models[model];
+      const conflict = extractUpsertConflict(modelManifest, args.where as SqlWhere);
+      validateUpsertUpdateData(
+        modelManifest,
+        args.update as Partial<Record<string, unknown>>,
+        conflict,
+      );
+      const row = buildInsertRow(
+        modelManifest,
+        mergeUpsertCreateData(
+          modelManifest,
+          args.create as Partial<Record<string, unknown>>,
+          conflict,
+        ),
+      );
+      const statement = buildUpsertStatement(
+        modelManifest,
+        adapter.dialect,
+        row,
+        args.update as Partial<Record<string, unknown>>,
+        conflict.field,
+      );
+
+      await adapter.query(statement.sql, statement.params);
+
+      return loadOneRow(schema, model, {
         where: args.where as SqlWhere,
-      });
-
-      if (existing) {
-        return driver.update(schema, model, {
-          where: buildIdentityWhere(getManifest(schema).models[model], existing),
-          data: args.update,
-          select: args.select,
-        } as UpdateArgs<TSchema, ModelName<TSchema>, any>) as Promise<any>;
-      }
-
-      return driver.create(schema, model, {
-        data: args.create,
         select: args.select,
-      } as CreateArgs<TSchema, ModelName<TSchema>, any>) as Promise<any>;
+      }) as Promise<any>;
     },
     async delete(schema, model, args) {
       const manifest = getManifest(schema);
@@ -1075,13 +1249,15 @@ export function createSqliteDriver<TSchema extends SchemaDefinition<any>>(
 }
 
 export function createPgPoolDriver<TSchema extends SchemaDefinition<any>>(
-  poolOrClient: PgPoolLike | PgClientLike,
+  pool: PgPoolLike,
 ) {
-  const adapter =
-    "connect" in poolOrClient
-      ? createPgPoolAdapter(poolOrClient)
-      : createPgTransactionalAdapter(poolOrClient);
-  return createSqlDriver<TSchema>(adapter);
+  return createSqlDriver<TSchema>(createPgPoolAdapter(pool));
+}
+
+export function createPgClientDriver<TSchema extends SchemaDefinition<any>>(
+  client: PgClientLike,
+) {
+  return createSqlDriver<TSchema>(createPgTransactionalAdapter(client));
 }
 
 export function createMysqlDriver<TSchema extends SchemaDefinition<any>>(

@@ -19,7 +19,7 @@ const schema = defineSchema({
   user: model({
     table: "users",
     fields: {
-      id: id(),
+      id: id().map("user_id"),
       email: string().unique().map("email_address"),
       createdAt: datetime().defaultNow(),
     },
@@ -57,6 +57,7 @@ describe("@farming-labs/orm core", () => {
     expect(prisma).toContain('@map("email_address")');
     expect(drizzle).toContain('export const user = pgTable("users"');
     expect(sql).toContain('create table if not exists "users"');
+    expect(sql).toContain('references "users"("user_id")');
   });
 
   it("supports nested relation selection in the memory driver", async () => {

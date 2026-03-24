@@ -186,4 +186,49 @@ describe("mysql SQL runtime", () => {
 
     expect(connection.transactionLog).toEqual(["begin", "rollback"]);
   });
+
+  it("uses a native mysql upsert statement before reading the result", async () => {
+    const connection = new RecordingMysqlConnection();
+    const pool = new RecordingMysqlPool(connection);
+    const orm = createOrm({
+      schema,
+      driver: createMysqlDriver(pool),
+    });
+
+    connection.responses.push({ affectedRows: 1 });
+    connection.responses.push([
+      {
+        id: "user_1",
+        email: "ada@farminglabs.dev",
+        name: "Ada Lovelace",
+        createdAt: "2025-01-01T00:00:00.000Z",
+      },
+    ]);
+
+    const user = await orm.user.upsert({
+      where: {
+        email: "ada@farminglabs.dev",
+      },
+      create: {
+        email: "ada@farminglabs.dev",
+        name: "Ada",
+      },
+      update: {
+        name: "Ada Lovelace",
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
+    expect(user).toEqual({
+      id: "user_1",
+      name: "Ada Lovelace",
+    });
+    expect(connection.calls).toHaveLength(2);
+    expect(connection.calls[0]?.sql).toContain("insert into `users`");
+    expect(connection.calls[0]?.sql).toContain("on duplicate key update `name` = ?");
+    expect(connection.calls[1]?.sql).toContain("select `users`.`id` as `id`");
+  });
 });

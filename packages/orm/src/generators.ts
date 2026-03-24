@@ -269,10 +269,12 @@ export function renderSafeSql(schema: SchemaDefinition<any>, options: SqlGenerat
       if (field.references) {
         const [targetModel, targetField] = field.references.split(".");
         const targetTable = manifest.models[targetModel]?.table ?? targetModel;
+        const targetColumn =
+          manifest.models[targetModel]?.fields[targetField]?.column ?? targetField;
         parts.push(
           `references ${sqlIdentifier(options.dialect, targetTable)}(${sqlIdentifier(
             options.dialect,
-            targetField,
+            targetColumn,
           )})`,
         );
       }

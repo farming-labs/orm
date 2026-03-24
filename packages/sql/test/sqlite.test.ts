@@ -183,4 +183,97 @@ describe("sqlite SQL runtime", () => {
 
     expect(database.execCalls).toEqual(["begin", "rollback"]);
   });
+
+  it("uses a native sqlite upsert statement before reading the result", async () => {
+    const database = new RecordingSqliteDatabase();
+    const orm = createOrm({
+      schema,
+      driver: createSqliteDriver(database),
+    });
+
+    database.runResponses.push({ changes: 1 });
+    database.selectResponses.push([
+      {
+        id: "user_1",
+        email: "ada@farminglabs.dev",
+        name: "Ada Lovelace",
+        createdAt: "2025-01-01T00:00:00.000Z",
+      },
+    ]);
+
+    const user = await orm.user.upsert({
+      where: {
+        email: "ada@farminglabs.dev",
+      },
+      create: {
+        email: "ada@farminglabs.dev",
+        name: "Ada",
+      },
+      update: {
+        name: "Ada Lovelace",
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
+    expect(user).toEqual({
+      id: "user_1",
+      name: "Ada Lovelace",
+    });
+    expect(database.calls).toHaveLength(2);
+    expect(database.calls[0]?.kind).toBe("run");
+    expect(database.calls[0]?.sql).toContain('insert into "users"');
+    expect(database.calls[0]?.sql).toContain('on conflict ("email") do update set "name" = ?');
+    expect(database.calls[1]?.kind).toBe("all");
+  });
+
+  it("escapes wildcard characters in contains filters", async () => {
+    const database = new RecordingSqliteDatabase();
+    const orm = createOrm({
+      schema,
+      driver: createSqliteDriver(database),
+    });
+
+    database.selectResponses.push([{ count: 1 }]);
+
+    const count = await orm.user.count({
+      where: {
+        email: {
+          contains: "100%_match",
+        },
+      },
+    });
+
+    expect(count).toBe(1);
+    expect(database.calls[0]?.sql).toContain(`instr("users"."email", ?) > 0`);
+    expect(database.calls[0]?.params).toEqual(["100%_match"]);
+  });
+
+  it("rejects create flows for models without an id or unique field", async () => {
+    const database = new RecordingSqliteDatabase();
+    const identitylessSchema = defineSchema({
+      audit: model({
+        table: "audits",
+        fields: {
+          message: string(),
+        },
+      }),
+    });
+    const orm = createOrm({
+      schema: identitylessSchema,
+      driver: createSqliteDriver(database),
+    });
+
+    await expect(
+      orm.audit.create({
+        data: {
+          message: "hello",
+        },
+      }),
+    ).rejects.toThrow('requires an "id" field or a unique field');
+
+    expect(database.calls).toEqual([]);
+  });
 });

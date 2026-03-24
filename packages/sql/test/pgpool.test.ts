@@ -31,10 +31,18 @@ class RecordingPgClient implements PgClientLike {
 }
 
 class RecordingPgPool implements PgPoolLike {
+  readonly calls: Array<{ sql: string; params: unknown[] }> = [];
+  readonly responses: Array<{ rows?: Array<Record<string, unknown>>; rowCount?: number }> = [];
+  allowDirectQueries = false;
+
   constructor(readonly client: RecordingPgClient) {}
 
   async query(sql: string, params: unknown[] = []) {
-    return this.client.query(sql, params);
+    this.calls.push({ sql, params });
+    if (!this.allowDirectQueries) {
+      throw new Error("pool.query should not be used for this test path");
+    }
+    return this.responses.shift() ?? { rows: [], rowCount: 0 };
   }
 
   async connect() {
@@ -89,6 +97,7 @@ describe("pgPool SQL runtime transaction handling", () => {
     expect(client.calls[2]?.sql).toContain('select "users"."id" as "id"');
     expect(client.calls[3]?.sql).toBe("commit");
     expect(client.released).toBe(true);
+    expect(pool.calls).toEqual([]);
   });
 
   it("issues rollback when a pgPool transaction fails", async () => {
@@ -129,5 +138,56 @@ describe("pgPool SQL runtime transaction handling", () => {
     expect(client.calls[0]?.sql).toBe("begin");
     expect(client.calls.at(-1)?.sql).toBe("rollback");
     expect(client.released).toBe(true);
+    expect(pool.calls).toEqual([]);
+  });
+
+  it("uses a single postgres upsert statement before reading the result", async () => {
+    const client = new RecordingPgClient();
+    const pool = new RecordingPgPool(client);
+    pool.allowDirectQueries = true;
+    const orm = createOrm({
+      schema,
+      driver: createPgPoolDriver(pool),
+    });
+
+    pool.responses.push({ rows: [], rowCount: 1 });
+    pool.responses.push({
+      rows: [
+        {
+          id: "user_1",
+          email: "ada@farminglabs.dev",
+          name: "Ada Lovelace",
+          createdAt: "2025-01-01T00:00:00.000Z",
+        },
+      ],
+      rowCount: 1,
+    });
+
+    const user = await orm.user.upsert({
+      where: {
+        email: "ada@farminglabs.dev",
+      },
+      create: {
+        email: "ada@farminglabs.dev",
+        name: "Ada",
+      },
+      update: {
+        name: "Ada Lovelace",
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
+    expect(user).toEqual({
+      id: "user_1",
+      name: "Ada Lovelace",
+    });
+    expect(pool.calls).toHaveLength(2);
+    expect(pool.calls[0]?.sql).toContain('insert into "users"');
+    expect(pool.calls[0]?.sql).toContain('on conflict ("email") do update set "name" = $5');
+    expect(pool.calls[1]?.sql).toContain('select "users"."id" as "id"');
+    expect(client.calls).toEqual([]);
   });
 });

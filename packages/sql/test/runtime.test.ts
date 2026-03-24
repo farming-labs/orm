@@ -1,6 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
-import { newDb } from "pg-mem";
+import { DataType, newDb } from "pg-mem";
 import {
   boolean,
   belongsTo,
@@ -208,6 +208,12 @@ async function createSqliteOrm() {
 
 async function createPgOrm() {
   const db = newDb();
+  db.public.registerFunction({
+    name: "strpos",
+    args: [DataType.text, DataType.text],
+    returns: DataType.integer,
+    implementation: (value: string, search: string) => value.indexOf(search) + 1,
+  });
   const pg = db.adapters.createPg();
   const pool = new pg.Pool();
   await applyStatements(
@@ -444,6 +450,66 @@ for (const [label, factory] of [
             sessions: [{ token: "session-2" }],
           },
         });
+      } finally {
+        await close();
+      }
+    });
+
+    it("treats contains filters as literal substring matches", async () => {
+      const { orm, close } = await factory();
+
+      try {
+        await orm.user.createMany({
+          data: [
+            {
+              email: "percent@farminglabs.dev",
+              name: "100% real",
+            },
+            {
+              email: "plain@farminglabs.dev",
+              name: "100 real",
+            },
+            {
+              email: "underscore@farminglabs.dev",
+              name: "under_score",
+            },
+            {
+              email: "wildcard@farminglabs.dev",
+              name: "underXscore",
+            },
+          ],
+        });
+
+        const percentMatches = await orm.user.findMany({
+          where: {
+            name: {
+              contains: "100%",
+            },
+          },
+          orderBy: {
+            email: "asc",
+          },
+          select: {
+            email: true,
+          },
+        });
+
+        const underscoreMatches = await orm.user.findMany({
+          where: {
+            name: {
+              contains: "under_score",
+            },
+          },
+          orderBy: {
+            email: "asc",
+          },
+          select: {
+            email: true,
+          },
+        });
+
+        expect(percentMatches).toEqual([{ email: "percent@farminglabs.dev" }]);
+        expect(underscoreMatches).toEqual([{ email: "underscore@farminglabs.dev" }]);
       } finally {
         await close();
       }
