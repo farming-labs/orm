@@ -88,28 +88,74 @@ export default defineConfig({
 ## Runtime helper example
 
 ```ts
-export async function findUserByEmail(orm: typeof authOrm, email: string) {
-  return orm.user.findFirst({
-    where: { email },
-    select: {
-      id: true,
-      email: true,
-      sessions: {
+export function createAuthStore(orm: typeof authOrm) {
+  return {
+    findUserByEmail(email: string) {
+      return orm.user.findUnique({
+        where: {
+          email: email.toLowerCase(),
+        },
+        select: {
+          id: true,
+          email: true,
+          sessions: {
+            select: {
+              token: true,
+              expiresAt: true,
+            },
+          },
+          accounts: {
+            select: {
+              provider: true,
+              accountId: true,
+            },
+          },
+        },
+      });
+    },
+
+    rotateSession(input: { userId: string; token: string; expiresAt: Date }) {
+      return orm.session.upsert({
+        where: {
+          token: input.token,
+        },
+        create: {
+          userId: input.userId,
+          token: input.token,
+          expiresAt: input.expiresAt,
+        },
+        update: {
+          expiresAt: input.expiresAt,
+        },
         select: {
           token: true,
           expiresAt: true,
         },
-      },
-      accounts: {
-        select: {
-          provider: true,
-          accountId: true,
-        },
-      },
+      });
     },
-  });
+
+    invalidateUserSessions(userId: string) {
+      return orm.session.deleteMany({
+        where: {
+          userId,
+        },
+      });
+    },
+  };
 }
 ```
+
+That gives an auth library one place to implement:
+
+- load a user by email, id, or token
+- rotate sessions
+- invalidate sessions
+- link or sync provider accounts
+- count related records for dashboards or plugin rules
+
+The important part is that the auth package writes those helpers once against
+the unified runtime contract. The consumer app chooses the eventual target
+stack.
 
 ## What this removes
 

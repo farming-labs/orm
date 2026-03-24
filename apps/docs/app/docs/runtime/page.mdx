@@ -24,9 +24,12 @@ That is different from:
 ## What runtime is responsible for
 
 - typed model clients like `orm.user`
-- CRUD methods like `findFirst`, `findMany`, `create`, `update`, and `delete`
+- unified query and mutation methods like `findUnique`, `findOne`, `findFirst`,
+  `findMany`, `count`, `create`, `createMany`, `update`, `updateMany`,
+  `upsert`, `delete`, and `deleteMany`
 - nested relation selection
 - transaction boundaries
+- grouped workflows through `orm.batch(...)`
 - returning typed results based on the `select` object
 
 ## What runtime is not responsible for
@@ -63,12 +66,20 @@ const orm = createOrm({
 That creates model clients from the schema:
 
 ```ts
+orm.user.findUnique(...)
+orm.user.findOne(...)
 orm.user.findFirst(...)
 orm.user.findMany(...)
+orm.user.count(...)
 orm.user.create(...)
+orm.user.createMany(...)
 orm.user.update(...)
+orm.user.updateMany(...)
+orm.user.upsert(...)
 orm.user.delete(...)
+orm.user.deleteMany(...)
 orm.transaction(...)
+orm.batch(...)
 ```
 
 ## Why the runtime matters
@@ -80,7 +91,7 @@ For example, an auth package can write one helper like:
 
 ```ts
 async function findUserByEmail(orm: typeof authOrm, email: string) {
-  return orm.user.findFirst({
+  return orm.user.findUnique({
     where: { email },
     select: {
       id: true,
@@ -93,18 +104,50 @@ async function findUserByEmail(orm: typeof authOrm, email: string) {
 }
 ```
 
-That helper stays stable even as the app-side generation target changes.
+And a mutation helper can stay just as stable:
+
+```ts
+function rotateSession(
+  orm: typeof authOrm,
+  input: { userId: string; token: string; expiresAt: Date },
+) {
+  return orm.session.upsert({
+    where: { token: input.token },
+    create: {
+      userId: input.userId,
+      token: input.token,
+      expiresAt: input.expiresAt,
+    },
+    update: {
+      expiresAt: input.expiresAt,
+    },
+    select: {
+      token: true,
+      expiresAt: true,
+    },
+  });
+}
+```
+
+Those helpers stay stable even as the app-side generation target changes.
 
 ## Drivers
 
 A driver implements this kind of work:
 
+- execute `findUnique`
 - execute `findMany`
 - execute `findFirst`
+- execute `count`
 - execute `create`
+- execute `createMany`
 - execute `update`
+- execute `updateMany`
+- execute `upsert`
 - execute `delete`
+- execute `deleteMany`
 - run `transaction`
+- support grouped runtime workflows like `batch`
 
 The driver contract lives inside `@farming-labs/orm`, and `createOrm(...)`
 wraps that driver into typed model clients.
@@ -113,14 +156,19 @@ wraps that driver into typed model clients.
 
 ### Implemented now
 
-- `createMemoryDriver(...)`
+- the unified runtime contract inside `@farming-labs/orm`
+- `createMemoryDriver(...)` as the first concrete runtime driver
+
+That means libraries can already standardize on one query and mutation API
+today, even though the live database-specific runtime drivers are still the next
+step.
 
 ### Planned next
 
-- Prisma runtime package
-- Drizzle runtime package
-- Kysely runtime package
-- SQL runtime package
+- Prisma runtime driver package
+- Drizzle runtime driver package
+- Kysely runtime driver package
+- SQL runtime driver package
 
 The important design constraint is that those future drivers should plug into
 the same typed runtime contract instead of redefining the API from scratch.

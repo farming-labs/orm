@@ -1,4 +1,5 @@
 import { createMemoryDriver, createOrm } from "@farming-labs/orm";
+import { createAuthStore } from "./auth-store";
 import { authSchema } from "./schema";
 
 const orm = createOrm({
@@ -40,29 +41,17 @@ const orm = createOrm({
   }),
 });
 
-const user = await orm.user.findFirst({
-  where: { email: "ada@farminglabs.dev" },
-  select: {
-    id: true,
-    name: true,
-    email: true,
-    profile: {
-      select: {
-        bio: true,
-      },
+const auth = createAuthStore(orm);
+const user = await auth.findUserByEmail("ada@farminglabs.dev");
+const summary = await auth.getAuthSummary("user_1");
+
+console.log(
+  JSON.stringify(
+    {
+      user,
+      summary,
     },
-    sessions: {
-      select: {
-        token: true,
-        expiresAt: true,
-      },
-    },
-    accounts: {
-      select: {
-        provider: true,
-        accountId: true,
-      },
-    },
-  },
-});
-console.log(JSON.stringify(user, null, 2));
+    null,
+    2,
+  ),
+);

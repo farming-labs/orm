@@ -1,6 +1,6 @@
 ---
 title: "Query API"
-description: "Typed CRUD, nested select, filters, sorting, paging, and transactions."
+description: "Typed query and mutation methods, nested select, filters, sorting, paging, transactions, and auth-style workflows."
 order: 1
 icon: code
 ---
@@ -31,11 +31,54 @@ orm.account;
 
 Each model client supports:
 
+- `findUnique`
+- `findOne`
 - `findMany`
 - `findFirst`
+- `count`
 - `create`
+- `createMany`
 - `update`
+- `updateMany`
+- `upsert`
 - `delete`
+- `deleteMany`
+
+## `findUnique`
+
+```ts
+const user = await orm.user.findUnique({
+  where: { email: "ada@farminglabs.dev" },
+  select: {
+    id: true,
+    email: true,
+  },
+});
+```
+
+Use `findUnique` when the query should resolve to at most one record, such as
+email, id, token, or another unique lookup.
+
+## `findOne`
+
+```ts
+const user = await orm.user.findOne({
+  where: {
+    emailVerified: true,
+  },
+  orderBy: {
+    createdAt: "asc",
+  },
+  select: {
+    id: true,
+    email: true,
+  },
+});
+```
+
+`findOne` is the simple ergonomic name for "give me the first matching record".
+It is useful for library code that does not want to expose Prisma-flavored
+method names to its own consumers.
 
 ## `findFirst`
 
@@ -50,6 +93,9 @@ const user = await orm.user.findFirst({
 ```
 
 Returns one typed record or `null`.
+
+`findFirst` is still available for teams that prefer that naming. In the current
+runtime it behaves the same as `findOne`.
 
 ## `findMany`
 
@@ -72,6 +118,18 @@ const sessions = await orm.session.findMany({
 ```
 
 Returns an array of typed records.
+
+## `count`
+
+```ts
+const sessionCount = await orm.session.count({
+  where: {
+    userId: "user_1",
+  },
+});
+```
+
+Returns the number of matching rows without loading the full records.
 
 ## `create`
 
@@ -96,6 +154,30 @@ driver:
 - `defaultNow()` uses `new Date()`
 - `.default(...)` applies the literal default value
 
+## `createMany`
+
+```ts
+const createdSessions = await orm.session.createMany({
+  data: [
+    {
+      userId: "user_1",
+      token: "token-1",
+      expiresAt: new Date("2026-01-01T00:00:00.000Z"),
+    },
+    {
+      userId: "user_1",
+      token: "token-2",
+      expiresAt: new Date("2026-02-01T00:00:00.000Z"),
+    },
+  ],
+  select: {
+    token: true,
+  },
+});
+```
+
+Returns the created records, narrowed by `select` if provided.
+
 ## `update`
 
 ```ts
@@ -113,6 +195,46 @@ const updated = await orm.user.update({
 
 Returns the updated record or `null`.
 
+## `updateMany`
+
+```ts
+const updatedCount = await orm.session.updateMany({
+  where: {
+    userId: "user_1",
+  },
+  data: {
+    expiresAt: new Date("2027-01-01T00:00:00.000Z"),
+  },
+});
+```
+
+Returns the number of updated rows.
+
+## `upsert`
+
+```ts
+const session = await orm.session.upsert({
+  where: {
+    token: "session-token",
+  },
+  create: {
+    userId: "user_1",
+    token: "session-token",
+    expiresAt: new Date("2027-01-01T00:00:00.000Z"),
+  },
+  update: {
+    expiresAt: new Date("2027-01-01T00:00:00.000Z"),
+  },
+  select: {
+    token: true,
+    expiresAt: true,
+  },
+});
+```
+
+This is especially useful for auth-style operations such as rotating sessions,
+refreshing tokens, or syncing provider accounts.
+
 ## `delete`
 
 ```ts
@@ -122,6 +244,18 @@ const deleted = await orm.session.delete({
 ```
 
 Returns the number of deleted rows.
+
+## `deleteMany`
+
+```ts
+const deletedCount = await orm.session.deleteMany({
+  where: {
+    userId: "user_1",
+  },
+});
+```
+
+Returns the number of deleted rows across the whole match set.
 
 ## `select` and type inference
 
@@ -266,6 +400,105 @@ await orm.transaction(async (tx) => {
   });
 });
 ```
+
+## Batch workflows
+
+```ts
+const [user, sessionCount, accountCount] = await orm.batch([
+  (tx) =>
+    tx.user.findUnique({
+      where: { id: "user_1" },
+      select: {
+        id: true,
+        email: true,
+      },
+    }),
+  (tx) =>
+    tx.session.count({
+      where: { userId: "user_1" },
+    }),
+  (tx) =>
+    tx.account.count({
+      where: { userId: "user_1" },
+    }),
+] as const);
+```
+
+`batch` is helpful when a library wants one grouped storage call but still wants
+to keep each internal query simple and typed.
+
+## Auth-style storage example
+
+```ts
+export function createAuthStore(orm: typeof authOrm) {
+  return {
+    findUserByEmail(email: string) {
+      return orm.user.findUnique({
+        where: {
+          email: email.toLowerCase(),
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          profile: {
+            select: {
+              bio: true,
+            },
+          },
+          accounts: {
+            select: {
+              provider: true,
+              accountId: true,
+            },
+          },
+          sessions: {
+            select: {
+              token: true,
+              expiresAt: true,
+            },
+            orderBy: {
+              expiresAt: "desc",
+            },
+          },
+        },
+      });
+    },
+
+    rotateSession(input: { userId: string; token: string; expiresAt: Date }) {
+      return orm.session.upsert({
+        where: {
+          token: input.token,
+        },
+        create: {
+          userId: input.userId,
+          token: input.token,
+          expiresAt: input.expiresAt,
+        },
+        update: {
+          expiresAt: input.expiresAt,
+        },
+        select: {
+          token: true,
+          expiresAt: true,
+        },
+      });
+    },
+
+    invalidateUserSessions(userId: string) {
+      return orm.session.deleteMany({
+        where: {
+          userId,
+        },
+      });
+    },
+  };
+}
+```
+
+This is the main point of the runtime contract: an auth package can write its
+storage layer once and then plug that same logic into whichever runtime driver
+the app eventually uses.
 
 ## Design goals of the query API
 
