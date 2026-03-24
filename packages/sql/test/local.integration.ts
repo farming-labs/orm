@@ -108,12 +108,7 @@ type RuntimeFactory = () => Promise<{
   close: () => Promise<void>;
 }>;
 
-type SqlTarget =
-  | "sqlite"
-  | "postgres-pool"
-  | "postgres-client"
-  | "mysql-pool"
-  | "mysql-connection";
+type SqlTarget = "sqlite" | "postgres-pool" | "postgres-client" | "mysql-pool" | "mysql-connection";
 
 const requestedTargets = new Set(
   (process.env.FARM_ORM_LOCAL_SQL_TARGETS ?? "")
@@ -138,7 +133,9 @@ function assignDatabase(connectionString: string, databaseName: string) {
 
 function formatLocalDbError(label: string, error: unknown, hint: string) {
   const message = error instanceof Error ? error.message : String(error);
-  return new Error(`${label} local integration test could not connect. ${hint}\nOriginal error: ${message}`);
+  return new Error(
+    `${label} local integration test could not connect. ${hint}\nOriginal error: ${message}`,
+  );
 }
 
 function asMysqlConnectionLike(connection: mysql.PoolConnection): MysqlConnectionLike {
@@ -579,9 +576,7 @@ async function createLocalPostgresClientOrm() {
 }
 
 async function createLocalMysqlPoolOrm() {
-  const adminUrl =
-    process.env.FARM_ORM_LOCAL_MYSQL_ADMIN_URL ??
-    "mysql://root:root@127.0.0.1:3306";
+  const adminUrl = process.env.FARM_ORM_LOCAL_MYSQL_ADMIN_URL ?? "mysql://root:root@127.0.0.1:3306";
   const databaseName = createIsolatedName("farm_orm_mysql");
   const adminPool = mysql.createPool(adminUrl);
 
@@ -629,9 +624,7 @@ async function createLocalMysqlPoolOrm() {
 }
 
 async function createLocalMysqlConnectionOrm() {
-  const adminUrl =
-    process.env.FARM_ORM_LOCAL_MYSQL_ADMIN_URL ??
-    "mysql://root:root@127.0.0.1:3306";
+  const adminUrl = process.env.FARM_ORM_LOCAL_MYSQL_ADMIN_URL ?? "mysql://root:root@127.0.0.1:3306";
   const databaseName = createIsolatedName("farm_orm_mysql_conn");
   const adminPool = mysql.createPool(adminUrl);
 

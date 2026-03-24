@@ -11,14 +11,14 @@ Schema-first toolkit for defining data models once in TypeScript, generating **P
 
 ## Monorepo layout
 
-| Path           | Role                                                                                                                     |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `packages/orm`      | Core: schema builders, relations, generators, manifest helpers, and the in-memory ORM driver.                          |
-| `packages/cli`      | `farm-orm` binary: config loading, schema merging, and generator orchestration.                                        |
-| `packages/sql`      | Live SQL runtime driver for SQLite, MySQL, PostgreSQL pools, and PostgreSQL clients.                                   |
-| `packages/mongoose` | Live MongoDB runtime driver for Mongoose-backed apps.                                                                   |
-| `apps/demo`         | Example auth-shaped schema plus `farm-orm.config.ts` and generated samples.                                             |
-| `apps/docs`         | Next.js site: landing page and MDX docs (getting started, schema, runtime, integrations, CLI, and use cases).         |
+| Path                | Role                                                                                                          |
+| ------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `packages/orm`      | Core: schema builders, relations, generators, manifest helpers, and the in-memory ORM driver.                 |
+| `packages/cli`      | `farm-orm` binary: config loading, schema merging, and generator orchestration.                               |
+| `packages/sql`      | Live SQL runtime driver for SQLite, MySQL, PostgreSQL pools, and PostgreSQL clients.                          |
+| `packages/mongoose` | Live MongoDB runtime driver for Mongoose-backed apps.                                                         |
+| `apps/demo`         | Example auth-shaped schema plus `farm-orm.config.ts` and generated samples.                                   |
+| `apps/docs`         | Next.js site: landing page and MDX docs (getting started, schema, runtime, integrations, CLI, and use cases). |
 
 Root **e2e** tests under `tests/` exercise a full workspace flow (build, generate, validate).
 

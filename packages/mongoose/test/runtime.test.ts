@@ -133,7 +133,8 @@ function matchesFilter(doc: Record<string, unknown>, filter: Record<string, unkn
     return Object.entries(value).every(([operator, operand]) => {
       if (operator === "$eq") return Object.is(current, operand);
       if (operator === "$ne") return !Object.is(current, operand);
-      if (operator === "$in") return Array.isArray(operand) && operand.some((item) => Object.is(item, current));
+      if (operator === "$in")
+        return Array.isArray(operand) && operand.some((item) => Object.is(item, current));
       if (operator === "$regex") {
         return current != null && (operand as RegExp).test(String(current));
       }
@@ -167,12 +168,14 @@ class FakeQuery<TResult> implements MongooseQueryLike<TResult> {
   private skipValue?: number;
   private limitValue?: number;
 
-  constructor(private readonly run: (input: {
-    session?: FakeSession;
-    sortOrder?: Record<string, 1 | -1>;
-    skip?: number;
-    limit?: number;
-  }) => TResult | Promise<TResult>) {}
+  constructor(
+    private readonly run: (input: {
+      session?: FakeSession;
+      sortOrder?: Record<string, 1 | -1>;
+      skip?: number;
+      limit?: number;
+    }) => TResult | Promise<TResult>,
+  ) {}
 
   sort(sort: Record<string, 1 | -1>) {
     this.sortOrder = sort;
@@ -284,8 +287,8 @@ class FakeModel implements MongooseModelLike {
   }
 
   countDocuments(filter: Record<string, unknown>) {
-    return new FakeExec<number>((session) =>
-      this.getCollection(session).filter((doc) => matchesFilter(doc, filter)).length,
+    return new FakeExec<number>(
+      (session) => this.getCollection(session).filter((doc) => matchesFilter(doc, filter)).length,
     );
   }
 

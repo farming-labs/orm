@@ -27,11 +27,11 @@
   "dependencies": {
     "@farming-labs/orm": "workspace:*"
   },
-  "peerDependencies": {
-    "mongoose": "^8.0.0"
-  },
   "devDependencies": {
     "mongoose": "^8.19.2",
     "tsup": "^8.4.0"
+  },
+  "peerDependencies": {
+    "mongoose": "^8.0.0"
   }
 }

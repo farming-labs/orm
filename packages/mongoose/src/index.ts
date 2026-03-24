@@ -403,7 +403,10 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
     };
   }
 
-  function compileWhere(model: ManifestModel, where: MongoWhere | undefined): Record<string, unknown> {
+  function compileWhere(
+    model: ManifestModel,
+    where: MongoWhere | undefined,
+  ): Record<string, unknown> {
     if (!where) return {};
 
     const clauses: Record<string, unknown>[] = [];
@@ -492,7 +495,9 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
       return rows[0] ?? null;
     }
 
-    const query = getModel(model.name as ModelName<TSchema>).findOne(compileWhere(model, args.where));
+    const query = getModel(model.name as ModelName<TSchema>).findOne(
+      compileWhere(model, args.where),
+    );
     if (state.session) query.session(state.session);
     query.lean();
     return query.exec();
@@ -716,7 +721,8 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
       return run(createMongooseDriverInternal(config, state));
     }
 
-    const startSession = config.startSession ?? config.connection?.startSession.bind(config.connection);
+    const startSession =
+      config.startSession ?? config.connection?.startSession.bind(config.connection);
     if (!startSession) {
       return run(createMongooseDriverInternal(config, state));
     }
@@ -733,11 +739,7 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
         );
       }
 
-      if (
-        session.startTransaction &&
-        session.commitTransaction &&
-        session.abortTransaction
-      ) {
+      if (session.startTransaction && session.commitTransaction && session.abortTransaction) {
         session.startTransaction();
         try {
           const result = await run(
@@ -815,7 +817,10 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
         .findOneAndUpdate(
           compileWhere(manifest.models[model], args.where as MongoWhere),
           {
-            $set: buildUpdate(manifest.models[model], args.data as Partial<Record<string, unknown>>),
+            $set: buildUpdate(
+              manifest.models[model],
+              args.data as Partial<Record<string, unknown>>,
+            ),
           },
           {
             new: true,
@@ -837,7 +842,10 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
     },
     async updateMany(schema, model, args) {
       const manifest = getManifest(schema);
-      const update = buildUpdate(manifest.models[model], args.data as Partial<Record<string, unknown>>);
+      const update = buildUpdate(
+        manifest.models[model],
+        args.data as Partial<Record<string, unknown>>,
+      );
       if (!Object.keys(update).length) return 0;
       const result = await execute(
         getModel(model).updateMany(

@@ -82,19 +82,19 @@ await orm.user.create({
 
 ## What ships today
 
-| Layer                   | Status  | Notes                                                            |
-| ----------------------- | ------- | ---------------------------------------------------------------- |
-| `@farming-labs/orm`     | Live    | Schema DSL, manifest, typed client, generators, memory runtime   |
-| `@farming-labs/orm-cli` | Live    | Loads schemas directly and writes target output                  |
-| `@farming-labs/orm-sql` | Live    | Direct SQL runtime for SQLite, MySQL, and PostgreSQL pools       |
-| `@farming-labs/orm-mongoose` | Live | MongoDB / Mongoose runtime using the same typed query API        |
-| Memory runtime          | Live    | Supports typed CRUD, nested relation selection, and transactions |
-| Direct SQL runtime      | Live    | Uses the same query API against SQLite, MySQL, and `pg.Pool`     |
-| Mongoose runtime        | Live    | Uses the same query API against Mongoose models and sessions     |
-| Prisma generation       | Live    | PostgreSQL, MySQL, and SQLite providers                          |
-| Drizzle generation      | Live    | `pg`, `mysql`, and `sqlite` dialects                             |
-| Safe SQL generation     | Live    | PostgreSQL, MySQL, and SQLite                                    |
-| Runtime driver packages | Mixed   | Prisma, Drizzle, and Kysely are the next live runtime layers     |
+| Layer                        | Status | Notes                                                            |
+| ---------------------------- | ------ | ---------------------------------------------------------------- |
+| `@farming-labs/orm`          | Live   | Schema DSL, manifest, typed client, generators, memory runtime   |
+| `@farming-labs/orm-cli`      | Live   | Loads schemas directly and writes target output                  |
+| `@farming-labs/orm-sql`      | Live   | Direct SQL runtime for SQLite, MySQL, and PostgreSQL pools       |
+| `@farming-labs/orm-mongoose` | Live   | MongoDB / Mongoose runtime using the same typed query API        |
+| Memory runtime               | Live   | Supports typed CRUD, nested relation selection, and transactions |
+| Direct SQL runtime           | Live   | Uses the same query API against SQLite, MySQL, and `pg.Pool`     |
+| Mongoose runtime             | Live   | Uses the same query API against Mongoose models and sessions     |
+| Prisma generation            | Live   | PostgreSQL, MySQL, and SQLite providers                          |
+| Drizzle generation           | Live   | `pg`, `mysql`, and `sqlite` dialects                             |
+| Safe SQL generation          | Live   | PostgreSQL, MySQL, and SQLite                                    |
+| Runtime driver packages      | Mixed  | Prisma, Drizzle, and Kysely are the next live runtime layers     |
 
 ## Current architecture
 
