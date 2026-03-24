@@ -34,7 +34,7 @@ class RecordingMysqlConnection implements MysqlConnectionLike {
       return [next as Array<Record<string, unknown>>, undefined];
     }
 
-    return [((next ?? { affectedRows: 1 }) as { affectedRows?: number }), undefined];
+    return [(next ?? { affectedRows: 1 }) as { affectedRows?: number }, undefined];
   }
 
   async beginTransaction() {

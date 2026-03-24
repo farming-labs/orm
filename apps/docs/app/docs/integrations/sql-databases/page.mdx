@@ -42,11 +42,7 @@ export default defineConfig({
 
 ```ts
 import { createOrm } from "@farming-labs/orm";
-import {
-  createMysqlDriver,
-  createPgPoolDriver,
-  createSqliteDriver,
-} from "@farming-labs/orm-sql";
+import { createMysqlDriver, createPgPoolDriver, createSqliteDriver } from "@farming-labs/orm-sql";
 import { Pool } from "pg";
 import { authSchema } from "./src/schema";
 ```

@@ -251,7 +251,9 @@ export function renderSafeSql(schema: SchemaDefinition<any>, options: SqlGenerat
   const manifest = createManifest(schema);
   const statements = (Object.values(manifest.models) as ManifestModel[]).map((model) => {
     const columns = Object.values(model.fields).map((field) => {
-      const parts = [`${sqlIdentifier(options.dialect, field.column)} ${sqlType(field, options.dialect)}`];
+      const parts = [
+        `${sqlIdentifier(options.dialect, field.column)} ${sqlType(field, options.dialect)}`,
+      ];
       if (field.kind === "id") parts.push("primary key");
       if (!field.nullable) parts.push("not null");
       if (field.unique && field.kind !== "id") parts.push("unique");

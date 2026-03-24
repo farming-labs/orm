@@ -103,7 +103,7 @@ function quoteIdentifier(value: string, dialect: SqlDialect) {
     return `\`${value.replace(/`/g, "``")}\``;
   }
 
-  return `"${value.replace(/"/g, "\"\"")}"`;
+  return `"${value.replace(/"/g, '""')}"`;
 }
 
 function createPlaceholder(dialect: SqlDialect, state: QueryState, value: unknown) {
@@ -224,11 +224,7 @@ function compileFieldFilter(
     if (filter.eq === null) {
       clauses.push(`${column} is null`);
     } else {
-      const placeholder = createPlaceholder(
-        dialect,
-        state,
-        encodeValue(field, dialect, filter.eq),
-      );
+      const placeholder = createPlaceholder(dialect, state, encodeValue(field, dialect, filter.eq));
       clauses.push(`${column} = ${placeholder}`);
     }
   }
@@ -322,12 +318,7 @@ function compileWhere(
     }
 
     if (key === "NOT") {
-      const nested = compileWhere(
-        model,
-        value as SqlWhere,
-        dialect,
-        state,
-      );
+      const nested = compileWhere(model, value as SqlWhere, dialect, state);
       if (nested) clauses.push(`not (${nested})`);
       continue;
     }
@@ -422,10 +413,7 @@ function buildCountStatement(
   return { sql, params: state.params };
 }
 
-function buildInsertRow(
-  model: ManifestModel,
-  data: Partial<Record<string, unknown>>,
-) {
+function buildInsertRow(model: ManifestModel, data: Partial<Record<string, unknown>>) {
   const row: SqlRow = {};
 
   for (const field of Object.values(model.fields)) {
@@ -489,11 +477,7 @@ function buildUpdateStatement(
   };
 }
 
-function buildDeleteStatement(
-  model: ManifestModel,
-  dialect: SqlDialect,
-  where: SqlWhere,
-) {
+function buildDeleteStatement(model: ManifestModel, dialect: SqlDialect, where: SqlWhere) {
   const state: QueryState = { params: [] };
   const compiledWhere = compileWhere(model, where, dialect, state);
   if (!compiledWhere) {
@@ -727,7 +711,9 @@ function createMysqlPoolAdapter(pool: MysqlPoolLike): SqlAdapter {
   };
 }
 
-function createSqlDriver<TSchema extends SchemaDefinition<any>>(adapter: SqlAdapter): OrmDriver<TSchema> {
+function createSqlDriver<TSchema extends SchemaDefinition<any>>(
+  adapter: SqlAdapter,
+): OrmDriver<TSchema> {
   async function loadRows<
     TModelName extends ModelName<TSchema>,
     TSelect extends SelectShape<TSchema, TModelName> | undefined,
@@ -913,7 +899,8 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(adapter: SqlAdap
     const throughFromReference = parseReference(throughModel.fields[relation.from]?.references);
     const throughToReference = parseReference(throughModel.fields[relation.to]?.references);
     const sourceField = throughFromReference?.field ?? identityField(manifest.models[modelName]);
-    const targetField = throughToReference?.field ?? identityField(manifest.models[relation.target]);
+    const targetField =
+      throughToReference?.field ?? identityField(manifest.models[relation.target]);
     const sourceValue = row[sourceField];
 
     if (sourceValue == null) return [];
@@ -924,7 +911,9 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(adapter: SqlAdap
       } as SqlWhere,
     });
 
-    const targetIds = throughRows.map((item: SqlRow) => item[relation.to]).filter((item) => item != null);
+    const targetIds = throughRows
+      .map((item: SqlRow) => item[relation.to])
+      .filter((item) => item != null);
     if (!targetIds.length) return [];
 
     return loadRows(schema, relation.target as ModelName<TSchema>, {
@@ -967,7 +956,10 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(adapter: SqlAdap
     },
     async create(schema, model, args) {
       const manifest = getManifest(schema);
-      const row = buildInsertRow(manifest.models[model], args.data as Partial<Record<string, unknown>>);
+      const row = buildInsertRow(
+        manifest.models[model],
+        args.data as Partial<Record<string, unknown>>,
+      );
       const statement = buildInsertStatement(manifest.models[model], adapter.dialect, row);
       await adapter.query(statement.sql, statement.params);
       return loadOneRow(schema, model, {
@@ -1076,7 +1068,9 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(adapter: SqlAdap
   return driver;
 }
 
-export function createSqliteDriver<TSchema extends SchemaDefinition<any>>(database: SqliteDatabaseLike) {
+export function createSqliteDriver<TSchema extends SchemaDefinition<any>>(
+  database: SqliteDatabaseLike,
+) {
   return createSqlDriver<TSchema>(createSqliteAdapter(database));
 }
 
@@ -1084,7 +1078,9 @@ export function createPgPoolDriver<TSchema extends SchemaDefinition<any>>(
   poolOrClient: PgPoolLike | PgClientLike,
 ) {
   const adapter =
-    "connect" in poolOrClient ? createPgPoolAdapter(poolOrClient) : createPgTransactionalAdapter(poolOrClient);
+    "connect" in poolOrClient
+      ? createPgPoolAdapter(poolOrClient)
+      : createPgTransactionalAdapter(poolOrClient);
   return createSqlDriver<TSchema>(adapter);
 }
 

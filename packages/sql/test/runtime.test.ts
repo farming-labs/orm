@@ -93,10 +93,7 @@ const schema = defineSchema({
   }),
 });
 
-async function applyStatements(
-  run: (sql: string) => Promise<unknown> | unknown,
-  sql: string,
-) {
+async function applyStatements(run: (sql: string) => Promise<unknown> | unknown, sql: string) {
   const statements = sql
     .split(";")
     .map((statement) => statement.trim())
