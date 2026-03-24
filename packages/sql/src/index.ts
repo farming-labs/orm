@@ -159,7 +159,7 @@ function encodeValue(field: ManifestField, dialect: SqlDialect, value: unknown) 
   return value;
 }
 
-function normalizeMysqlDate(value: Date) {
+function normalizeNaiveSqlDate(value: Date) {
   return new Date(
     Date.UTC(
       value.getFullYear(),
@@ -187,7 +187,7 @@ function decodeValue(field: ManifestField, dialect: SqlDialect, value: unknown) 
 
   if (field.kind === "datetime") {
     if (value instanceof Date) {
-      return dialect === "mysql" ? normalizeMysqlDate(value) : value;
+      return dialect === "mysql" || dialect === "postgres" ? normalizeNaiveSqlDate(value) : value;
     }
     return new Date(String(value));
   }

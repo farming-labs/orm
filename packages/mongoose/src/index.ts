@@ -243,6 +243,17 @@ function validateUpsertUpdateData(
   }
 }
 
+function removeOverlappingInsertFields(insertData: MongoRow, updateData: MongoRow) {
+  const output: MongoRow = {};
+
+  for (const [key, value] of Object.entries(insertData)) {
+    if (Object.prototype.hasOwnProperty.call(updateData, key)) continue;
+    output[key] = value;
+  }
+
+  return output;
+}
+
 function isExecLike<TResult>(value: unknown): value is MongooseExecLike<TResult> {
   return !!value && typeof value === "object" && "exec" in value;
 }
@@ -876,12 +887,13 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
           conflict,
         ),
       );
+      const update = buildUpdate(modelManifest, args.update as Partial<Record<string, unknown>>);
       const updated = await getModel(model)
         .findOneAndUpdate(
           compileWhere(modelManifest, args.where as MongoWhere),
           {
-            $set: buildUpdate(modelManifest, args.update as Partial<Record<string, unknown>>),
-            $setOnInsert: created,
+            $set: update,
+            $setOnInsert: removeOverlappingInsertFields(created, update),
           },
           {
             upsert: true,
