@@ -102,10 +102,9 @@ export function CliShowcase({ className }: { className?: string }) {
         </pre>
       </div>
       <p className="mb-0 mt-3 font-mono text-[0.68rem] font-light leading-relaxed text-slate-500">
-        Swap{" "}
-        <code className="text-slate-400/95">prisma</code> for{" "}
-        <code className="text-slate-400/95">drizzle</code> or <code className="text-slate-400/95">sql</code>
-        .{" "}
+        Swap <code className="text-slate-400/95">prisma</code> for{" "}
+        <code className="text-slate-400/95">drizzle</code> or{" "}
+        <code className="text-slate-400/95">sql</code>.{" "}
         <Link
           href="/docs/cli"
           className="text-slate-400 underline decoration-dotted decoration-from-font underline-offset-4 transition-colors hover:text-slate-200"
