@@ -1,17 +1,22 @@
 import { randomUUID } from "node:crypto";
 import type {
+  CountArgs,
   CreateArgs,
+  CreateManyArgs,
   DeleteArgs,
+  DeleteManyArgs,
   FindFirstArgs,
   FindManyArgs,
+  FindUniqueArgs,
   OrmDriver,
   SelectShape,
   SelectedRecord,
   UpdateArgs,
+  UpdateManyArgs,
+  UpsertArgs,
   Where,
 } from "./client";
-import type { SchemaDefinition } from "./schema";
-import type { ModelName, RelationName } from "./schema";
+import type { ModelName, RelationName, SchemaDefinition } from "./schema";
 
 type MemoryStore<TSchema extends SchemaDefinition<any>> = Partial<
   Record<ModelName<TSchema>, Array<Record<string, unknown>>>
@@ -98,14 +103,11 @@ function matchesWhere<TRecord extends Record<string, unknown>>(
 
 function applyDefault(value: unknown, field: { generated?: string; defaultValue?: unknown }) {
   if (value !== undefined) return value;
-
   if (field.generated === "id") return randomUUID();
   if (field.generated === "now") return new Date();
-
   if (typeof field.defaultValue === "function") {
     return (field.defaultValue as () => unknown)();
   }
-
   return field.defaultValue;
 }
 
@@ -139,6 +141,19 @@ function pageRows(rows: Array<Record<string, unknown>>, skip?: number, take?: nu
   return rows.slice(start, end);
 }
 
+type QueryArgs = {
+  where?: Where<any>;
+  orderBy?: Partial<Record<string, "asc" | "desc">>;
+  skip?: number;
+  take?: number;
+};
+
+function applyQuery(rows: Array<Record<string, unknown>>, args: QueryArgs = {}) {
+  const filtered = rows.filter((row) => matchesWhere(row, args.where));
+  const sorted = sortRows(filtered, args.orderBy);
+  return pageRows(sorted, args.skip, args.take);
+}
+
 export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
   seed?: MemoryStore<TSchema>,
 ): OrmDriver<TSchema> {
@@ -150,17 +165,21 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
     return rows;
   }
 
-  function applyQuery<TModelName extends ModelName<TSchema>>(
+  function buildRow<TModelName extends ModelName<TSchema>>(
+    schema: TSchema,
     model: TModelName,
-    args: FindManyArgs<TSchema, TModelName, any> | FindFirstArgs<TSchema, TModelName, any>,
+    data: Partial<Record<string, unknown>>,
   ) {
-    const rows = getRows(model);
-    const filtered = rows.filter((row) => matchesWhere(row, args.where));
-    const sorted = sortRows(
-      filtered,
-      args.orderBy as Partial<Record<string, "asc" | "desc">> | undefined,
-    );
-    return pageRows(sorted, args.skip, args.take);
+    const modelDefinition = schema.models[model];
+    const nextRow: Record<string, unknown> = {};
+
+    for (const [fieldName, field] of Object.entries(modelDefinition.fields) as Array<
+      [string, (typeof modelDefinition.fields)[string]]
+    >) {
+      nextRow[fieldName] = applyDefault(data[fieldName], field.config);
+    }
+
+    return nextRow;
   }
 
   async function projectRow<
@@ -218,17 +237,21 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
     const relationArgs = value === true ? {} : value;
 
     if (relation.kind === "belongsTo") {
-      const targetRows = getRows(relation.target as ModelName<TSchema>);
       const foreignValue = row[relation.foreignKey];
-      const target = targetRows.find((item) => item.id === foreignValue);
+      const targetRows = getRows(relation.target as ModelName<TSchema>).filter(
+        (item) => item.id === foreignValue,
+      );
+      const target = applyQuery(targetRows, relationArgs)[0];
       return target
         ? projectRow(schema, relation.target as ModelName<TSchema>, target, relationArgs.select)
         : null;
     }
 
     if (relation.kind === "hasOne") {
-      const targetRows = getRows(relation.target as ModelName<TSchema>);
-      const target = targetRows.find((item) => item[relation.foreignKey] === row.id);
+      const targetRows = getRows(relation.target as ModelName<TSchema>).filter(
+        (item) => item[relation.foreignKey] === row.id,
+      );
+      const target = applyQuery(targetRows, relationArgs)[0];
       return target
         ? projectRow(schema, relation.target as ModelName<TSchema>, target, relationArgs.select)
         : null;
@@ -238,14 +261,9 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
       const targetRows = getRows(relation.target as ModelName<TSchema>).filter(
         (item) => item[relation.foreignKey] === row.id,
       );
-      const sorted = sortRows(
-        targetRows,
-        relationArgs.orderBy as Partial<Record<string, "asc" | "desc">> | undefined,
-      );
-      const paged = pageRows(sorted, relationArgs.skip, relationArgs.take);
-      const filtered = paged.filter((item) => matchesWhere(item, relationArgs.where));
+      const matchedRows = applyQuery(targetRows, relationArgs);
       return Promise.all(
-        filtered.map((item) =>
+        matchedRows.map((item) =>
           projectRow(schema, relation.target as ModelName<TSchema>, item, relationArgs.select),
         ),
       );
@@ -258,15 +276,10 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
     const targetRows = getRows(relation.target as ModelName<TSchema>).filter((item) =>
       targetIds.includes(item.id),
     );
-    const sorted = sortRows(
-      targetRows,
-      relationArgs.orderBy as Partial<Record<string, "asc" | "desc">> | undefined,
-    );
-    const paged = pageRows(sorted, relationArgs.skip, relationArgs.take);
-    const filtered = paged.filter((item) => matchesWhere(item, relationArgs.where));
+    const matchedRows = applyQuery(targetRows, relationArgs);
 
     return Promise.all(
-      filtered.map((item) =>
+      matchedRows.map((item) =>
         projectRow(schema, relation.target as ModelName<TSchema>, item, relationArgs.select),
       ),
     );
@@ -278,7 +291,7 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
       model: ModelName<TSchema>,
       args: FindManyArgs<TSchema, ModelName<TSchema>, any>,
     ) {
-      const rows = applyQuery(model, args);
+      const rows = applyQuery(getRows(model), args);
       return Promise.all(rows.map((row) => projectRow(schema, model, row, args.select)));
     },
     async findFirst(
@@ -286,41 +299,95 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
       model: ModelName<TSchema>,
       args: FindFirstArgs<TSchema, ModelName<TSchema>, any>,
     ) {
-      const row = applyQuery(model, args)[0];
+      const row = applyQuery(getRows(model), args)[0];
       if (!row) return null;
       return projectRow(schema, model, row, args.select);
+    },
+    async findUnique(
+      schema: TSchema,
+      model: ModelName<TSchema>,
+      args: FindUniqueArgs<TSchema, ModelName<TSchema>, any>,
+    ) {
+      const row = applyQuery(getRows(model), args)[0];
+      if (!row) return null;
+      return projectRow(schema, model, row, args.select);
+    },
+    async count(
+      _schema: TSchema,
+      model: ModelName<TSchema>,
+      args?: CountArgs<TSchema, ModelName<TSchema>>,
+    ) {
+      return applyQuery(getRows(model), args).length;
     },
     async create(
       schema: TSchema,
       model: ModelName<TSchema>,
       args: CreateArgs<TSchema, ModelName<TSchema>, any>,
     ) {
-      const modelDefinition = schema.models[model];
-      const nextRow: Record<string, unknown> = {};
-      for (const [fieldName, field] of Object.entries(modelDefinition.fields) as Array<
-        [string, (typeof modelDefinition.fields)[string]]
-      >) {
-        nextRow[fieldName] = applyDefault(args.data[fieldName], field.config);
-      }
-
+      const nextRow = buildRow(schema, model, args.data);
       getRows(model).push(nextRow);
       return projectRow(schema, model, nextRow, args.select);
+    },
+    async createMany(
+      schema: TSchema,
+      model: ModelName<TSchema>,
+      args: CreateManyArgs<TSchema, ModelName<TSchema>, any>,
+    ) {
+      const rows = args.data.map((entry) => buildRow(schema, model, entry));
+      getRows(model).push(...rows);
+      return Promise.all(rows.map((row) => projectRow(schema, model, row, args.select)));
     },
     async update(
       schema: TSchema,
       model: ModelName<TSchema>,
       args: UpdateArgs<TSchema, ModelName<TSchema>, any>,
     ) {
-      const rows = getRows(model);
-      const row = rows.find((item) => matchesWhere(item, args.where));
+      const row = getRows(model).find((item) => matchesWhere(item, args.where));
       if (!row) return null;
       Object.assign(row, args.data);
       return projectRow(schema, model, row, args.select);
+    },
+    async updateMany(
+      _schema: TSchema,
+      model: ModelName<TSchema>,
+      args: UpdateManyArgs<TSchema, ModelName<TSchema>>,
+    ) {
+      const rows = getRows(model).filter((item) => matchesWhere(item, args.where));
+      for (const row of rows) {
+        Object.assign(row, args.data);
+      }
+      return rows.length;
+    },
+    async upsert(
+      schema: TSchema,
+      model: ModelName<TSchema>,
+      args: UpsertArgs<TSchema, ModelName<TSchema>, any>,
+    ) {
+      const row = getRows(model).find((item) => matchesWhere(item, args.where));
+      if (row) {
+        Object.assign(row, args.update);
+        return projectRow(schema, model, row, args.select);
+      }
+
+      const created = buildRow(schema, model, args.create);
+      getRows(model).push(created);
+      return projectRow(schema, model, created, args.select);
     },
     async delete(
       _schema: TSchema,
       model: ModelName<TSchema>,
       args: DeleteArgs<TSchema, ModelName<TSchema>>,
+    ) {
+      const rows = getRows(model);
+      const index = rows.findIndex((item) => matchesWhere(item, args.where));
+      if (index === -1) return 0;
+      rows.splice(index, 1);
+      return 1;
+    },
+    async deleteMany(
+      _schema: TSchema,
+      model: ModelName<TSchema>,
+      args: DeleteManyArgs<TSchema, ModelName<TSchema>>,
     ) {
       const rows = getRows(model);
       const before = rows.length;

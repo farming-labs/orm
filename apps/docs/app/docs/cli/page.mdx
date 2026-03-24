@@ -183,9 +183,9 @@ export const user = pgTable("users", {
 The SQL generator writes forward-safe DDL like:
 
 ```sql
-create table if not exists users (
-  id text primary key not null,
-  email_address text not null unique
+create table if not exists "users" (
+  "id" text primary key not null,
+  "email_address" text not null unique
 );
 ```
 

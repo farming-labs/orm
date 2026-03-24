@@ -88,28 +88,109 @@ export default defineConfig({
 ## Runtime helper example
 
 ```ts
-export async function findUserByEmail(orm: typeof authOrm, email: string) {
-  return orm.user.findFirst({
-    where: { email },
-    select: {
-      id: true,
-      email: true,
-      sessions: {
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
+
+export function createAuthStore(orm: typeof authOrm) {
+  return {
+    findUserByEmail(email: string) {
+      return orm.user.findUnique({
+        where: {
+          email: normalizeEmail(email),
+        },
+        select: {
+          id: true,
+          email: true,
+          sessions: {
+            select: {
+              token: true,
+              expiresAt: true,
+            },
+          },
+          accounts: {
+            select: {
+              provider: true,
+              accountId: true,
+            },
+          },
+        },
+      });
+    },
+
+    createOAuthUser(input: { name: string; email: string; provider: string; accountId: string }) {
+      return orm.transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            name: input.name,
+            email: normalizeEmail(input.email),
+          },
+          select: {
+            id: true,
+            email: true,
+          },
+        });
+
+        const account = await tx.account.create({
+          data: {
+            userId: user.id,
+            provider: input.provider,
+            accountId: input.accountId,
+          },
+          select: {
+            provider: true,
+            accountId: true,
+          },
+        });
+
+        return { user, account };
+      });
+    },
+
+    rotateSession(input: { userId: string; token: string; expiresAt: Date }) {
+      return orm.session.upsert({
+        where: {
+          token: input.token,
+        },
+        create: {
+          userId: input.userId,
+          token: input.token,
+          expiresAt: input.expiresAt,
+        },
+        update: {
+          expiresAt: input.expiresAt,
+        },
         select: {
           token: true,
           expiresAt: true,
         },
-      },
-      accounts: {
-        select: {
-          provider: true,
-          accountId: true,
-        },
-      },
+      });
     },
-  });
+
+    invalidateUserSessions(userId: string) {
+      return orm.session.deleteMany({
+        where: {
+          userId,
+        },
+      });
+    },
+  };
 }
 ```
+
+If a library normalizes emails, it should use the same helper on both writes
+and lookups. Lowercasing only at query time can miss rows that were stored in a
+different case.
+
+That gives an auth library one place to implement:
+
+- load a user by email, id, or token
+- rotate sessions
+- invalidate sessions
+- link or sync provider accounts
+- count related records for dashboards or plugin rules
+
+The important part is that the auth package writes those helpers once against
+the unified runtime contract. The consumer app chooses the eventual target
+stack.
 
 ## What this removes
 

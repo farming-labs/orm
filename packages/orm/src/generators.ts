@@ -128,6 +128,14 @@ function sqlType(field: ManifestField, dialect: SqlGenerationOptions["dialect"])
   return "timestamp";
 }
 
+function sqlIdentifier(dialect: SqlGenerationOptions["dialect"], value: string) {
+  if (dialect === "mysql") {
+    return `\`${value}\``;
+  }
+
+  return `"${value}"`;
+}
+
 export function renderPrismaSchema(
   schema: SchemaDefinition<any>,
   options: PrismaGenerationOptions = {},
@@ -243,7 +251,9 @@ export function renderSafeSql(schema: SchemaDefinition<any>, options: SqlGenerat
   const manifest = createManifest(schema);
   const statements = (Object.values(manifest.models) as ManifestModel[]).map((model) => {
     const columns = Object.values(model.fields).map((field) => {
-      const parts = [`${field.column} ${sqlType(field, options.dialect)}`];
+      const parts = [
+        `${sqlIdentifier(options.dialect, field.column)} ${sqlType(field, options.dialect)}`,
+      ];
       if (field.kind === "id") parts.push("primary key");
       if (!field.nullable) parts.push("not null");
       if (field.unique && field.kind !== "id") parts.push("unique");
@@ -259,12 +269,19 @@ export function renderSafeSql(schema: SchemaDefinition<any>, options: SqlGenerat
       if (field.references) {
         const [targetModel, targetField] = field.references.split(".");
         const targetTable = manifest.models[targetModel]?.table ?? targetModel;
-        parts.push(`references ${targetTable}(${targetField})`);
+        const targetColumn =
+          manifest.models[targetModel]?.fields[targetField]?.column ?? targetField;
+        parts.push(
+          `references ${sqlIdentifier(options.dialect, targetTable)}(${sqlIdentifier(
+            options.dialect,
+            targetColumn,
+          )})`,
+        );
       }
       return `  ${parts.join(" ")}`;
     });
 
-    return `create table if not exists ${model.table} (\n${columns.join(",\n")}\n);`;
+    return `create table if not exists ${sqlIdentifier(options.dialect, model.table)} (\n${columns.join(",\n")}\n);`;
   });
 
   return `${statements.join("\n\n")}\n`;

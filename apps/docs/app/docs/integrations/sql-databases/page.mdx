@@ -1,14 +1,19 @@
 ---
 title: "SQL Databases"
-description: "How the safe SQL generator fits PostgreSQL, MySQL, and SQLite workflows."
+description: "How safe SQL generation and the direct SQL runtime fit PostgreSQL, MySQL, and SQLite workflows."
 order: 3
 icon: harddrive
 ---
 
 # SQL Databases
 
-The safe SQL generator is the most direct path for teams that want generated SQL
-without a required app-side ORM.
+Farming Labs ORM supports SQL-backed teams in 2 different ways:
+
+- safe SQL generation through `@farming-labs/orm-cli`
+- live direct SQL runtime through `@farming-labs/orm-sql`
+
+That means teams can either generate SQL artifacts, run the unified runtime
+against a real SQL client, or do both.
 
 ## Supported SQL dialects
 
@@ -33,15 +38,66 @@ export default defineConfig({
 });
 ```
 
+## Runtime package
+
+```ts
+import { createOrm } from "@farming-labs/orm";
+import { createMysqlDriver, createPgPoolDriver, createSqliteDriver } from "@farming-labs/orm-sql";
+import { Pool } from "pg";
+import { authSchema } from "./src/schema";
+```
+
+### PostgreSQL with `pg.Pool`
+
+```ts
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createPgPoolDriver(pool),
+});
+```
+
+### MySQL
+
+```ts
+const orm = createOrm({
+  schema: authSchema,
+  driver: createMysqlDriver(mysqlPool),
+});
+```
+
+### SQLite
+
+```ts
+const orm = createOrm({
+  schema: authSchema,
+  driver: createSqliteDriver(sqliteDatabase),
+});
+```
+
+All 3 drivers expose the same unified query and mutation API:
+
+```ts
+await orm.user.findUnique({ where: { email: "ada@farminglabs.dev" } });
+await orm.session.upsert({
+  where: { token: "session-token" },
+  create: { userId: "user_1", token: "session-token", expiresAt: new Date() },
+  update: { expiresAt: new Date() },
+});
+```
+
 ## Example output
 
 For a simple user model, the SQL generator emits output like:
 
 ```sql
-create table if not exists users (
-  id text primary key not null,
-  email_address text not null unique,
-  createdAt timestamp not null
+create table if not exists "users" (
+  "id" text primary key not null,
+  "email_address" text not null unique,
+  "createdAt" timestamp not null
 );
 ```
 
@@ -59,7 +115,8 @@ sql: {
 ```
 
 This is a good fit when the team wants schema-first SQL generation but does not
-need Prisma or Drizzle to be the consumer of that schema.
+need Prisma or Drizzle to be the consumer of that schema, or wants to pair the
+generated SQL with `createPgPoolDriver(pool)` at runtime.
 
 ### MySQL
 
@@ -73,7 +130,8 @@ sql: {
 ```
 
 This works well when the database is MySQL but the team prefers a more direct
-SQL workflow.
+SQL workflow. It also pairs cleanly with `createMysqlDriver(mysqlPool)` if the
+team wants the unified runtime API instead of handwritten query code.
 
 ### SQLite
 
@@ -87,7 +145,8 @@ sql: {
 ```
 
 This is especially practical for lightweight apps, prototypes, demos, and local
-development workflows.
+development workflows, and it can run directly through
+`createSqliteDriver(sqliteDatabase)`.
 
 ## When the SQL path is a good fit
 
@@ -95,6 +154,7 @@ development workflows.
 - database-first teams
 - simple deployment pipelines
 - projects that want generated DDL without standardizing on one ORM
+- libraries that want one runtime API and direct SQL backends
 
 ## Important limit
 

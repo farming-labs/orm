@@ -139,12 +139,36 @@ export type FindFirstArgs<
   TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined,
 > = FindManyArgs<TSchema, TModelName, TSelect>;
 
+export type FindOneArgs<
+  TSchema extends SchemaDefinition<any>,
+  TModelName extends ModelName<TSchema>,
+  TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined,
+> = FindFirstArgs<TSchema, TModelName, TSelect>;
+
+export type FindUniqueArgs<
+  TSchema extends SchemaDefinition<any>,
+  TModelName extends ModelName<TSchema>,
+  TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined,
+> = {
+  where: Where<ScalarRecord<TSchema, TModelName>>;
+  select?: TSelect;
+};
+
 export type CreateArgs<
   TSchema extends SchemaDefinition<any>,
   TModelName extends ModelName<TSchema>,
   TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined,
 > = {
   data: Partial<ScalarRecord<TSchema, TModelName>>;
+  select?: TSelect;
+};
+
+export type CreateManyArgs<
+  TSchema extends SchemaDefinition<any>,
+  TModelName extends ModelName<TSchema>,
+  TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined,
+> = {
+  data: Array<Partial<ScalarRecord<TSchema, TModelName>>>;
   select?: TSelect;
 };
 
@@ -158,11 +182,44 @@ export type UpdateArgs<
   select?: TSelect;
 };
 
+export type UpdateManyArgs<
+  TSchema extends SchemaDefinition<any>,
+  TModelName extends ModelName<TSchema>,
+> = {
+  where: Where<ScalarRecord<TSchema, TModelName>>;
+  data: Partial<ScalarRecord<TSchema, TModelName>>;
+};
+
 export type DeleteArgs<
   TSchema extends SchemaDefinition<any>,
   TModelName extends ModelName<TSchema>,
 > = {
   where: Where<ScalarRecord<TSchema, TModelName>>;
+};
+
+export type DeleteManyArgs<
+  TSchema extends SchemaDefinition<any>,
+  TModelName extends ModelName<TSchema>,
+> = {
+  where: Where<ScalarRecord<TSchema, TModelName>>;
+};
+
+export type CountArgs<
+  TSchema extends SchemaDefinition<any>,
+  TModelName extends ModelName<TSchema>,
+> = {
+  where?: Where<ScalarRecord<TSchema, TModelName>>;
+};
+
+export type UpsertArgs<
+  TSchema extends SchemaDefinition<any>,
+  TModelName extends ModelName<TSchema>,
+  TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined,
+> = {
+  where: Where<ScalarRecord<TSchema, TModelName>>;
+  create: Partial<ScalarRecord<TSchema, TModelName>>;
+  update: Partial<ScalarRecord<TSchema, TModelName>>;
+  select?: TSelect;
 };
 
 export interface OrmDriver<TSchema extends SchemaDefinition<any>> {
@@ -182,6 +239,19 @@ export interface OrmDriver<TSchema extends SchemaDefinition<any>> {
     model: TModelName,
     args: FindFirstArgs<TSchema, TModelName, TSelect>,
   ): Promise<SelectedRecord<TSchema, TModelName, TSelect> | null>;
+  findUnique<
+    TModelName extends ModelName<TSchema>,
+    TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined,
+  >(
+    schema: TSchema,
+    model: TModelName,
+    args: FindUniqueArgs<TSchema, TModelName, TSelect>,
+  ): Promise<SelectedRecord<TSchema, TModelName, TSelect> | null>;
+  count<TModelName extends ModelName<TSchema>>(
+    schema: TSchema,
+    model: TModelName,
+    args?: CountArgs<TSchema, TModelName>,
+  ): Promise<number>;
   create<
     TModelName extends ModelName<TSchema>,
     TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined,
@@ -190,6 +260,14 @@ export interface OrmDriver<TSchema extends SchemaDefinition<any>> {
     model: TModelName,
     args: CreateArgs<TSchema, TModelName, TSelect>,
   ): Promise<SelectedRecord<TSchema, TModelName, TSelect>>;
+  createMany<
+    TModelName extends ModelName<TSchema>,
+    TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined,
+  >(
+    schema: TSchema,
+    model: TModelName,
+    args: CreateManyArgs<TSchema, TModelName, TSelect>,
+  ): Promise<Array<SelectedRecord<TSchema, TModelName, TSelect>>>;
   update<
     TModelName extends ModelName<TSchema>,
     TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined,
@@ -198,10 +276,28 @@ export interface OrmDriver<TSchema extends SchemaDefinition<any>> {
     model: TModelName,
     args: UpdateArgs<TSchema, TModelName, TSelect>,
   ): Promise<SelectedRecord<TSchema, TModelName, TSelect> | null>;
+  updateMany<TModelName extends ModelName<TSchema>>(
+    schema: TSchema,
+    model: TModelName,
+    args: UpdateManyArgs<TSchema, TModelName>,
+  ): Promise<number>;
+  upsert<
+    TModelName extends ModelName<TSchema>,
+    TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined,
+  >(
+    schema: TSchema,
+    model: TModelName,
+    args: UpsertArgs<TSchema, TModelName, TSelect>,
+  ): Promise<SelectedRecord<TSchema, TModelName, TSelect>>;
   delete<TModelName extends ModelName<TSchema>>(
     schema: TSchema,
     model: TModelName,
     args: DeleteArgs<TSchema, TModelName>,
+  ): Promise<number>;
+  deleteMany<TModelName extends ModelName<TSchema>>(
+    schema: TSchema,
+    model: TModelName,
+    args: DeleteManyArgs<TSchema, TModelName>,
   ): Promise<number>;
   transaction<TResult>(
     schema: TSchema,
@@ -216,22 +312,44 @@ export type ModelClient<
   findMany<TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined>(
     args?: FindManyArgs<TSchema, TModelName, TSelect>,
   ): Promise<Array<SelectedRecord<TSchema, TModelName, TSelect>>>;
+  findOne<TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined>(
+    args?: FindOneArgs<TSchema, TModelName, TSelect>,
+  ): Promise<SelectedRecord<TSchema, TModelName, TSelect> | null>;
   findFirst<TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined>(
     args?: FindFirstArgs<TSchema, TModelName, TSelect>,
   ): Promise<SelectedRecord<TSchema, TModelName, TSelect> | null>;
+  findUnique<TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined>(
+    args: FindUniqueArgs<TSchema, TModelName, TSelect>,
+  ): Promise<SelectedRecord<TSchema, TModelName, TSelect> | null>;
+  count(args?: CountArgs<TSchema, TModelName>): Promise<number>;
   create<TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined>(
     args: CreateArgs<TSchema, TModelName, TSelect>,
   ): Promise<SelectedRecord<TSchema, TModelName, TSelect>>;
+  createMany<TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined>(
+    args: CreateManyArgs<TSchema, TModelName, TSelect>,
+  ): Promise<Array<SelectedRecord<TSchema, TModelName, TSelect>>>;
   update<TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined>(
     args: UpdateArgs<TSchema, TModelName, TSelect>,
   ): Promise<SelectedRecord<TSchema, TModelName, TSelect> | null>;
+  updateMany(args: UpdateManyArgs<TSchema, TModelName>): Promise<number>;
+  upsert<TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined>(
+    args: UpsertArgs<TSchema, TModelName, TSelect>,
+  ): Promise<SelectedRecord<TSchema, TModelName, TSelect>>;
   delete(args: DeleteArgs<TSchema, TModelName>): Promise<number>;
+  deleteMany(args: DeleteManyArgs<TSchema, TModelName>): Promise<number>;
 };
+
+export type BatchTask<TSchema extends SchemaDefinition<any>, TResult> = (
+  tx: OrmClient<TSchema>,
+) => Promise<TResult>;
 
 export type OrmClient<TSchema extends SchemaDefinition<any>> = {
   [K in ModelName<TSchema>]: ModelClient<TSchema, K>;
 } & {
   transaction<TResult>(run: (tx: OrmClient<TSchema>) => Promise<TResult>): Promise<TResult>;
+  batch<const TResult extends readonly unknown[]>(tasks: {
+    [K in keyof TResult]: BatchTask<TSchema, TResult[K]>;
+  }): Promise<TResult>;
 };
 
 function createModelClient<
@@ -246,17 +364,38 @@ function createModelClient<
     findMany(args) {
       return driver.findMany(schema, model, (args ?? {}) as any) as any;
     },
+    findOne(args) {
+      return driver.findFirst(schema, model, (args ?? {}) as any) as any;
+    },
     findFirst(args) {
       return driver.findFirst(schema, model, (args ?? {}) as any) as any;
+    },
+    findUnique(args) {
+      return driver.findUnique(schema, model, args as any) as any;
+    },
+    count(args) {
+      return driver.count(schema, model, args as any);
     },
     create(args) {
       return driver.create(schema, model, args as any) as any;
     },
+    createMany(args) {
+      return driver.createMany(schema, model, args as any) as any;
+    },
     update(args) {
       return driver.update(schema, model, args as any) as any;
     },
+    updateMany(args) {
+      return driver.updateMany(schema, model, args as any);
+    },
+    upsert(args) {
+      return driver.upsert(schema, model, args as any) as any;
+    },
     delete(args) {
       return driver.delete(schema, model, args as any) as any;
+    },
+    deleteMany(args) {
+      return driver.deleteMany(schema, model, args as any);
     },
   };
 }
@@ -280,6 +419,14 @@ export function createOrm<TSchema extends SchemaDefinition<any>>(options: {
         driver: txDriver,
       });
       return run(tx);
+    });
+  orm.batch = async (tasks) =>
+    orm.transaction(async (tx) => {
+      const results: unknown[] = [];
+      for (const task of tasks) {
+        results.push(await task(tx));
+      }
+      return results as any;
     });
   return orm;
 }

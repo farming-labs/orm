@@ -12,7 +12,7 @@ The recommended path is:
 1. Define a schema in `@farming-labs/orm`
 2. Add a `farm-orm.config.ts`
 3. Generate target output with `@farming-labs/orm-cli`
-4. Use the typed client with the memory driver while other runtime drivers are still being layered in
+4. Pick a runtime driver: memory for tests/demos or direct SQL for SQLite, MySQL, and PostgreSQL
 
 ## Step 1: Define a real schema
 
@@ -136,8 +136,8 @@ farm-orm check prisma
 
 ## Step 4: Use the runtime client today
 
-The memory driver is the runtime driver already implemented in this repo. It is
-useful for docs, tests, demos, and schema-level validation.
+The simplest runtime option is still the memory driver, which is useful for
+docs, tests, demos, and schema-level validation.
 
 ```ts
 import { createMemoryDriver, createOrm } from "@farming-labs/orm";
@@ -194,6 +194,31 @@ const user = await orm.user.findFirst({
   },
 });
 ```
+
+If you want to run the unified API against a real SQL backend, use
+`@farming-labs/orm-sql`:
+
+```ts
+import { createOrm } from "@farming-labs/orm";
+import { createPgPoolDriver } from "@farming-labs/orm-sql";
+import { Pool } from "pg";
+import { authSchema } from "./schema";
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createPgPoolDriver(pool),
+});
+```
+
+There are matching factories for:
+
+- `createPgPoolDriver(pool)`
+- `createMysqlDriver(poolOrConnection)`
+- `createSqliteDriver(database)`
 
 ## Step 5: Understand what gets generated
 
