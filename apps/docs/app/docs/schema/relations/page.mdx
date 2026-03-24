@@ -197,9 +197,14 @@ const user = await orm.user.findFirst({
 
 ## Current generator note
 
-At the moment, relation helpers are most fully realized in the runtime layer.
-Generators already rely on field references, but they do not yet exhaustively
-translate every higher-level relation helper into ORM-native relation DSL.
+Relation helpers are still most powerful in the live runtime layer, but generation
+is no longer field-only:
 
-That is a normal stage for this repo right now and part of why the current docs
-separate runtime explanations from generator explanations.
+- Prisma generation now covers direct `belongsTo`, `hasOne`, and `hasMany`
+- Drizzle generation now covers direct `belongsTo`, `hasOne`, and `hasMany`
+- explicit join-table `manyToMany` still stays explicit through the join model in
+  generated Prisma and Drizzle output
+
+That is why the docs still separate runtime relation behavior from generated ORM
+artifacts: direct relations are covered, but join-table convenience traversal is
+still a runtime concern.

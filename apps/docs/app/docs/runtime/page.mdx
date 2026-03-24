@@ -58,6 +58,19 @@ That makes the runtime layer already useful for:
 - MongoDB-backed apps that already use Mongoose models and sessions
 - validating the query API shape before Prisma/Drizzle/Kysely drivers are added
 
+## Current relation support
+
+The live runtime drivers in this repo already cover:
+
+- `belongsTo(...)`
+- `hasOne(...)`
+- `hasMany(...)`
+- explicit join-table `manyToMany(...)`
+
+That support is exercised today in memory, SQL, and Mongoose tests, so auth-style
+lookups such as `user.profile`, `user.sessions`, `session.user`, and join-table-backed
+membership traversal are part of the real runtime surface now.
+
 ## The runtime shape
 
 ```ts
@@ -168,6 +181,24 @@ Today, the live method-translation layers in this repo are:
 So the full query API already translates to SQLite, MySQL, PostgreSQL, and
 Mongoose-backed MongoDB models today. Prisma, Drizzle, and Kysely are still
 future runtime packages.
+
+## Local database verification
+
+If you want to exercise the live runtime packages against local databases instead of
+the in-memory driver, the repo already exposes local integration commands:
+
+```bash
+pnpm test:local
+pnpm test:local:sqlite
+pnpm test:local:postgres
+pnpm test:local:mysql
+pnpm test:local:mongodb
+```
+
+Those commands hit the implemented runtime packages:
+
+- `@farming-labs/orm-sql` for SQLite, MySQL, and PostgreSQL
+- `@farming-labs/orm-mongoose` for MongoDB through Mongoose
 
 ## Current and future runtime story
 

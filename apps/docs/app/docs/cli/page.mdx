@@ -151,6 +151,15 @@ The generators consume normalized manifest data from the schema:
 - default/generated values
 - foreign-key references
 
+They also consume direct relation metadata for:
+
+- `belongsTo(...)`
+- `hasOne(...)`
+- `hasMany(...)`
+
+Explicit join-table `manyToMany(...)` stays explicit in generated Prisma and
+Drizzle output through the join model instead of becoming an implicit shortcut.
+
 ## Target examples
 
 ### Prisma output
@@ -195,6 +204,32 @@ create table if not exists "users" (
 - It does not silently merge duplicate model names
 - It does not execute generated Prisma or Drizzle code for you
 - It does not replace a full migration framework by itself beyond the safe SQL generation path
+
+## Release and publish flow
+
+The repo’s package release flow is also `bumpp`-driven now:
+
+```bash
+pnpm release:latest
+pnpm publish:latest
+```
+
+For prereleases:
+
+```bash
+pnpm release:beta
+pnpm publish:beta
+```
+
+Useful safety commands:
+
+```bash
+pnpm publish:latest:dry-run
+pnpm publish:beta:dry-run
+```
+
+The current `release` script creates a version commit like `chore: release v0.0.x`
+and a matching git tag, while `publish:*` is the separate package-publishing step.
 
 ## Where each target fits
 

@@ -134,6 +134,15 @@ farm-orm check prisma
 - `generate sql` emits safe SQL
 - `check prisma` verifies that the generated Prisma output on disk still matches the schema
 
+For direct relations, the generated Prisma and Drizzle output now already reflects:
+
+- `belongsTo(...)`
+- `hasOne(...)`
+- `hasMany(...)`
+
+Join-table-backed `manyToMany(...)` stays explicit through the join model in generated
+Prisma and Drizzle output.
+
 ## Step 4: Use the runtime client today
 
 The simplest runtime option is still the memory driver, which is useful for
@@ -266,6 +275,22 @@ From the schema above:
 - [Drizzle integration](/docs/integrations/drizzle)
 - [SQL databases](/docs/integrations/sql-databases)
 - [MongoDB and Mongoose](/docs/integrations/mongodb)
+
+## Step 7: Verify against real local databases
+
+Once you want to go beyond the memory driver, the repo also ships local integration
+test commands for the live runtime packages:
+
+```bash
+pnpm test:local
+pnpm test:local:sqlite
+pnpm test:local:postgres
+pnpm test:local:mysql
+pnpm test:local:mongodb
+```
+
+That is a good way to validate auth-style relation flows against real local SQLite,
+PostgreSQL, MySQL, and MongoDB instances before wiring the package into an app.
 
 ## Common first tasks
 
