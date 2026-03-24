@@ -1,5 +1,5 @@
 {
-  "name": "@farming-labs/orm-sql",
+  "name": "@farming-labs/orm-mongoose",
   "version": "0.0.1",
   "files": [
     "dist"
@@ -28,10 +28,10 @@
     "@farming-labs/orm": "workspace:*"
   },
   "devDependencies": {
-    "@types/pg": "^8.15.6",
-    "mysql2": "^3.15.2",
-    "pg": "^8.16.3",
-    "pg-mem": "^3.0.5",
+    "mongoose": "^8.19.2",
     "tsup": "^8.4.0"
+  },
+  "peerDependencies": {
+    "mongoose": "^8.0.0"
   }
 }

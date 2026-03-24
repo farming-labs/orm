@@ -1,6 +1,6 @@
 ---
 title: "Overview"
-description: "Generator-first documentation for Farming Labs ORM."
+description: "Schema-first documentation for Farming Labs ORM."
 order: 1
 icon: book
 ---
@@ -17,12 +17,13 @@ different storage adapter for every ORM.
 - A typed client surface built around `createOrm(...)`
 - A memory runtime driver that already supports nested relation selection
 - A direct SQL runtime package for SQLite, MySQL, and PostgreSQL
+- A Mongoose runtime package for MongoDB-backed apps
 - A generator CLI that writes Prisma, Drizzle, and safe SQL output
 
 ## What this project is not
 
 - It is not a second full ORM with its own migrations, query planner, and SQL execution engine.
-- It does not yet ship live Prisma, Drizzle, Kysely, or Mongoose runtime drivers in this repo.
+- It does not yet ship live Prisma, Drizzle, or Kysely runtime drivers in this repo.
 - Higher-level relation helpers are currently most useful for runtime helpers and docs, not for current code generators.
 
 ## Recommended reading order
@@ -81,24 +82,26 @@ await orm.user.create({
 
 ## What ships today
 
-| Layer                   | Status  | Notes                                                            |
-| ----------------------- | ------- | ---------------------------------------------------------------- |
-| `@farming-labs/orm`     | Live    | Schema DSL, manifest, typed client, generators, memory runtime   |
-| `@farming-labs/orm-cli` | Live    | Loads schemas directly and writes target output                  |
-| `@farming-labs/orm-sql` | Live    | Direct SQL runtime for SQLite, MySQL, and PostgreSQL pools       |
-| Memory runtime          | Live    | Supports typed CRUD, nested relation selection, and transactions |
-| Direct SQL runtime      | Live    | Uses the same query API against SQLite, MySQL, and `pg.Pool`     |
-| Prisma generation       | Live    | PostgreSQL, MySQL, and SQLite providers                          |
-| Drizzle generation      | Live    | `pg`, `mysql`, and `sqlite` dialects                             |
-| Safe SQL generation     | Live    | PostgreSQL, MySQL, and SQLite                                    |
-| Runtime driver packages | Planned | Prisma, Drizzle, Kysely, and Mongoose are future layers          |
+| Layer                        | Status | Notes                                                            |
+| ---------------------------- | ------ | ---------------------------------------------------------------- |
+| `@farming-labs/orm`          | Live   | Schema DSL, manifest, typed client, generators, memory runtime   |
+| `@farming-labs/orm-cli`      | Live   | Loads schemas directly and writes target output                  |
+| `@farming-labs/orm-sql`      | Live   | Direct SQL runtime for SQLite, MySQL, and PostgreSQL pools       |
+| `@farming-labs/orm-mongoose` | Live   | MongoDB / Mongoose runtime using the same typed query API        |
+| Memory runtime               | Live   | Supports typed CRUD, nested relation selection, and transactions |
+| Direct SQL runtime           | Live   | Uses the same query API against SQLite, MySQL, and `pg.Pool`     |
+| Mongoose runtime             | Live   | Uses the same query API against Mongoose models and sessions     |
+| Prisma generation            | Live   | PostgreSQL, MySQL, and SQLite providers                          |
+| Drizzle generation           | Live   | `pg`, `mysql`, and `sqlite` dialects                             |
+| Safe SQL generation          | Live   | PostgreSQL, MySQL, and SQLite                                    |
+| Runtime driver packages      | Mixed  | Prisma, Drizzle, and Kysely are the next live runtime layers     |
 
 ## Current architecture
 
 - The schema DSL defines models, fields, references, descriptions, and higher-level relation metadata.
 - The manifest layer turns that schema into normalized table and column information.
 - The generators consume manifest-level field data such as mapped column names, uniqueness, defaults, and references.
-- The memory driver and direct SQL runtime consume both field data and relation metadata so nested `select` queries work today.
+- The memory driver, direct SQL runtime, and Mongoose runtime consume both field data and relation metadata so nested `select` queries work today.
 - The CLI merges multiple schema objects and refuses duplicate model names.
 
 ## Where this fits best

@@ -192,6 +192,12 @@ The important part is that the auth package writes those helpers once against
 the unified runtime contract. The consumer app chooses the eventual target
 stack.
 
+That can now mean:
+
+- direct SQL through `@farming-labs/orm-sql`
+- MongoDB through `@farming-labs/orm-mongoose`
+- memory for tests and fixtures
+
 ## What this removes
 
 - storage docs duplicated per ORM

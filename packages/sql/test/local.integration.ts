@@ -1,0 +1,695 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { DatabaseSync } from "node:sqlite";
+import { describe, expect, it } from "vitest";
+import mysql from "mysql2/promise";
+import { Pool } from "pg";
+import {
+  belongsTo,
+  boolean,
+  createOrm,
+  datetime,
+  defineSchema,
+  hasMany,
+  hasOne,
+  id,
+  manyToMany,
+  model,
+  renderSafeSql,
+  string,
+} from "@farming-labs/orm";
+import {
+  createMysqlDriver,
+  createPgClientDriver,
+  createPgPoolDriver,
+  createSqliteDriver,
+} from "../src";
+import type { MysqlConnectionLike, MysqlPoolLike } from "../src";
+
+const schema = defineSchema({
+  user: model({
+    table: "users",
+    fields: {
+      id: id(),
+      email: string().unique(),
+      name: string(),
+      emailVerified: boolean().default(false).map("email_verified"),
+      createdAt: datetime().defaultNow().map("created_at"),
+      updatedAt: datetime().defaultNow().map("updated_at"),
+    },
+    relations: {
+      profile: hasOne("profile", { foreignKey: "userId" }),
+      sessions: hasMany("session", { foreignKey: "userId" }),
+      organizations: manyToMany("organization", {
+        through: "member",
+        from: "userId",
+        to: "organizationId",
+      }),
+    },
+  }),
+  profile: model({
+    table: "profiles",
+    fields: {
+      id: id(),
+      userId: string().unique().references("user.id").map("user_id"),
+      bio: string().nullable(),
+    },
+    relations: {
+      user: belongsTo("user", { foreignKey: "userId" }),
+    },
+  }),
+  session: model({
+    table: "sessions",
+    fields: {
+      id: id(),
+      userId: string().references("user.id").map("user_id"),
+      token: string().unique(),
+      expiresAt: datetime().map("expires_at"),
+    },
+    relations: {
+      user: belongsTo("user", { foreignKey: "userId" }),
+    },
+  }),
+  organization: model({
+    table: "organizations",
+    fields: {
+      id: id(),
+      name: string().unique(),
+      slug: string().unique(),
+    },
+    relations: {
+      users: manyToMany("user", {
+        through: "member",
+        from: "organizationId",
+        to: "userId",
+      }),
+    },
+  }),
+  member: model({
+    table: "members",
+    fields: {
+      id: id(),
+      userId: string().references("user.id").map("user_id"),
+      organizationId: string().references("organization.id").map("organization_id"),
+      role: string(),
+    },
+    relations: {
+      user: belongsTo("user", { foreignKey: "userId" }),
+      organization: belongsTo("organization", { foreignKey: "organizationId" }),
+    },
+  }),
+});
+
+type RuntimeOrm = ReturnType<typeof createOrm<typeof schema>>;
+
+type RuntimeFactory = () => Promise<{
+  orm: RuntimeOrm;
+  close: () => Promise<void>;
+}>;
+
+type SqlTarget = "sqlite" | "postgres-pool" | "postgres-client" | "mysql-pool" | "mysql-connection";
+
+const requestedTargets = new Set(
+  (process.env.FARM_ORM_LOCAL_SQL_TARGETS ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean),
+);
+
+function shouldRunTarget(target: SqlTarget) {
+  return requestedTargets.size === 0 || requestedTargets.has(target);
+}
+
+function createIsolatedName(prefix: string) {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`.replace(/-/g, "_");
+}
+
+function assignDatabase(connectionString: string, databaseName: string) {
+  const url = new URL(connectionString);
+  url.pathname = `/${databaseName}`;
+  return url.toString();
+}
+
+function formatLocalDbError(label: string, error: unknown, hint: string) {
+  const message = error instanceof Error ? error.message : String(error);
+  return new Error(
+    `${label} local integration test could not connect. ${hint}\nOriginal error: ${message}`,
+  );
+}
+
+function asMysqlConnectionLike(connection: mysql.PoolConnection): MysqlConnectionLike {
+  return {
+    execute(sql, params) {
+      return connection.execute(sql, params as any) as ReturnType<MysqlConnectionLike["execute"]>;
+    },
+    beginTransaction() {
+      return connection.beginTransaction();
+    },
+    commit() {
+      return connection.commit();
+    },
+    rollback() {
+      return connection.rollback();
+    },
+    release() {
+      connection.release();
+    },
+  };
+}
+
+function asMysqlPoolLike(pool: mysql.Pool): MysqlPoolLike {
+  return {
+    execute(sql, params) {
+      return pool.execute(sql, params as any) as ReturnType<MysqlPoolLike["execute"]>;
+    },
+    async getConnection() {
+      return asMysqlConnectionLike(await pool.getConnection());
+    },
+  };
+}
+
+async function applyStatements(run: (sql: string) => Promise<unknown> | unknown, sql: string) {
+  const statements = sql
+    .split(";")
+    .map((statement) => statement.trim())
+    .filter(Boolean);
+
+  for (const statement of statements) {
+    await run(`${statement};`);
+  }
+}
+
+async function seedAuthData(orm: RuntimeOrm) {
+  const [ada, grace] = await orm.user.createMany({
+    data: [
+      {
+        email: "ada@farminglabs.dev",
+        name: "Ada",
+      },
+      {
+        email: "grace@farminglabs.dev",
+        name: "Grace",
+      },
+    ],
+    select: {
+      id: true,
+      email: true,
+      name: true,
+    },
+  });
+
+  await orm.profile.create({
+    data: {
+      userId: ada.id,
+      bio: "Writes one storage layer for every stack.",
+    },
+  });
+
+  const [acme, farmingLabs] = await orm.organization.createMany({
+    data: [
+      {
+        name: "Acme",
+        slug: "acme",
+      },
+      {
+        name: "Farming Labs",
+        slug: "farming-labs",
+      },
+    ],
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+
+  await orm.member.createMany({
+    data: [
+      {
+        userId: ada.id,
+        organizationId: acme.id,
+        role: "owner",
+      },
+      {
+        userId: ada.id,
+        organizationId: farmingLabs.id,
+        role: "member",
+      },
+    ],
+  });
+
+  await orm.session.createMany({
+    data: [
+      {
+        userId: ada.id,
+        token: "session-1",
+        expiresAt: new Date("2026-01-01T00:00:00.000Z"),
+      },
+      {
+        userId: ada.id,
+        token: "session-2",
+        expiresAt: new Date("2026-02-01T00:00:00.000Z"),
+      },
+      {
+        userId: grace.id,
+        token: "session-3",
+        expiresAt: new Date("2026-03-01T00:00:00.000Z"),
+      },
+    ],
+  });
+
+  return {
+    ada,
+    grace,
+  };
+}
+
+async function exerciseRuntime(orm: RuntimeOrm) {
+  const { ada, grace } = await seedAuthData(orm);
+
+  const user = await orm.user.findUnique({
+    where: {
+      email: "ada@farminglabs.dev",
+    },
+    select: {
+      id: true,
+      email: true,
+      profile: {
+        select: {
+          bio: true,
+        },
+      },
+      sessions: {
+        orderBy: {
+          token: "desc",
+        },
+        take: 1,
+        select: {
+          token: true,
+        },
+      },
+      organizations: {
+        orderBy: {
+          name: "asc",
+        },
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+
+  const session = await orm.session.findUnique({
+    where: {
+      token: "session-2",
+    },
+    select: {
+      token: true,
+      user: {
+        select: {
+          email: true,
+          organizations: {
+            where: {
+              slug: {
+                contains: "farming",
+              },
+            },
+            select: {
+              slug: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const updatedUser = await orm.user.update({
+    where: {
+      email: "ada@farminglabs.dev",
+    },
+    data: {
+      emailVerified: true,
+    },
+    select: {
+      email: true,
+      emailVerified: true,
+    },
+  });
+
+  const updatedSessions = await orm.session.updateMany({
+    where: {
+      userId: ada.id,
+    },
+    data: {
+      expiresAt: new Date("2027-01-01T00:00:00.000Z"),
+    },
+  });
+
+  const rotatedSession = await orm.session.upsert({
+    where: {
+      token: "session-2",
+    },
+    create: {
+      userId: ada.id,
+      token: "session-2",
+      expiresAt: new Date("2028-01-01T00:00:00.000Z"),
+    },
+    update: {
+      expiresAt: new Date("2028-01-01T00:00:00.000Z"),
+    },
+    select: {
+      token: true,
+      expiresAt: true,
+    },
+  });
+
+  const deletedMany = await orm.session.deleteMany({
+    where: {
+      userId: grace.id,
+    },
+  });
+
+  await expect(
+    orm.transaction(async (tx) => {
+      await tx.user.create({
+        data: {
+          email: "rollback@farminglabs.dev",
+          name: "Rollback",
+        },
+      });
+      throw new Error("rollback");
+    }),
+  ).rejects.toThrow("rollback");
+
+  const rollbackCount = await orm.user.count({
+    where: {
+      email: "rollback@farminglabs.dev",
+    },
+  });
+
+  const summary = await orm.batch([
+    (tx) =>
+      tx.user.findUnique({
+        where: {
+          id: ada.id,
+        },
+        select: {
+          email: true,
+          emailVerified: true,
+        },
+      }),
+    (tx) =>
+      tx.session.count({
+        where: {
+          userId: ada.id,
+        },
+      }),
+  ] as const);
+
+  expect(user).toEqual({
+    id: ada.id,
+    email: "ada@farminglabs.dev",
+    profile: {
+      bio: "Writes one storage layer for every stack.",
+    },
+    sessions: [{ token: "session-2" }],
+    organizations: [{ name: "Acme" }, { name: "Farming Labs" }],
+  });
+  expect(session).toEqual({
+    token: "session-2",
+    user: {
+      email: "ada@farminglabs.dev",
+      organizations: [{ slug: "farming-labs" }],
+    },
+  });
+  expect(updatedUser).toEqual({
+    email: "ada@farminglabs.dev",
+    emailVerified: true,
+  });
+  expect(updatedSessions).toBe(2);
+  expect(rotatedSession).toEqual({
+    token: "session-2",
+    expiresAt: new Date("2028-01-01T00:00:00.000Z"),
+  });
+  expect(deletedMany).toBe(1);
+  expect(rollbackCount).toBe(0);
+  expect(summary).toEqual([
+    {
+      email: "ada@farminglabs.dev",
+      emailVerified: true,
+    },
+    2,
+  ]);
+}
+
+async function createLocalSqliteOrm() {
+  const directory = await mkdtemp(path.join(tmpdir(), "farm-orm-sqlite-"));
+  const databasePath = path.join(directory, "local.db");
+  const database = new DatabaseSync(databasePath);
+
+  await applyStatements(
+    (statement) => database.exec(statement),
+    renderSafeSql(schema, { dialect: "sqlite" }),
+  );
+
+  return {
+    orm: createOrm({
+      schema,
+      driver: createSqliteDriver(database),
+    }),
+    close: async () => {
+      database.close();
+      await rm(directory, { recursive: true, force: true });
+    },
+  } satisfies Awaited<ReturnType<RuntimeFactory>>;
+}
+
+async function createLocalPostgresPoolOrm() {
+  const adminUrl =
+    process.env.FARM_ORM_LOCAL_PG_ADMIN_URL ??
+    "postgres://postgres:postgres@127.0.0.1:5432/postgres";
+  const databaseName = createIsolatedName("farm_orm_pg");
+  const adminPool = new Pool({ connectionString: adminUrl });
+
+  try {
+    await adminPool.query(`CREATE DATABASE "${databaseName}"`);
+  } catch (error) {
+    await adminPool.end();
+    throw formatLocalDbError(
+      "PostgreSQL",
+      error,
+      `Make sure a local PostgreSQL server is running and reachable via FARM_ORM_LOCAL_PG_ADMIN_URL (current default: ${adminUrl}).`,
+    );
+  }
+
+  await adminPool.end();
+
+  const databaseUrl = assignDatabase(adminUrl, databaseName);
+  const pool = new Pool({ connectionString: databaseUrl });
+
+  try {
+    await applyStatements(
+      (statement) => pool.query(statement),
+      renderSafeSql(schema, { dialect: "postgres" }),
+    );
+  } catch (error) {
+    await pool.end();
+    const cleanupAdmin = new Pool({ connectionString: adminUrl });
+    await cleanupAdmin.query(`DROP DATABASE IF EXISTS "${databaseName}"`);
+    await cleanupAdmin.end();
+    throw error;
+  }
+
+  return {
+    orm: createOrm({
+      schema,
+      driver: createPgPoolDriver(pool),
+    }),
+    close: async () => {
+      await pool.end();
+      const cleanupAdmin = new Pool({ connectionString: adminUrl });
+      await cleanupAdmin.query(
+        "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1 AND pid <> pg_backend_pid()",
+        [databaseName],
+      );
+      await cleanupAdmin.query(`DROP DATABASE IF EXISTS "${databaseName}"`);
+      await cleanupAdmin.end();
+    },
+  } satisfies Awaited<ReturnType<RuntimeFactory>>;
+}
+
+async function createLocalPostgresClientOrm() {
+  const adminUrl =
+    process.env.FARM_ORM_LOCAL_PG_ADMIN_URL ??
+    "postgres://postgres:postgres@127.0.0.1:5432/postgres";
+  const databaseName = createIsolatedName("farm_orm_pg_client");
+  const adminPool = new Pool({ connectionString: adminUrl });
+
+  try {
+    await adminPool.query(`CREATE DATABASE "${databaseName}"`);
+  } catch (error) {
+    await adminPool.end();
+    throw formatLocalDbError(
+      "PostgreSQL",
+      error,
+      `Make sure a local PostgreSQL server is running and reachable via FARM_ORM_LOCAL_PG_ADMIN_URL (current default: ${adminUrl}).`,
+    );
+  }
+
+  await adminPool.end();
+
+  const databaseUrl = assignDatabase(adminUrl, databaseName);
+  const pool = new Pool({ connectionString: databaseUrl });
+  const client = await pool.connect();
+
+  try {
+    await applyStatements(
+      (statement) => client.query(statement),
+      renderSafeSql(schema, { dialect: "postgres" }),
+    );
+  } catch (error) {
+    client.release();
+    await pool.end();
+    const cleanupAdmin = new Pool({ connectionString: adminUrl });
+    await cleanupAdmin.query(`DROP DATABASE IF EXISTS "${databaseName}"`);
+    await cleanupAdmin.end();
+    throw error;
+  }
+
+  return {
+    orm: createOrm({
+      schema,
+      driver: createPgClientDriver(client),
+    }),
+    close: async () => {
+      client.release();
+      await pool.end();
+      const cleanupAdmin = new Pool({ connectionString: adminUrl });
+      await cleanupAdmin.query(
+        "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1 AND pid <> pg_backend_pid()",
+        [databaseName],
+      );
+      await cleanupAdmin.query(`DROP DATABASE IF EXISTS "${databaseName}"`);
+      await cleanupAdmin.end();
+    },
+  } satisfies Awaited<ReturnType<RuntimeFactory>>;
+}
+
+async function createLocalMysqlPoolOrm() {
+  const adminUrl = process.env.FARM_ORM_LOCAL_MYSQL_ADMIN_URL ?? "mysql://root:root@127.0.0.1:3306";
+  const databaseName = createIsolatedName("farm_orm_mysql");
+  const adminPool = mysql.createPool(adminUrl);
+
+  try {
+    await adminPool.query(`CREATE DATABASE \`${databaseName}\``);
+  } catch (error) {
+    await adminPool.end();
+    throw formatLocalDbError(
+      "MySQL",
+      error,
+      `Make sure a local MySQL server is running and reachable via FARM_ORM_LOCAL_MYSQL_ADMIN_URL (current default: ${adminUrl}).`,
+    );
+  }
+
+  await adminPool.end();
+
+  const databaseUrl = assignDatabase(adminUrl, databaseName);
+  const pool = mysql.createPool(databaseUrl);
+
+  try {
+    await applyStatements(
+      (statement) => pool.query(statement),
+      renderSafeSql(schema, { dialect: "mysql" }),
+    );
+  } catch (error) {
+    await pool.end();
+    const cleanupAdmin = mysql.createPool(adminUrl);
+    await cleanupAdmin.query(`DROP DATABASE IF EXISTS \`${databaseName}\``);
+    await cleanupAdmin.end();
+    throw error;
+  }
+
+  return {
+    orm: createOrm({
+      schema,
+      driver: createMysqlDriver(asMysqlPoolLike(pool)),
+    }),
+    close: async () => {
+      await pool.end();
+      const cleanupAdmin = mysql.createPool(adminUrl);
+      await cleanupAdmin.query(`DROP DATABASE IF EXISTS \`${databaseName}\``);
+      await cleanupAdmin.end();
+    },
+  } satisfies Awaited<ReturnType<RuntimeFactory>>;
+}
+
+async function createLocalMysqlConnectionOrm() {
+  const adminUrl = process.env.FARM_ORM_LOCAL_MYSQL_ADMIN_URL ?? "mysql://root:root@127.0.0.1:3306";
+  const databaseName = createIsolatedName("farm_orm_mysql_conn");
+  const adminPool = mysql.createPool(adminUrl);
+
+  try {
+    await adminPool.query(`CREATE DATABASE \`${databaseName}\``);
+  } catch (error) {
+    await adminPool.end();
+    throw formatLocalDbError(
+      "MySQL",
+      error,
+      `Make sure a local MySQL server is running and reachable via FARM_ORM_LOCAL_MYSQL_ADMIN_URL (current default: ${adminUrl}).`,
+    );
+  }
+
+  await adminPool.end();
+
+  const databaseUrl = assignDatabase(adminUrl, databaseName);
+  const pool = mysql.createPool(databaseUrl);
+  const connection = await pool.getConnection();
+
+  try {
+    await applyStatements(
+      (statement) => connection.query(statement),
+      renderSafeSql(schema, { dialect: "mysql" }),
+    );
+  } catch (error) {
+    connection.release();
+    await pool.end();
+    const cleanupAdmin = mysql.createPool(adminUrl);
+    await cleanupAdmin.query(`DROP DATABASE IF EXISTS \`${databaseName}\``);
+    await cleanupAdmin.end();
+    throw error;
+  }
+
+  return {
+    orm: createOrm({
+      schema,
+      driver: createMysqlDriver(asMysqlConnectionLike(connection)),
+    }),
+    close: async () => {
+      connection.release();
+      await pool.end();
+      const cleanupAdmin = mysql.createPool(adminUrl);
+      await cleanupAdmin.query(`DROP DATABASE IF EXISTS \`${databaseName}\``);
+      await cleanupAdmin.end();
+    },
+  } satisfies Awaited<ReturnType<RuntimeFactory>>;
+}
+
+for (const [target, factory] of [
+  ["sqlite", createLocalSqliteOrm],
+  ["postgres-pool", createLocalPostgresPoolOrm],
+  ["postgres-client", createLocalPostgresClientOrm],
+  ["mysql-pool", createLocalMysqlPoolOrm],
+  ["mysql-connection", createLocalMysqlConnectionOrm],
+] as const satisfies ReadonlyArray<readonly [SqlTarget, RuntimeFactory]>) {
+  describe.runIf(shouldRunTarget(target))(`${target} local integration`, () => {
+    it("runs the auth-style runtime flow against a real local database", async () => {
+      const { orm, close } = await factory();
+
+      try {
+        await exerciseRuntime(orm);
+      } finally {
+        await close();
+      }
+    });
+  });
+}
