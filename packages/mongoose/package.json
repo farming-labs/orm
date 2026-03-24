@@ -21,6 +21,7 @@
   "scripts": {
     "build": "tsx ./scripts/build.ts",
     "test": "vitest run",
+    "test:local": "vitest run --config vitest.local.config.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -30,6 +31,7 @@
     "mongoose": "^8.0.0"
   },
   "devDependencies": {
+    "mongoose": "^8.19.2",
     "tsup": "^8.4.0"
   }
 }

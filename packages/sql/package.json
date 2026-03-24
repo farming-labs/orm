@@ -21,12 +21,16 @@
   "scripts": {
     "build": "tsx ./scripts/build.ts",
     "test": "vitest run",
+    "test:local": "vitest run --config vitest.local.config.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@farming-labs/orm": "workspace:*"
   },
   "devDependencies": {
+    "@types/pg": "^8.15.6",
+    "mysql2": "^3.15.2",
+    "pg": "^8.16.3",
     "pg-mem": "^3.0.5",
     "tsup": "^8.4.0"
   }
