@@ -75,7 +75,10 @@ function evaluateFilter(value: unknown, filter: unknown) {
   return true;
 }
 
-function matchesWhere<TRecord extends Record<string, unknown>>(record: TRecord, where?: Where<any>) {
+function matchesWhere<TRecord extends Record<string, unknown>>(
+  record: TRecord,
+  where?: Where<any>,
+) {
   if (!where) return true;
 
   if (where.AND && !where.AND.every((clause: Where<any>) => matchesWhere(record, clause))) {
@@ -309,7 +312,11 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
       if (!row) return null;
       return projectRow(schema, model, row, args.select);
     },
-    async count(_schema: TSchema, model: ModelName<TSchema>, args?: CountArgs<TSchema, ModelName<TSchema>>) {
+    async count(
+      _schema: TSchema,
+      model: ModelName<TSchema>,
+      args?: CountArgs<TSchema, ModelName<TSchema>>,
+    ) {
       return applyQuery(getRows(model), args).length;
     },
     async create(

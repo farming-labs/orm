@@ -347,9 +347,9 @@ export type OrmClient<TSchema extends SchemaDefinition<any>> = {
   [K in ModelName<TSchema>]: ModelClient<TSchema, K>;
 } & {
   transaction<TResult>(run: (tx: OrmClient<TSchema>) => Promise<TResult>): Promise<TResult>;
-  batch<const TResult extends readonly unknown[]>(
-    tasks: { [K in keyof TResult]: BatchTask<TSchema, TResult[K]> },
-  ): Promise<TResult>;
+  batch<const TResult extends readonly unknown[]>(tasks: {
+    [K in keyof TResult]: BatchTask<TSchema, TResult[K]>;
+  }): Promise<TResult>;
 };
 
 function createModelClient<

@@ -70,11 +70,7 @@ export function createAuthStore(db: AuthOrm) {
         return { user, account };
       });
     },
-    rotateSession(input: {
-      userId: string;
-      token: string;
-      expiresAt: Date;
-    }) {
+    rotateSession(input: { userId: string; token: string; expiresAt: Date }) {
       return db.session.upsert({
         where: {
           token: input.token,
