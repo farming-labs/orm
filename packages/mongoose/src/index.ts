@@ -247,7 +247,7 @@ function removeOverlappingInsertFields(insertData: MongoRow, updateData: MongoRo
   const output: MongoRow = {};
 
   for (const [key, value] of Object.entries(insertData)) {
-    if (key in updateData) continue;
+    if (Object.prototype.hasOwnProperty.call(updateData, key)) continue;
     output[key] = value;
   }
 
