@@ -63,7 +63,7 @@ function IconGithub({ className }: { className?: string }) {
 
 const footerLinkClass = cn(
   "font-mono text-[0.72rem] font-light uppercase tracking-tight text-slate-400",
-  "inline-flex items-center gap-1.5 transition-colors duration-200 hover:text-slate-100",
+  "inline-flex min-h-10 items-center gap-1.5 py-1.5 transition-colors duration-200 hover:text-slate-100 sm:min-h-0 sm:py-0",
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white/35",
 );
 
@@ -100,11 +100,11 @@ export default function HomePage() {
         )}
       >
         <div
-          className="pointer-events-none absolute inset-y-0 left-8 z-[3] w-px bg-white/12"
+          className="pointer-events-none absolute inset-y-0 left-8 z-[3] hidden w-px bg-white/12 sm:block"
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute inset-y-0 right-8 z-[3] w-px bg-white/12"
+          className="pointer-events-none absolute inset-y-0 right-8 z-[3] hidden w-px bg-white/12 sm:block"
           aria-hidden
         />
 
@@ -132,7 +132,9 @@ export default function HomePage() {
 
         <div className="relative z-2 flex min-h-0 w-full flex-1 flex-col">
           <div
-            className={cn("flex min-h-0 flex-1 flex-col justify-center py-[clamp(24px,5vh,56px)]")}
+            className={cn(
+              "flex min-h-0 flex-1 flex-col justify-start py-[clamp(20px,4vh,48px)] sm:justify-center sm:py-[clamp(24px,5vh,56px)]",
+            )}
           >
             <div
               className={cn(
@@ -152,7 +154,7 @@ export default function HomePage() {
                   className="block text-[clamp(2.25rem,6vw,4.75rem)]! tracking-[-0.08em]"
                 />
               </h1>
-              <p className="m-0 max-w-[min(32rem,100%)] font-mono text-sm font-light uppercase tracking-tight text-white/70">
+              <p className="m-0 max-w-[min(32rem,100%)] font-mono text-[0.8125rem] font-light uppercase leading-snug tracking-tight text-white/70 sm:text-sm">
                 Define the data model once, then generate the storage layer each app stack wants
                 along with built-in cli.
               </p>
@@ -188,12 +190,18 @@ export default function HomePage() {
               <div className="relative z-[1] px-[clamp(20px,6vw,72px)] pb-0 pt-5">
                 <div
                   className={cn(
-                    "grid w-full grid-cols-4 -mt-5 gap-px border border-t-0 border-b-0 border-white/12 bg-white/12 backdrop-blur-md",
+                    "relative -mt-5 flex w-full min-w-0",
                     "shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_24px_60px_rgba(0,0,0,0.28)]",
-                    "max-[960px]:grid-cols-2 max-[480px]:grid-cols-1",
                   )}
                   aria-label="Features"
                 >
+                  <div className="w-px shrink-0 self-stretch bg-white/12" aria-hidden />
+                  <div
+                    className={cn(
+                      "grid min-w-0 flex-1 grid-cols-4 gap-px bg-white/12 backdrop-blur-md",
+                      "max-[960px]:grid-cols-2 max-[480px]:grid-cols-1",
+                    )}
+                  >
                   {heroFeatureCards.map((card) => (
                     <Link
                       key={card.href}
@@ -225,6 +233,8 @@ export default function HomePage() {
                       </p>
                     </Link>
                   ))}
+                  </div>
+                  <div className="w-px shrink-0 self-stretch bg-white/12" aria-hidden />
                 </div>
               </div>
             </div>

@@ -1,6 +1,14 @@
 "use client";
 
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, type ReactNode } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { Canvas, useFrame, useThree, type ThreeElements } from "@react-three/fiber";
 import { Environment, PerspectiveCamera } from "@react-three/drei";
 import * as THREE from "three";
@@ -183,8 +191,56 @@ const createStackedPlanesBufferGeometry = (
   return geometry;
 };
 
-const CanvasWrapper = ({ children }: { children: ReactNode }) => (
-  <Canvas dpr={[1, 2]} frameloop="always" className="absolute inset-0 h-full w-full">
+type BeamGpuTier = "full" | "lite" | "off";
+
+function useBeamGpuTier(): BeamGpuTier {
+  const [tier, setTier] = useState<BeamGpuTier>("full");
+
+  useEffect(() => {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const narrow = window.matchMedia("(max-width: 767px)");
+    const compute = (): BeamGpuTier => {
+      if (reduced.matches) return "off";
+      const nav = navigator as Navigator & {
+        connection?: { saveData?: boolean };
+        deviceMemory?: number;
+      };
+      if (nav.connection?.saveData === true) return "lite";
+      if (typeof nav.deviceMemory === "number" && nav.deviceMemory <= 4) return "lite";
+      if (narrow.matches) return "lite";
+      return "full";
+    };
+
+    const sync = () => setTier(compute());
+    sync();
+    reduced.addEventListener("change", sync);
+    narrow.addEventListener("change", sync);
+    return () => {
+      reduced.removeEventListener("change", sync);
+      narrow.removeEventListener("change", sync);
+    };
+  }, []);
+
+  return tier;
+}
+
+const CanvasWrapper = ({
+  children,
+  dpr,
+  powerPreference,
+  antialias,
+}: {
+  children: ReactNode;
+  dpr: [number, number];
+  powerPreference: "default" | "low-power";
+  antialias: boolean;
+}) => (
+  <Canvas
+    dpr={dpr}
+    frameloop="always"
+    className="absolute inset-0 h-full w-full"
+    gl={{ alpha: true, antialias, powerPreference }}
+  >
     {children}
   </Canvas>
 );
@@ -210,17 +266,18 @@ interface NoisePlanesProps {
   width: number;
   count: number;
   height: number;
+  heightSegments: number;
 }
 
 const NoisePlanes = forwardRef<THREE.Mesh, NoisePlanesProps>(
-  ({ material, width, count, height }, ref) => {
+  ({ material, width, count, height, heightSegments }, ref) => {
     const meshRef = useRef<THREE.Mesh<THREE.BufferGeometry, THREE.ShaderMaterial> | null>(null);
 
     useImperativeHandle(ref, () => meshRef.current as THREE.Mesh);
 
     const geometry = useMemo(
-      () => createStackedPlanesBufferGeometry(count, width, height, 0, 100),
-      [count, width, height],
+      () => createStackedPlanesBufferGeometry(count, width, height, 0, heightSegments),
+      [count, width, height, heightSegments],
     );
 
     useFrame((_, delta) => {
@@ -234,7 +291,15 @@ const NoisePlanes = forwardRef<THREE.Mesh, NoisePlanesProps>(
 
 NoisePlanes.displayName = "NoisePlanes";
 
-const MouseInteraction = ({ children }: { children: ReactNode }) => {
+const MouseInteraction = ({
+  children,
+  dampFactor = 0.005,
+  rotationScale = 1,
+}: {
+  children: ReactNode;
+  dampFactor?: number;
+  rotationScale?: number;
+}) => {
   const { camera } = useThree();
   const mouse = useRef({ x: 0, y: 0 });
   const targetMouse = useRef({ x: 0, y: 0 });
@@ -247,22 +312,34 @@ const MouseInteraction = ({ children }: { children: ReactNode }) => {
         y: -(event.clientY / window.innerHeight) * 2 + 1,
       };
     };
+    const handlePointer = (event: PointerEvent) => {
+      if (event.pointerType !== "touch") return;
+      mouse.current = {
+        x: (event.clientX / window.innerWidth) * 2 - 1,
+        y: -(event.clientY / window.innerHeight) * 2 + 1,
+      };
+    };
 
     window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
+    window.addEventListener("pointermove", handlePointer, { passive: true });
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("pointermove", handlePointer);
+    };
   }, []);
 
   useFrame(() => {
     if (!groupRef.current) return;
 
-    targetMouse.current.x += (mouse.current.x - targetMouse.current.x) * 0.005;
-    targetMouse.current.y += (mouse.current.y - targetMouse.current.y) * 0.005;
+    targetMouse.current.x += (mouse.current.x - targetMouse.current.x) * dampFactor;
+    targetMouse.current.y += (mouse.current.y - targetMouse.current.y) * dampFactor;
 
-    groupRef.current.rotation.y = targetMouse.current.x * 0.3;
-    groupRef.current.rotation.x = targetMouse.current.y * 0.1;
+    const rs = rotationScale;
+    groupRef.current.rotation.y = targetMouse.current.x * 0.3 * rs;
+    groupRef.current.rotation.x = targetMouse.current.y * 0.1 * rs;
 
-    camera.position.x = targetMouse.current.x * 1;
-    camera.position.y = targetMouse.current.y * 1;
+    camera.position.x = targetMouse.current.x * 1 * rs;
+    camera.position.y = targetMouse.current.y * 1 * rs;
     camera.lookAt(0, 0, 0);
   });
 
@@ -279,7 +356,14 @@ export default function BeamBackground({
   scale = 0.2,
   rotation = 0,
 }: BeamBackgroundProps) {
+  const tier = useBeamGpuTier();
+  const isOff = tier === "off";
+  const isLite = tier === "lite";
   const validBeamNumber = beamNumber > 0 ? beamNumber : 12;
+  const effectiveBeamCount = isLite ? Math.min(8, validBeamNumber) : validBeamNumber;
+  const heightSegments = isLite ? 44 : 100;
+  const canvasDpr: [number, number] = isLite ? [1, 1] : [1, 2];
+  const effectiveNoise = isLite ? Math.min(noiseIntensity, 0.08) : noiseIntensity;
 
   const beamMaterial = useMemo(
     () =>
@@ -329,23 +413,32 @@ export default function BeamBackground({
           metalness: 0.3,
           uSpeed: { value: speed },
           envMapIntensity: 13.5,
-          uNoiseIntensity: noiseIntensity,
+          uNoiseIntensity: effectiveNoise,
           uScale: scale,
         },
       }),
-    [speed, noiseIntensity, scale],
+    [speed, effectiveNoise, scale],
   );
+
+  if (isOff) {
+    return null;
+  }
 
   return (
     <div className="absolute inset-0 opacity-25">
-      <CanvasWrapper>
-        <MouseInteraction>
+      <CanvasWrapper
+        dpr={canvasDpr}
+        powerPreference={isLite ? "low-power" : "default"}
+        antialias={!isLite}
+      >
+        <MouseInteraction dampFactor={isLite ? 0.012 : 0.005} rotationScale={isLite ? 0.65 : 1}>
           <group rotation={[0, 0, THREE.MathUtils.degToRad(rotation)]} position={[0, 0, 0]}>
             <NoisePlanes
               material={beamMaterial}
-              count={validBeamNumber}
+              count={effectiveBeamCount}
               width={beamWidth}
               height={beamHeight}
+              heightSegments={heightSegments}
             />
             <DirectionalBeamLight color={lightColor} position={[0, 3, 10]} />
           </group>
