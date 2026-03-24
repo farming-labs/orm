@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CliShowcase } from "@/components/home/cli-showcase";
 import BeamBackground from "@/components/ui/beam-background";
 import { PatternText } from "@/components/ui/pattern-text";
 import { cn } from "@/lib/utils";
@@ -107,19 +108,19 @@ export default function HomePage() {
           aria-hidden
         />
 
-        <div className="pointer-events-none absolute inset-0 opacity-[0.92]" aria-hidden="true">
+        <div className="pointer-events-none absolute inset-0 opacity-[0.52]" aria-hidden="true">
           <BeamBackground
             beamWidth={1.05}
             beamHeight={24}
             beamNumber={16}
             lightColor="#ffffff"
             speed={1.6}
-            noiseIntensity={0.18}
+            noiseIntensity={0.11}
             scale={0.2}
             rotation={0}
           />
         </div>
-        <div className="pointer-events-none absolute inset-0 z-0 bg-[rgba(4,4,6,0.3)]" />
+        <div className="pointer-events-none absolute inset-0 z-0 bg-[rgba(4,4,6,0.42)]" />
         <div
           aria-hidden
           className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-[clamp(4.5rem,16vw,12rem)] bg-gradient-to-r from-[#050507] via-[#050507]/85 to-transparent"
@@ -232,6 +233,19 @@ export default function HomePage() {
               className="relative z-2 mt-0 mb-0 ml-[calc(50%-50vw)] mr-[calc(50%-50vw)] block h-px w-screen max-w-[100vw] shrink-0 border-0 bg-white/12"
               aria-hidden
             />
+          </div>
+
+          <hr
+            className="relative z-2 mt-0 mb-0 ml-[calc(50%-50vw)] mr-[calc(50%-50vw)] block h-px w-screen max-w-[100vw] shrink-0 border-0 bg-white/12"
+            aria-hidden
+          />
+          <div
+            className={cn(
+              "relative z-2 shrink-0 px-[clamp(20px,6vw,72px)] pb-2 pt-5",
+              "max-md:px-5 max-md:pb-3 max-md:pt-4",
+            )}
+          >
+            <CliShowcase />
           </div>
           <hr
             className="relative z-2 mt-0 mb-0 ml-[calc(50%-50vw)] mr-[calc(50%-50vw)] block h-px w-screen max-w-[100vw] shrink-0 border-0 bg-white/12"

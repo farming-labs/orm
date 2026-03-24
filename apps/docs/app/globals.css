@@ -83,6 +83,31 @@ a {
   );
 }
 
+@keyframes home-cli-shimmer {
+  0%,
+  100% {
+    background-position: 100% 0;
+  }
+  50% {
+    background-position: -100% 0;
+  }
+}
+
+.home-cli-caret {
+  animation: home-cli-caret-blink 1s step-end infinite;
+}
+
+@keyframes home-cli-caret-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
 #nd-docs-layout {
   position: relative;
   background:
