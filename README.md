@@ -1,52 +1,173 @@
-# Farming Labs ORM
+# @farming-labs/orm 
 
-Schema-first toolkit for defining data models once in TypeScript, generating **Prisma**, **Drizzle**, and **safe SQL** artifacts, and driving one typed runtime API across **memory**, **direct SQL**, and **Mongoose** backends. Built for libraries and internal platforms that want one contract across many persistence stacks.
+One schema. Many stacks.
 
-## What you get
+`@farming-labs/orm` lets library authors and shared platform packages define a data
+model once in TypeScript, then:
 
-- **Schema DSL** — Models, fields (ids, strings, booleans, datetimes, etc.), defaults, uniqueness, column mapping, and relations (`hasMany`, `hasOne`, `belongsTo`) in a single TypeScript surface.
-- **Generators** — Turn the same schema into Prisma schema files, Drizzle table definitions, or dialect-specific SQL migrations/DDL, driven by a small config file.
-- **`farm-orm` CLI** — Load `farm-orm.config.ts`, merge multiple schema modules, and write each configured target to disk (`generate prisma | drizzle | sql`).
-- **Runtime (today)** — Typed drivers for **memory**, **SQLite / MySQL / PostgreSQL** through `@farming-labs/orm-sql`, and **MongoDB / Mongoose** through `@farming-labs/orm-mongoose`.
+- generate Prisma, Drizzle, and SQL output
+- run one typed query API against memory, SQL, or Mongoose
+- keep app code independent from the consumer's ORM choice
 
-## Monorepo layout
+## What it is
 
-| Path                | Role                                                                                                          |
-| ------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `packages/orm`      | Core: schema builders, relations, generators, manifest helpers, and the in-memory ORM driver.                 |
-| `packages/cli`      | `farm-orm` binary: config loading, schema merging, and generator orchestration.                               |
-| `packages/sql`      | Live SQL runtime driver for SQLite, MySQL, PostgreSQL pools, and PostgreSQL clients.                          |
-| `packages/mongoose` | Live MongoDB runtime driver for Mongoose-backed apps.                                                         |
-| `apps/demo`         | Example auth-shaped schema plus `farm-orm.config.ts` and generated samples.                                   |
-| `apps/docs`         | Next.js site: landing page and MDX docs (getting started, schema, runtime, integrations, CLI, and use cases). |
+- `@farming-labs/orm`
+  Core schema DSL, typed client, generators, and memory runtime
+- `@farming-labs/orm-cli`
+  `farm-orm` CLI for generating Prisma, Drizzle, and SQL artifacts
+- `@farming-labs/orm-sql`
+  Live runtime driver for SQLite, MySQL, and PostgreSQL
+- `@farming-labs/orm-mongoose`
+  Live runtime driver for MongoDB apps that use Mongoose
 
-Root **e2e** tests under `tests/` exercise a full workspace flow (build, generate, validate).
+## What works today
 
-## Prerequisites
+- schema definition with fields, defaults, uniqueness, mapped column names, and relations
+- generated Prisma output
+- generated Drizzle output
+- generated safe SQL output
+- live runtime queries for:
+  - memory
+  - SQLite
+  - MySQL
+  - PostgreSQL
+  - MongoDB through Mongoose
+- relation support for:
+  - `belongsTo`
+  - `hasOne`
+  - `hasMany`
+  - explicit join-table `manyToMany`
 
-- [Node.js](https://nodejs.org/) 20+ (CI uses 22)
-- [pnpm](https://pnpm.io/) 10 (`packageManager` is pinned in the root `package.json`)
+## What does not exist yet
 
-## Getting started
+- live Prisma runtime driver
+- live Drizzle runtime driver
+- live Kysely runtime driver
 
-Clone the repo, install, and build all packages:
+Prisma and Drizzle are generator targets in this repo today, not runtime drivers.
+
+## Simple example
+
+```ts
+import {
+  belongsTo,
+  createOrm,
+  defineSchema,
+  hasMany,
+  id,
+  model,
+  string,
+} from "@farming-labs/orm";
+import { createPgPoolDriver } from "@farming-labs/orm-sql";
+import { Pool } from "pg";
+
+const schema = defineSchema({
+  user: model({
+    table: "users",
+    fields: {
+      id: id(),
+      email: string().unique(),
+      name: string(),
+    },
+    relations: {
+      sessions: hasMany("session", { foreignKey: "userId" }),
+    },
+  }),
+  session: model({
+    table: "sessions",
+    fields: {
+      id: id(),
+      userId: string().references("user.id"),
+      token: string().unique(),
+    },
+    relations: {
+      user: belongsTo("user", { foreignKey: "userId" }),
+    },
+  }),
+});
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+const orm = createOrm({
+  schema,
+  driver: createPgPoolDriver(pool),
+});
+
+const user = await orm.user.findOne({
+  where: { email: "ada@farminglabs.dev" },
+  select: {
+    id: true,
+    email: true,
+    sessions: {
+      select: {
+        token: true,
+      },
+    },
+  },
+});
+```
+
+## Generate artifacts
+
+Define a `farm-orm.config.ts`:
+
+```ts
+import { defineConfig } from "@farming-labs/orm-cli";
+import { schema } from "./src/schema";
+
+export default defineConfig({
+  schemas: [schema],
+  targets: {
+    prisma: {
+      out: "./generated/prisma/schema.prisma",
+      provider: "postgresql",
+    },
+    drizzle: {
+      out: "./generated/drizzle/schema.ts",
+      dialect: "pg",
+    },
+    sql: {
+      out: "./generated/sql/0001_init.sql",
+      dialect: "postgres",
+    },
+  },
+});
+```
+
+Then run:
+
+```bash
+farm-orm generate prisma
+farm-orm generate drizzle
+farm-orm generate sql
+```
+
+## Local development
+
+Requirements:
+
+- Node.js 20+
+- pnpm 10
+
+Install and build:
 
 ```bash
 pnpm install
 pnpm build
 ```
 
-Run checks used in development:
+Common commands:
 
 ```bash
-pnpm check    # lint + format check + typecheck
-pnpm test     # workspace tests + root e2e
+pnpm test
+pnpm check
+pnpm dev:docs
+pnpm dev:demo
 ```
 
-### Local database integration tests
-
-There is also a separate local integration lane for real databases. It is not
-part of the default CI test suite.
+Real local database integration tests:
 
 ```bash
 pnpm test:local
@@ -56,44 +177,49 @@ pnpm test:local:mysql
 pnpm test:local:mongodb
 ```
 
-See [LOCAL_DATABASE_TESTS.md](./LOCAL_DATABASE_TESTS.md) for install
-steps, default connection URLs, and notes about MongoDB transaction support.
+## Releasing packages
 
-### Docs site locally
+Version and tag a release:
+
+```bash
+pnpm release:latest
+```
+
+Publish the latest version:
+
+```bash
+pnpm publish:latest
+```
+
+Beta flow:
+
+```bash
+pnpm release:beta
+pnpm publish:beta
+```
+
+Dry runs:
+
+```bash
+pnpm publish:latest:dry-run
+pnpm publish:beta:dry-run
+```
+
+## Repo layout
+
+- `packages/orm`
+- `packages/cli`
+- `packages/sql`
+- `packages/mongoose`
+- `apps/demo`
+- `apps/docs`
+
+## Docs
+
+Run the docs site locally with:
 
 ```bash
 pnpm dev:docs
 ```
 
-### Demo app (Vitest + example schema)
-
-```bash
-pnpm dev:demo
-```
-
-## CLI: generate from a config
-
-From `apps/demo` (after `pnpm build` so `dist` exists), you can run the CLI via the workspace package:
-
-```bash
-cd apps/demo
-pnpm exec farm-orm generate prisma  -c ./farm-orm.config.ts
-pnpm exec farm-orm generate drizzle -c ./farm-orm.config.ts
-pnpm exec farm-orm generate sql     -c ./farm-orm.config.ts
-```
-
-Or invoke the built binary directly:
-
-```bash
-node ../../packages/cli/dist/bin.js generate prisma -c ./farm-orm.config.ts
-```
-
-`farm-orm.config.ts` lists `schemas` (exported `defineSchema(...)` values) and `targets` with `out` paths and dialect/provider options. See `apps/demo/farm-orm.config.ts` for a full example.
-
-## Continuous integration
-
-GitHub Actions (`.github/workflows/ci.yml`) runs on pushes to `main` / `master` and on **pull requests**: install with a frozen lockfile, then **lint**, **format check**, **typecheck**, and **test**.
-
-## Contributing
-
-Use `pnpm lint:fix` and `pnpm fmt` before opening a PR if you change formatting or want auto-fixable lint updates.
+The main docs live under [`apps/docs/app/docs`](/Users/mac/oss/orms/apps/docs/app/docs).
