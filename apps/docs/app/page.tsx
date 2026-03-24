@@ -108,7 +108,7 @@ export default function HomePage() {
           aria-hidden
         />
 
-        <div className="pointer-events-none absolute inset-0 opacity-[0.52]" aria-hidden="true">
+        <div className="pointer-events-none absolute inset-0 opacity-[0.45]" aria-hidden="true">
           <BeamBackground
             beamWidth={1.05}
             beamHeight={24}

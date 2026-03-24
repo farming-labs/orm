@@ -1,14 +1,49 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 
-const COMMAND = "pnpm exec farm-orm generate prisma -c ./farm-orm.config.ts";
+/** Token order + classes — spaces tied to preceding token so typing stays aligned. */
+const CLI_PARTS = [
+  { text: "pnpm", className: "text-white" },
+  { text: " ", className: "text-white" },
+  { text: "exec", className: "text-white/70" },
+  { text: " ", className: "text-white/70" },
+  { text: "farm-orm", className: "text-white/85" },
+  { text: " ", className: "text-white/85" },
+  { text: "generate", className: "text-white/75" },
+  { text: " ", className: "text-white/75" },
+  { text: "prisma", className: "text-emerald-200/90" },
+  { text: " ", className: "text-emerald-200/90" },
+  { text: "-c", className: "text-white/55" },
+  { text: " ", className: "text-white/55" },
+  { text: "./farm-orm.config.ts", className: "text-white/65" },
+] as const;
+
+const COMMAND = CLI_PARTS.map((p) => p.text).join("");
+
+function renderTypedSpans(typedLen: number) {
+  let remaining = typedLen;
+  return CLI_PARTS.flatMap((part, i) => {
+    if (remaining <= 0) return [];
+    const take = Math.min(part.text.length, remaining);
+    remaining -= take;
+    if (take === 0) return [];
+    const chunk = part.text.slice(0, take);
+    return [
+      <span key={`cli-${i}`} className={part.className}>
+        {chunk}
+      </span>,
+    ];
+  });
+}
 
 export function CliShowcase({ className }: { className?: string }) {
-  const [typed, setTyped] = useState("");
+  const [typedLen, setTypedLen] = useState(0);
   const [reducedMotion, setReducedMotion] = useState(false);
+
+  const commandLen = COMMAND.length;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -16,17 +51,19 @@ export function CliShowcase({ className }: { className?: string }) {
     const prefersReduced = mq.matches;
     setReducedMotion(prefersReduced);
     if (prefersReduced) {
-      setTyped(COMMAND);
+      setTypedLen(commandLen);
       return;
     }
     let i = 0;
     const id = window.setInterval(() => {
       i += 1;
-      setTyped(COMMAND.slice(0, i));
-      if (i >= COMMAND.length) window.clearInterval(id);
+      setTypedLen(i);
+      if (i >= commandLen) window.clearInterval(id);
     }, 28);
     return () => window.clearInterval(id);
-  }, []);
+  }, [commandLen]);
+
+  const spans = useMemo(() => renderTypedSpans(typedLen), [typedLen]);
 
   return (
     <div className={cn("w-full rounded-none max-w-full", className)}>
@@ -52,12 +89,12 @@ export function CliShowcase({ className }: { className?: string }) {
         <pre
           className={cn(
             "relative m-0 overflow-x-auto px-4 py-3.5 font-mono text-[clamp(0.75rem,2.4vw,0.85rem)] leading-relaxed",
-            "text-slate-200 [tab-size:2]",
+            "[tab-size:2]",
           )}
         >
-          <code className="break-all text-white/95">{typed}</code>
+          <code className="break-all">{spans}</code>
           <span
-            className="inline-block min-w-[0.55ch] translate-y-px text-white/95 home-cli-caret"
+            className="inline-block min-w-[0.55ch] translate-y-px text-white/80 home-cli-caret"
             aria-hidden
           >
             ▍
