@@ -56,7 +56,10 @@ describe("workspace end to end", () => {
     expect(drizzleCheck.stdout).toContain("up to date");
     expect(sqlCheck.stdout).toContain("up to date");
 
-    const prismaSchema = await readFile(path.join(demoDir, "generated/prisma/schema.prisma"), "utf8");
+    const prismaSchema = await readFile(
+      path.join(demoDir, "generated/prisma/schema.prisma"),
+      "utf8",
+    );
     const drizzleSchema = await readFile(path.join(demoDir, "generated/drizzle/schema.ts"), "utf8");
     expect(prismaSchema).toContain("profile Profile?");
     expect(prismaSchema).toContain("accounts Account[]");
