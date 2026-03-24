@@ -116,12 +116,7 @@ export function createAuthStore(orm: typeof authOrm) {
       });
     },
 
-    createOAuthUser(input: {
-      name: string;
-      email: string;
-      provider: string;
-      accountId: string;
-    }) {
+    createOAuthUser(input: { name: string; email: string; provider: string; accountId: string }) {
       return orm.transaction(async (tx) => {
         const user = await tx.user.create({
           data: {

@@ -1057,7 +1057,8 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
     const throughModel = manifest.models[relation.through];
     const throughFromReference = parseReference(throughModel.fields[relation.from]?.references);
     const throughToReference = parseReference(throughModel.fields[relation.to]?.references);
-    const sourceField = throughFromReference?.field ?? identityField(manifest.models[modelName]).name;
+    const sourceField =
+      throughFromReference?.field ?? identityField(manifest.models[modelName]).name;
     const targetField =
       throughToReference?.field ?? identityField(manifest.models[relation.target]).name;
     const sourceValue = row[sourceField];
@@ -1248,15 +1249,11 @@ export function createSqliteDriver<TSchema extends SchemaDefinition<any>>(
   return createSqlDriver<TSchema>(createSqliteAdapter(database));
 }
 
-export function createPgPoolDriver<TSchema extends SchemaDefinition<any>>(
-  pool: PgPoolLike,
-) {
+export function createPgPoolDriver<TSchema extends SchemaDefinition<any>>(pool: PgPoolLike) {
   return createSqlDriver<TSchema>(createPgPoolAdapter(pool));
 }
 
-export function createPgClientDriver<TSchema extends SchemaDefinition<any>>(
-  client: PgClientLike,
-) {
+export function createPgClientDriver<TSchema extends SchemaDefinition<any>>(client: PgClientLike) {
   return createSqlDriver<TSchema>(createPgTransactionalAdapter(client));
 }
 
