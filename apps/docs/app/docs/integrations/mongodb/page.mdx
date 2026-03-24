@@ -1,70 +1,203 @@
 ---
 title: "MongoDB and Mongoose"
-description: "How MongoDB fits into the Farming Labs ORM roadmap and where Mongoose support would live."
+description: "How MongoDB fits into Farming Labs ORM today through the live Mongoose runtime package."
 order: 4
 icon: mongodb
 ---
 
 # MongoDB and Mongoose
 
-MongoDB support is a **planned integration**, not a live runtime package in
-this repo today.
+MongoDB support is live in this repo through `@farming-labs/orm-mongoose`.
 
-## Current status
+That package does not try to pretend MongoDB is SQL. Instead, it reuses the
+same schema contract and typed query API while translating calls into
+Mongoose-style reads, writes, and session-aware transactions.
 
-Today, this repo does **not** ship:
+## What ships today
+
+- a live `@farming-labs/orm-mongoose` runtime package
+- the shared schema DSL from `@farming-labs/orm`
+- the same typed CRUD and relation query surface used by the SQL runtime
+
+What does **not** ship today:
 
 - a MongoDB generator target
-- a Mongoose-backed runtime driver
-- a live `@farming-labs/orm-mongoose` package
+- a raw Mongo driver package separate from Mongoose
+- a Prisma-style Mongo runtime driver
 
-What it does ship today:
+## How it fits
 
-- the unified schema DSL
-- the typed query API contract
-- live runtime translation for memory and direct SQL backends
+The intended flow is:
 
-## How MongoDB would fit
+- library authors define one schema in `@farming-labs/orm`
+- library authors write one set of storage helpers against `createOrm(...)`
+- MongoDB apps bind `@farming-labs/orm-mongoose`
 
-The intended shape is:
-
-- library authors still define one schema in `@farming-labs/orm`
-- library authors still write one set of storage helpers against `createOrm(...)`
-- MongoDB apps would bind a future Mongoose or MongoDB driver package
-
-That future package would translate calls like:
+That means a helper like this:
 
 ```ts
-orm.user.findUnique(...)
-orm.user.findMany(...)
-orm.user.create(...)
-orm.user.update(...)
-orm.user.upsert(...)
-orm.user.delete(...)
+export function createAuthStore(orm: typeof authOrm) {
+  return {
+    findUserByEmail(email: string) {
+      return orm.user.findUnique({
+        where: {
+          email: email.trim().toLowerCase(),
+        },
+        select: {
+          id: true,
+          email: true,
+          sessions: {
+            select: {
+              token: true,
+              expiresAt: true,
+            },
+          },
+        },
+      });
+    },
+  };
+}
 ```
 
-into MongoDB- or Mongoose-backed operations.
+can run unchanged whether the app chooses:
 
-## Why it is a separate future package
+- memory for tests
+- direct SQL for relational databases
+- Mongoose for MongoDB-backed apps
+
+## Runtime example
+
+```ts
+import { createOrm } from "@farming-labs/orm";
+import { createMongooseDriver } from "@farming-labs/orm-mongoose";
+import mongoose from "mongoose";
+import { authSchema } from "./schema";
+import { AccountModel, ProfileModel, SessionModel, UserModel } from "./models";
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createMongooseDriver<typeof authSchema>({
+    models: {
+      user: UserModel,
+      profile: ProfileModel,
+      session: SessionModel,
+      account: AccountModel,
+    },
+    connection: mongoose.connection,
+  }),
+});
+```
+
+Once created, the runtime client is the same shape:
+
+```ts
+await orm.user.findUnique(...)
+await orm.user.findMany(...)
+await orm.user.create(...)
+await orm.user.update(...)
+await orm.user.upsert(...)
+await orm.user.delete(...)
+await orm.transaction(async (tx) => {
+  // ...
+})
+```
+
+## Field mapping and `_id`
+
+MongoDB apps often want logical field names in library code but different
+physical names in stored documents.
+
+That is why the schema still matters:
+
+```ts
+const authSchema = defineSchema({
+  user: model({
+    table: "users",
+    fields: {
+      id: id().map("_id"),
+      email: string(),
+      emailVerified: boolean().map("email_verified"),
+      createdAt: datetime().map("created_at"),
+    },
+  }),
+});
+```
+
+With that mapping:
+
+- library code still uses `id`, `emailVerified`, and `createdAt`
+- the Mongoose runtime reads and writes `_id`, `email_verified`, and `created_at`
+
+## Relations in MongoDB-oriented apps
+
+`@farming-labs/orm-mongoose` supports the same relation metadata as the other
+runtime drivers:
+
+- `belongsTo`
+- `hasOne`
+- `hasMany`
+- `manyToMany`
+
+Relation loading is intentionally capability-aware. Instead of assuming SQL
+joins, the driver loads related documents through follow-up queries and then
+projects the nested `select` shape back into the typed result.
+
+That means auth-style queries like this still work:
+
+```ts
+await orm.user.findUnique({
+  where: { email: "ada@farminglabs.dev" },
+  select: {
+    id: true,
+    profile: {
+      select: {
+        bio: true,
+      },
+    },
+    sessions: {
+      orderBy: {
+        token: "desc",
+      },
+      take: 2,
+      select: {
+        token: true,
+      },
+    },
+  },
+});
+```
+
+## Transactions
+
+If you provide `connection: mongoose.connection` or `startSession`, the driver
+uses Mongoose sessions for `orm.transaction(...)`.
+
+If no session source is configured, the runtime still works, but transactional
+workflows fall back to non-transactional execution.
+
+That makes the package usable in:
+
+- simple scripts
+- lighter-weight apps
+- test doubles and mocked model layers
+
+while still supporting real session-aware transactions in production apps.
+
+## Why Mongoose is its own capability profile
 
 MongoDB is not just “another SQL dialect.”
 
 Important differences include:
 
-- document modeling instead of relational tables
-- no direct equivalent to foreign keys and safe SQL migrations
-- different transaction constraints
-- relation loading that may rely on follow-up queries or Mongoose-specific patterns
+- document storage instead of relational tables
+- no direct equivalent to SQL foreign keys
+- different transaction/session constraints
+- relation loading through explicit follow-up queries rather than assuming joins
 
-Because of that, MongoDB support should reuse the same query API contract but
-ship with its own capability profile and docs.
+So the right design is:
 
-## Best way to read the roadmap
+- one shared query API
+- one shared schema contract
+- separate runtime implementations per capability profile
 
-- SQL runtime is live now
-- Prisma and Drizzle are generation-first today
-- MongoDB and Mongoose are planned runtime targets
-
-So if you need MongoDB support immediately, this repo is not there yet. If you
-need the schema contract and runtime shape that Mongo support would plug into,
-those layers already exist.
+That is exactly why `@farming-labs/orm-mongoose` exists as its own package.

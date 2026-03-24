@@ -14,7 +14,7 @@
     "fmt": "oxfmt .",
     "fmt:check": "oxfmt --check .",
     "check": "pnpm lint && pnpm fmt:check && pnpm typecheck",
-    "bump": "bumpp packages/orm/package.json packages/cli/package.json packages/sql/package.json --no-commit --no-tag --no-push --no-verify",
+    "bump": "bumpp packages/orm/package.json packages/cli/package.json packages/sql/package.json packages/mongoose/package.json --no-commit --no-tag --no-push --no-verify",
     "bump:patch": "pnpm bump --release patch --yes",
     "bump:minor": "pnpm bump --release minor --yes",
     "bump:major": "pnpm bump --release major --yes",
