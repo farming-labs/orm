@@ -323,6 +323,135 @@ for (const [label, factory] of [
       }
     });
 
+    it("supports advanced relation traversal across belongsTo, hasOne, hasMany, and manyToMany", async () => {
+      const { orm, close } = await factory();
+
+      try {
+        await seedAuthData(orm);
+
+        const session = await orm.session.findUnique({
+          where: {
+            token: "session-2",
+          },
+          select: {
+            token: true,
+            user: {
+              select: {
+                email: true,
+                profile: {
+                  select: {
+                    bio: true,
+                  },
+                },
+                organizations: {
+                  where: {
+                    slug: {
+                      contains: "farming",
+                    },
+                  },
+                  select: {
+                    slug: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        const organization = await orm.organization.findUnique({
+          where: {
+            slug: "farming-labs",
+          },
+          select: {
+            name: true,
+            users: {
+              where: {
+                email: {
+                  contains: "@farminglabs.dev",
+                },
+              },
+              orderBy: {
+                email: "asc",
+              },
+              take: 1,
+              select: {
+                email: true,
+                sessions: {
+                  orderBy: {
+                    token: "asc",
+                  },
+                  skip: 1,
+                  take: 1,
+                  select: {
+                    token: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        const profile = await orm.profile.findOne({
+          where: {
+            bio: {
+              contains: "storage layer",
+            },
+          },
+          select: {
+            bio: true,
+            user: {
+              select: {
+                email: true,
+                sessions: {
+                  where: {
+                    token: {
+                      contains: "session",
+                    },
+                  },
+                  orderBy: {
+                    token: "desc",
+                  },
+                  take: 1,
+                  select: {
+                    token: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        expect(session).toEqual({
+          token: "session-2",
+          user: {
+            email: "ada@farminglabs.dev",
+            profile: {
+              bio: "Writes one storage layer for every stack.",
+            },
+            organizations: [{ slug: "farming-labs" }],
+          },
+        });
+        expect(organization).toEqual({
+          name: "Farming Labs",
+          users: [
+            {
+              email: "ada@farminglabs.dev",
+              sessions: [{ token: "session-2" }],
+            },
+          ],
+        });
+        expect(profile).toEqual({
+          bio: "Writes one storage layer for every stack.",
+          user: {
+            email: "ada@farminglabs.dev",
+            sessions: [{ token: "session-2" }],
+          },
+        });
+      } finally {
+        await close();
+      }
+    });
+
     it("supports update, updateMany, upsert, delete, deleteMany, transaction rollback, and batch", async () => {
       const { orm, close } = await factory();
 
