@@ -202,37 +202,37 @@ export default function HomePage() {
                       "max-[960px]:grid-cols-2 max-[480px]:grid-cols-1",
                     )}
                   >
-                  {heroFeatureCards.map((card) => (
-                    <Link
-                      key={card.href}
-                      href={card.href}
-                      className={cn(
-                        "group flex min-h-[min(11rem,28vw)] min-w-0 flex-col items-start justify-center bg-[rgba(10,10,12,0.92)] px-5 py-7 text-left transition-colors duration-150",
-                        "hover:bg-[rgba(14,14,16,0.96)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white/35",
-                        "max-md:min-h-0 max-md:py-6",
-                      )}
-                    >
-                      <h3
+                    {heroFeatureCards.map((card) => (
+                      <Link
+                        key={card.href}
+                        href={card.href}
                         className={cn(
-                          "mb-2 mt-0 font-mono text-[clamp(0.78rem,1.15vw,0.9rem)] font-medium uppercase leading-snug tracking-[0.06em] text-slate-200",
-                          "underline decoration-dotted decoration-from-font underline-offset-[6px]",
-                          "decoration-transparent [text-decoration-skip-ink:none]",
-                          "transition-[text-decoration-color,text-underline-offset] duration-300 ease-out",
-                          "group-hover:decoration-slate-200/85 group-hover:underline-offset-[7px]",
-                          "group-focus-visible:decoration-slate-200/85 group-focus-visible:underline-offset-[7px]",
+                          "group flex min-h-[min(11rem,28vw)] min-w-0 flex-col items-start justify-center bg-[rgba(10,10,12,0.92)] px-5 py-7 text-left transition-colors duration-150",
+                          "hover:bg-[rgba(14,14,16,0.96)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white/35",
+                          "max-md:min-h-0 max-md:py-6",
                         )}
                       >
-                        {card.title}
-                      </h3>
-                      <p
-                        className={cn(
-                          "m-0 text-left text-[clamp(0.84rem,1.05vw,0.95rem)] leading-relaxed text-slate-300/90",
-                        )}
-                      >
-                        {card.body}
-                      </p>
-                    </Link>
-                  ))}
+                        <h3
+                          className={cn(
+                            "mb-2 mt-0 font-mono text-[clamp(0.78rem,1.15vw,0.9rem)] font-medium uppercase leading-snug tracking-[0.06em] text-slate-200",
+                            "underline decoration-dotted decoration-from-font underline-offset-[6px]",
+                            "decoration-transparent [text-decoration-skip-ink:none]",
+                            "transition-[text-decoration-color,text-underline-offset] duration-300 ease-out",
+                            "group-hover:decoration-slate-200/85 group-hover:underline-offset-[7px]",
+                            "group-focus-visible:decoration-slate-200/85 group-focus-visible:underline-offset-[7px]",
+                          )}
+                        >
+                          {card.title}
+                        </h3>
+                        <p
+                          className={cn(
+                            "m-0 text-left text-[clamp(0.84rem,1.05vw,0.95rem)] leading-relaxed text-slate-300/90",
+                          )}
+                        >
+                          {card.body}
+                        </p>
+                      </Link>
+                    ))}
                   </div>
                   <div className="w-px shrink-0 self-stretch bg-white/12" aria-hidden />
                 </div>
