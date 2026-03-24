@@ -192,8 +192,8 @@ class FakeModel implements MongooseModelLike {
   }
 
   countDocuments(filter: Record<string, unknown>) {
-    return new FakeExec<number>((session) =>
-      this.getCollection(session).filter((doc) => matchesFilter(doc, filter)).length,
+    return new FakeExec<number>(
+      (session) => this.getCollection(session).filter((doc) => matchesFilter(doc, filter)).length,
     );
   }
 
@@ -251,7 +251,9 @@ class FakeModel implements MongooseModelLike {
 
       for (const key of setOnInsertKeys) {
         if (setKeys.has(key)) {
-          throw new Error(`Conflicting upsert path "${key}" was sent to both $set and $setOnInsert.`);
+          throw new Error(
+            `Conflicting upsert path "${key}" was sent to both $set and $setOnInsert.`,
+          );
         }
       }
 
