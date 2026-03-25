@@ -51,6 +51,7 @@
   "packageManager": "pnpm@10.9.0",
   "pnpm": {
     "overrides": {
+      "picomatch": "^4.0.4",
       "@prisma/config>effect": "^3.20.0"
     }
   }
