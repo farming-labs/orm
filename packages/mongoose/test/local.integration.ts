@@ -25,6 +25,14 @@ function asModelLike(model: mongoose.Model<any>) {
   return model as unknown as MongooseModelLike;
 }
 
+async function closeLocalConnection(connection: mongoose.Connection) {
+  try {
+    await connection.dropDatabase();
+  } finally {
+    await connection.close().catch(() => undefined);
+  }
+}
+
 async function createLocalMongooseOrm() {
   const baseUri = process.env.FARM_ORM_LOCAL_MONGODB_URL ?? "mongodb://127.0.0.1:27017";
   const connection = mongoose.createConnection(baseUri, {
@@ -111,8 +119,7 @@ async function createLocalMongooseOrm() {
       }),
     }),
     close: async () => {
-      await connection.dropDatabase();
-      await connection.close();
+      await closeLocalConnection(connection);
     },
   } satisfies {
     orm: RuntimeOrm;

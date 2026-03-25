@@ -16,6 +16,14 @@ function asMongooseModelLike(model: mongoose.Model<any>) {
   return model as unknown as MongooseModelLike;
 }
 
+async function closeMongooseConnection(connection: mongoose.Connection) {
+  try {
+    await connection.dropDatabase();
+  } finally {
+    await connection.close().catch(() => undefined);
+  }
+}
+
 export async function createMongooseRuntime(): Promise<DemoRuntimeHandle> {
   const databaseUrl = assignMongoDatabase(mongoBaseUrl, createIsolatedName("farm_orm_demo_mongo"));
   const connection = mongoose.createConnection(databaseUrl, {
@@ -89,6 +97,7 @@ export async function createMongooseRuntime(): Promise<DemoRuntimeHandle> {
         session: asMongooseModelLike(SessionModel),
         account: asMongooseModelLike(AccountModel),
       },
+      connection,
     }),
   });
 
@@ -107,8 +116,7 @@ export async function createMongooseRuntime(): Promise<DemoRuntimeHandle> {
       return toDirectCheck(row as { id?: string; email_address?: string } | null | undefined);
     },
     close: async () => {
-      await connection.dropDatabase();
-      await connection.close();
+      await closeMongooseConnection(connection);
     },
   };
 }
