@@ -68,24 +68,8 @@ function CopyIcon({ copied, className }: { copied: boolean; className?: string }
       fill="none"
       aria-hidden
     >
-      <rect
-        x="5"
-        y="7"
-        width="8"
-        height="8"
-        rx="2"
-        stroke="currentColor"
-        strokeWidth="1.3"
-      />
-      <rect
-        x="8"
-        y="5"
-        width="7"
-        height="7"
-        rx="2"
-        stroke="currentColor"
-        strokeWidth="1.3"
-      />
+      <rect x="5" y="7" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="1.3" />
+      <rect x="8" y="5" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.3" />
     </svg>
   );
 }
@@ -177,13 +161,13 @@ export function CliShowcase({ className }: { className?: string }) {
         className={cn(
           "relative overflow-x-auto overscroll-x-contain rounded-none border border-white/12",
           "bg-[rgba(6,6,8,0.42)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] md:backdrop-blur-xl",
-          "group/cli"
+          "group/cli",
         )}
         tabIndex={0}
         role="button"
         aria-label="Copy CLI command"
         onClick={handleCopy}
-        onKeyDown={e => {
+        onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             handleCopy();
@@ -208,7 +192,7 @@ export function CliShowcase({ className }: { className?: string }) {
         <pre
           className={cn(
             "relative m-0 max-w-full overflow-x-auto overscroll-x-contain px-3 py-3 font-mono sm:px-4 sm:py-3.5",
-            "text-[clamp(0.7rem,3.1vw,0.85rem)] leading-relaxed [tab-size:2] [-webkit-overflow-scrolling:touch]"
+            "text-[clamp(0.7rem,3.1vw,0.85rem)] leading-relaxed [tab-size:2] [-webkit-overflow-scrolling:touch]",
           )}
         >
           <code className="wrap-break-word [word-break:break-word]">{spans}</code>
@@ -226,10 +210,12 @@ export function CliShowcase({ className }: { className?: string }) {
           className={cn(
             "absolute top-0 right-0 z-10 h-[50px] w-[100px] cursor-pointer flex font-mono uppercase text-xs items-center justify-center bg-transparent rounded-none border border-r-0 border-y-0 border-white/10 px-2",
             "text-slate-300 shadow transition-opacity",
-            isHovered || copied ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
-            "outline-none"
+            isHovered || copied
+              ? "opacity-100 pointer-events-auto"
+              : "opacity-0 pointer-events-none",
+            "outline-none",
           )}
-          onClick={e => {
+          onClick={(e) => {
             e.stopPropagation();
             handleCopy();
           }}
