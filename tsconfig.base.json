@@ -16,6 +16,7 @@
       "@farming-labs/orm": ["packages/orm/src/index.ts"],
       "@farming-labs/orm-cli": ["packages/cli/src/index.ts"],
       "@farming-labs/orm-drizzle": ["packages/drizzle/src/index.ts"],
+      "@farming-labs/orm-kysely": ["packages/kysely/src/index.ts"],
       "@farming-labs/orm-mongo": ["packages/mongo/src/index.ts"],
       "@farming-labs/orm-sql": ["packages/sql/src/index.ts"],
       "@farming-labs/orm-mongoose": ["packages/mongoose/src/index.ts"],

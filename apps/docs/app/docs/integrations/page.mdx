@@ -1,6 +1,6 @@
 ---
 title: "Integrations"
-description: "How Farming Labs ORM fits into Prisma, Drizzle, SQL-first, and MongoDB-oriented workflows."
+description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, SQL-first, and MongoDB-oriented workflows."
 order: 6
 icon: package
 ---
@@ -25,7 +25,7 @@ Farming Labs ORM has two layers:
 | Direct SQL runtime  | Yes        | Yes     | Yes     | No      | `@farming-labs/orm-sql`                   |
 | MongoDB runtime     | No         | No      | No      | Yes     | `@farming-labs/orm-mongo`                 |
 | Mongoose runtime    | No         | No      | No      | Yes     | `@farming-labs/orm-mongoose`              |
-| Kysely runtime      | Planned    | Planned | Planned | No      | Not shipped yet                           |
+| Kysely runtime      | Yes        | Yes     | Yes     | No      | `@farming-labs/orm-kysely`                |
 
 ## How to choose
 
@@ -34,6 +34,7 @@ Farming Labs ORM has two layers:
 - Use **safe SQL generation** if you want SQL files directly
 - Use **Prisma runtime** if your app already uses `PrismaClient`
 - Use **Drizzle runtime** if your app already uses Drizzle
+- Use **Kysely runtime** if your app already uses Kysely
 - Use **direct SQL runtime** if you want to talk to SQLite, MySQL, or PostgreSQL directly
 - Use **MongoDB runtime** if your app uses the native `mongodb` client
 - Use **Mongoose runtime** if your app already uses Mongoose models
@@ -47,6 +48,7 @@ Examples:
 
 - `@farming-labs/orm-prisma` translates into Prisma delegate calls
 - `@farming-labs/orm-drizzle` translates into Drizzle-backed queries
+- `@farming-labs/orm-kysely` translates into Kysely-backed queries
 - `@farming-labs/orm-sql` translates into direct SQL operations
 - `@farming-labs/orm-mongo` translates into native `mongodb` collection operations
 - `@farming-labs/orm-mongoose` translates into Mongoose model operations

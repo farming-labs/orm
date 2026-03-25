@@ -16,6 +16,8 @@ runtime drivers.
   Runtime driver for `PrismaClient`
 - `@farming-labs/orm-drizzle`
   Runtime driver for Drizzle-backed SQLite, MySQL, and PostgreSQL
+- `@farming-labs/orm-kysely`
+  Runtime driver for Kysely-backed SQLite, MySQL, and PostgreSQL
 - `@farming-labs/orm-sql`
   Direct SQL runtime for SQLite, MySQL, and PostgreSQL
 - `@farming-labs/orm-mongo`
@@ -33,6 +35,7 @@ runtime drivers.
   - memory
   - Prisma
   - Drizzle
+  - Kysely
   - SQLite
   - MySQL
   - PostgreSQL
@@ -43,10 +46,6 @@ runtime drivers.
   - `hasOne`
   - `hasMany`
   - explicit join-table `manyToMany`
-
-## Not shipped yet
-
-- Kysely runtime driver
 
 ## Quick example
 
@@ -149,6 +148,7 @@ Real local database checks:
 ```bash
 pnpm test:local
 pnpm test:local:prisma
+pnpm test:local:kysely
 pnpm test:local:drizzle
 pnpm test:local:sqlite
 pnpm test:local:postgres
