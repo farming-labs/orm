@@ -207,4 +207,4 @@ pnpm release:beta
 pnpm publish:beta
 ```
 
-Docs live in [apps/docs/app/docs](/Users/mac/oss/orms/apps/docs/app/docs).
+Docs source lives in `apps/docs/app/docs`.
