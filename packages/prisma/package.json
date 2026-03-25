@@ -20,16 +20,18 @@
   },
   "scripts": {
     "build": "tsx ./scripts/build.ts",
-    "test": "vitest run",
-    "test:local": "pnpm run prisma:prepare && vitest run --config vitest.local.config.ts",
-    "prisma:prepare": "tsx ./test/fixtures/sqlite/prepare.ts && prisma generate --schema ./test/fixtures/sqlite/schema.prisma",
+    "test": "pnpm run prisma:prepare && vitest run --config vitest.local.config.ts",
+    "prisma:prepare": "tsx ./test/fixtures/prepare.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@farming-labs/orm": "workspace:*"
   },
   "devDependencies": {
+    "@types/pg": "^8.15.6",
     "@prisma/client": "^6.5.0",
+    "mysql2": "^3.15.2",
+    "pg": "^8.16.3",
     "prisma": "^6.5.0",
     "tsup": "^8.4.0"
   },

@@ -153,7 +153,7 @@ export default defineConfig({
 
 The runtime driver talks to `PrismaClient`, so it follows Prisma’s provider
 surface for relational apps. In this repo, the real local integration coverage
-is currently exercised against SQLite.
+is currently exercised against SQLite, PostgreSQL, and MySQL.
 
 ## What gets generated
 
@@ -231,12 +231,10 @@ prisma: {
 
 ## Verification in this repo
 
-The repo currently verifies Prisma support in two ways:
-
-- fast unit tests against a recording Prisma-like delegate layer
-- a real local integration test that generates a real `PrismaClient` and runs
-  one-to-one, one-to-many, belongs-to, many-to-many, mutations, and transaction
-  rollback against local SQLite
+The repo currently verifies Prisma support through a real local integration test
+that generates a real `PrismaClient` and runs one-to-one, one-to-many,
+belongs-to, many-to-many, mutations, and transaction rollback against local
+SQLite, PostgreSQL, and MySQL.
 
 Run it with:
 

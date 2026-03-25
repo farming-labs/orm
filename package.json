@@ -14,7 +14,7 @@
     "test:local:postgres": "FARM_ORM_LOCAL_SQL_TARGETS=postgres-pool,postgres-client pnpm --filter @farming-labs/orm-sql test:local",
     "test:local:mysql": "FARM_ORM_LOCAL_SQL_TARGETS=mysql-pool,mysql-connection pnpm --filter @farming-labs/orm-sql test:local",
     "test:local:mongodb": "pnpm --filter @farming-labs/orm-mongoose test:local",
-    "test:local:prisma": "pnpm --filter @farming-labs/orm-prisma test:local",
+    "test:local:prisma": "pnpm --filter @farming-labs/orm-prisma test",
     "typecheck": "pnpm -r typecheck",
     "lint": "oxlint . --ignore-path .oxlintignore",
     "lint:fix": "oxlint --fix . --ignore-path .oxlintignore",

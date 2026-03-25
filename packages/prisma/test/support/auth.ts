@@ -177,7 +177,6 @@ export async function assertOneToOneAndHasManyQueries(
   expect: typeof import("vitest").expect,
 ) {
   const { ada } = await seedAuthData(orm);
-
   const firstCandidate = await orm.user.findOne({
     where: {
       name: {
@@ -224,6 +223,7 @@ export async function assertOneToOneAndHasManyQueries(
       },
     },
   });
+  console.log({user: user?.organizations})
 
   const sessions = await orm.session.findMany({
     where: {
