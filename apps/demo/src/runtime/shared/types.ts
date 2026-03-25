@@ -11,6 +11,7 @@ export type DemoAdapterName =
   | "mysql-pool"
   | "mysql-connection"
   | "drizzle-mysql"
+  | "mongo"
   | "mongoose";
 
 export type DemoAdapterInput = DemoAdapterName | "all";

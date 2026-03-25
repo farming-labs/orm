@@ -1,5 +1,5 @@
 {
-  "name": "@farming-labs/orm-mongoose",
+  "name": "@farming-labs/orm-mongo",
   "version": "0.0.4",
   "files": [
     "dist"
@@ -20,18 +20,19 @@
   },
   "scripts": {
     "build": "tsx ./scripts/build.ts",
-    "test": "vitest run --config vitest.local.config.ts",
-    "test:local": "pnpm test",
+    "test": "vitest run",
+    "test:local": "vitest run --config vitest.local.config.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@farming-labs/orm": "workspace:*"
+    "@farming-labs/orm": "workspace:*",
+    "@farming-labs/orm-mongoose": "workspace:*"
   },
   "devDependencies": {
-    "mongoose": "^8.19.2",
+    "mongodb": "^6.20.0",
     "tsup": "^8.4.0"
   },
   "peerDependencies": {
-    "mongoose": "^8.0.0"
+    "mongodb": "^6.0.0"
   }
 }

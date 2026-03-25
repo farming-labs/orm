@@ -3,6 +3,7 @@ import { alwaysAvailable, probeMongo, probeMysql, probePostgres } from "./shared
 import type { DemoAdapterFactory, DemoAdapterInput, DemoAdapterName } from "./shared/types";
 import { createMemoryRuntime } from "./memory";
 import { createMongooseRuntime } from "./mongoose";
+import { createMongoRuntime } from "./mongo";
 import { createPrismaRuntime } from "./prisma";
 import { createDrizzleMysqlRuntime } from "./drizzle/mysql";
 import { createDrizzlePostgresRuntime } from "./drizzle/postgres";
@@ -74,6 +75,12 @@ export const demoAdapters: Record<DemoAdapterName, DemoAdapterFactory> = {
     availability: probeMysql,
     create: createDrizzleMysqlRuntime,
   },
+  mongo: {
+    label: "MongoDB runtime (native)",
+    client: "mongodb MongoClient",
+    availability: probeMongo,
+    create: createMongoRuntime,
+  },
   mongoose: {
     label: "MongoDB runtime",
     client: "Mongoose models",
@@ -96,6 +103,7 @@ export const localDemoAdapters = [
   "mysql-pool",
   "mysql-connection",
   "drizzle-mysql",
+  "mongo",
   "mongoose",
 ] as const satisfies readonly DemoAdapterName[];
 

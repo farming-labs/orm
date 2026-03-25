@@ -6,7 +6,7 @@ One schema. Many stacks.
 model once in TypeScript, then:
 
 - generate Prisma, Drizzle, and SQL output
-- run one typed query API against memory, SQL, or Mongoose
+- run one typed query API against memory, Prisma, Drizzle, SQL, MongoDB, or Mongoose
 - keep app code independent from the consumer's ORM choice
 
 ## What it is
@@ -21,6 +21,8 @@ model once in TypeScript, then:
   Live runtime driver for apps that already use Drizzle database instances
 - `@farming-labs/orm-sql`
   Live runtime driver for SQLite, MySQL, and PostgreSQL
+- `@farming-labs/orm-mongo`
+  Live runtime driver for MongoDB apps that use the native `mongodb` client
 - `@farming-labs/orm-mongoose`
   Live runtime driver for MongoDB apps that use Mongoose
 
@@ -37,6 +39,7 @@ model once in TypeScript, then:
   - SQLite
   - MySQL
   - PostgreSQL
+  - MongoDB through the native `mongodb` driver
   - MongoDB through Mongoose
 - relation support for:
   - `belongsTo`
@@ -180,6 +183,8 @@ pnpm --filter demo demo -- all
 pnpm --filter demo demo -- memory
 pnpm --filter demo demo -- sqlite
 pnpm --filter demo demo -- prisma
+pnpm --filter demo demo -- mongo
+pnpm --filter demo demo -- mongoose
 ```
 
 Full local adapter matrix:

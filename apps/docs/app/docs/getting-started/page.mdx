@@ -12,7 +12,7 @@ The recommended path is:
 1. Define a schema in `@farming-labs/orm`
 2. Add a `farm-orm.config.ts`
 3. Generate target output with `@farming-labs/orm-cli`
-4. Pick a runtime driver: memory, Prisma, Drizzle, direct SQL, or Mongoose depending on the app stack
+4. Pick a runtime driver: memory, Prisma, Drizzle, direct SQL, native MongoDB, or Mongoose depending on the app stack
 
 ## Step 1: Define a real schema
 
@@ -290,6 +290,27 @@ const orm = createOrm({
 });
 ```
 
+If the app stack already uses the native MongoDB client, use
+`@farming-labs/orm-mongo`:
+
+```ts
+import { createOrm } from "@farming-labs/orm";
+import { createMongoDriver } from "@farming-labs/orm-mongo";
+import { MongoClient } from "mongodb";
+import { authSchema } from "./schema";
+
+const client = new MongoClient(process.env.MONGODB_URL!);
+await client.connect();
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createMongoDriver({
+    db: client.db("app"),
+    client,
+  }),
+});
+```
+
 If the app stack is already on MongoDB with Mongoose, use
 `@farming-labs/orm-mongoose`:
 
@@ -320,6 +341,7 @@ Those are the live runtime translators in this repo right now:
 - Drizzle for Drizzle-backed SQLite, MySQL, and PostgreSQL apps
 - direct SQL for SQLite, MySQL, and PostgreSQL
 - Prisma for `PrismaClient`-backed apps
+- native MongoDB for apps using `mongodb`
 - Mongoose for MongoDB-oriented apps
 
 ## Step 5: Understand what gets generated
@@ -336,7 +358,7 @@ From the schema above:
 - [Prisma integration](/docs/integrations/prisma)
 - [Drizzle integration](/docs/integrations/drizzle)
 - [SQL databases](/docs/integrations/sql-databases)
-- [MongoDB and Mongoose](/docs/integrations/mongodb)
+- [MongoDB](/docs/integrations/mongodb)
 
 ## Step 7: Verify against real local databases
 

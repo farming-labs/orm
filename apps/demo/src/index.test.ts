@@ -82,6 +82,8 @@ describe("unified auth demo", () => {
     expect(selfContainedDemoAdapters).toContain("drizzle-sqlite");
     expect(localDemoAdapters).toContain("drizzle-postgres");
     expect(localDemoAdapters).toContain("drizzle-mysql");
+    expect(localDemoAdapters).toContain("mongo");
+    expect(localDemoAdapters).toContain("mongoose");
   });
 
   it("runs the auth flow through the drizzle-sqlite adapter explicitly", async () => {
