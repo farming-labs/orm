@@ -1,0 +1,100 @@
+import { describe, expect, it } from "vitest";
+import { MongoClient } from "mongodb";
+import { createOrm } from "@farming-labs/orm";
+import { createMongoDriver } from "../src";
+import type { RuntimeOrm } from "../../mongoose/test/support/auth";
+import {
+  assertBelongsToAndManyToManyQueries,
+  assertMutationQueries,
+  assertOneToOneAndHasManyQueries,
+  createIsolatedName,
+  schema,
+} from "../../mongoose/test/support/auth";
+
+const LOCAL_TIMEOUT_MS = 15_000;
+
+function formatLocalDbError(error: unknown, uri: string) {
+  const message = error instanceof Error ? error.message : String(error);
+  return new Error(
+    `MongoDB local integration test could not connect. Make sure a local MongoDB server is running and reachable via FARM_ORM_LOCAL_MONGODB_URL (current default: ${uri}).\nOriginal error: ${message}`,
+  );
+}
+
+async function closeLocalClient(client: MongoClient, databaseName: string) {
+  try {
+    await client.db(databaseName).dropDatabase();
+  } finally {
+    await client.close().catch(() => undefined);
+  }
+}
+
+async function createLocalMongoOrm() {
+  const baseUri = process.env.FARM_ORM_LOCAL_MONGODB_URL ?? "mongodb://127.0.0.1:27017";
+  const databaseName = createIsolatedName("farm_orm_mongo");
+  const client = new MongoClient(baseUri, {
+    serverSelectionTimeoutMS: 2_500,
+    connectTimeoutMS: 2_500,
+  });
+
+  try {
+    await client.connect();
+  } catch (error) {
+    await client.close().catch(() => undefined);
+    throw formatLocalDbError(error, baseUri);
+  }
+
+  const db = client.db(databaseName);
+
+  return {
+    orm: createOrm({
+      schema,
+      driver: createMongoDriver<typeof schema>({
+        db,
+        startSession: async () => client.startSession(),
+      }),
+    }) as RuntimeOrm,
+    close: async () => {
+      await closeLocalClient(client, databaseName);
+    },
+  };
+}
+
+async function withLocalOrm<TResult>(run: (orm: RuntimeOrm) => Promise<TResult>) {
+  const { orm, close } = await createLocalMongoOrm();
+
+  try {
+    return await run(orm);
+  } finally {
+    await close();
+  }
+}
+
+describe("mongo local integration", () => {
+  it(
+    "supports one-to-one and one-to-many reads against a real local MongoDB instance",
+    async () => {
+      await withLocalOrm((orm) => assertOneToOneAndHasManyQueries(orm, expect));
+    },
+    LOCAL_TIMEOUT_MS,
+  );
+
+  it(
+    "supports belongsTo and many-to-many traversal against a real local MongoDB instance",
+    async () => {
+      await withLocalOrm((orm) => assertBelongsToAndManyToManyQueries(orm, expect));
+    },
+    LOCAL_TIMEOUT_MS,
+  );
+
+  it(
+    "supports updates, upserts, deletes, and optional transaction rollback against a real local MongoDB instance",
+    async () => {
+      await withLocalOrm((orm) =>
+        assertMutationQueries(orm, expect, {
+          expectTransactionRollback: process.env.FARM_ORM_LOCAL_MONGODB_TRANSACTIONS === "1",
+        }),
+      );
+    },
+    LOCAL_TIMEOUT_MS,
+  );
+});

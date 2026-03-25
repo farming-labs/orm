@@ -4,12 +4,12 @@ import {
   assertMutationQueries,
   assertOneToOneAndHasManyQueries,
   schema,
-} from "./support/auth";
+} from "../../mongoose/test/support/auth";
 import { createOrm } from "@farming-labs/orm";
-import { createMongooseDriver } from "../src";
-import { createTestManager, createTestModels, createTestRuntime } from "./support/fake-mongoose";
+import { createMongoDriver } from "../src";
+import { createTestCollections, createTestManager, createTestRuntime } from "./support/fake-mongo";
 
-describe("mongoose runtime", () => {
+describe("mongo runtime", () => {
   it("supports one-to-one and one-to-many reads in the fast unit runtime", async () => {
     const { orm, manager } = createTestRuntime();
 
@@ -37,8 +37,8 @@ describe("mongoose runtime", () => {
     const manager = createTestManager();
     const orm = createOrm({
       schema,
-      driver: createMongooseDriver<typeof schema>({
-        models: createTestModels(manager),
+      driver: createMongoDriver<typeof schema>({
+        collections: createTestCollections(manager),
       }),
     });
 

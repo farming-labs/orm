@@ -1,20 +1,23 @@
 ---
-title: "MongoDB and Mongoose"
-description: "How MongoDB fits into Farming Labs ORM today through the live Mongoose runtime package."
+title: "MongoDB"
+description: "How MongoDB fits into Farming Labs ORM today through the native MongoDB and Mongoose runtime packages."
 order: 4
 icon: mongodb
 ---
 
-# MongoDB and Mongoose
+# MongoDB
 
-MongoDB support is live in this repo through `@farming-labs/orm-mongoose`.
+MongoDB support is live in this repo through both `@farming-labs/orm-mongo`
+and `@farming-labs/orm-mongoose`.
 
-That package does not try to pretend MongoDB is SQL. Instead, it reuses the
-same schema contract and typed query API while translating calls into
-Mongoose-style reads, writes, and session-aware transactions.
+Those packages do not try to pretend MongoDB is SQL. Instead, they reuse the
+same schema contract and typed query API while translating calls into either
+native `mongodb` collection operations or Mongoose-style reads, writes, and
+session-aware transactions.
 
 ## What ships today
 
+- a live `@farming-labs/orm-mongo` runtime package
 - a live `@farming-labs/orm-mongoose` runtime package
 - the shared schema DSL from `@farming-labs/orm`
 - the same typed CRUD and relation query surface used by the SQL runtime
@@ -22,7 +25,6 @@ Mongoose-style reads, writes, and session-aware transactions.
 What does **not** ship today:
 
 - a MongoDB generator target
-- a raw Mongo driver package separate from Mongoose
 - a Prisma-style Mongo runtime driver
 
 ## How it fits
@@ -31,6 +33,7 @@ The intended flow is:
 
 - library authors define one schema in `@farming-labs/orm`
 - library authors write one set of storage helpers against `createOrm(...)`
+- MongoDB apps can bind `@farming-labs/orm-mongo`
 - MongoDB apps bind `@farming-labs/orm-mongoose`
 
 That means a helper like this:
@@ -63,9 +66,31 @@ can run unchanged whether the app chooses:
 
 - memory for tests
 - direct SQL for relational databases
+- native MongoDB for apps using `mongodb`
 - Mongoose for MongoDB-backed apps
 
-## Runtime example
+## Native runtime example
+
+```ts
+import { createOrm } from "@farming-labs/orm";
+import { createMongoDriver } from "@farming-labs/orm-mongo";
+import { MongoClient } from "mongodb";
+import { authSchema } from "./schema";
+
+const client = new MongoClient(process.env.MONGODB_URL!);
+await client.connect();
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createMongoDriver({
+    db: client.db("app"),
+    client,
+  }),
+});
+```
+
+If the app already has Mongoose models and wants to keep them, use
+`@farming-labs/orm-mongoose` instead:
 
 ```ts
 import { createOrm } from "@farming-labs/orm";
@@ -126,12 +151,12 @@ const authSchema = defineSchema({
 With that mapping:
 
 - library code still uses `id`, `emailVerified`, and `createdAt`
-- the Mongoose runtime reads and writes `_id`, `email_verified`, and `created_at`
+- the MongoDB and Mongoose runtimes read and write `_id`, `email_verified`, and `created_at`
 
 ## Relations in MongoDB-oriented apps
 
-`@farming-labs/orm-mongoose` supports the same relation metadata as the other
-runtime drivers:
+`@farming-labs/orm-mongo` and `@farming-labs/orm-mongoose` support the same
+relation metadata as the other runtime drivers:
 
 - `belongsTo`
 - `hasOne`
@@ -169,8 +194,11 @@ await orm.user.findUnique({
 
 ## Transactions
 
-If you provide `connection: mongoose.connection` or `startSession`, the driver
-uses Mongoose sessions for `orm.transaction(...)`.
+If you provide `client` or `startSession`, `@farming-labs/orm-mongo` uses
+MongoDB sessions for `orm.transaction(...)`.
+
+If you provide `connection: mongoose.connection` or `startSession`,
+`@farming-labs/orm-mongoose` uses Mongoose sessions for `orm.transaction(...)`.
 
 If no session source is configured, the runtime still works, but transactional
 workflows fall back to non-transactional execution.
@@ -200,4 +228,5 @@ So the right design is:
 - one shared schema contract
 - separate runtime implementations per capability profile
 
-That is exactly why `@farming-labs/orm-mongoose` exists as its own package.
+That is exactly why the repo ships both `@farming-labs/orm-mongo` and
+`@farming-labs/orm-mongoose` as MongoDB-specific runtime packages.

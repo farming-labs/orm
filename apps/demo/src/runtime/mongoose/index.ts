@@ -97,7 +97,6 @@ export async function createMongooseRuntime(): Promise<DemoRuntimeHandle> {
         session: asMongooseModelLike(SessionModel),
         account: asMongooseModelLike(AccountModel),
       },
-      connection,
     }),
   });
 
