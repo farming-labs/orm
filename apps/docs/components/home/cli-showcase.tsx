@@ -131,7 +131,7 @@ export function CliShowcase({ className }: { className?: string }) {
           </span>
         </pre>
       </div>
-      <p className="mb-0 mt-3 font-mono text-[0.68rem] font-light leading-relaxed text-slate-500">
+      <p className="mb-0 mt-3 font-mono text-[0.68rem] font-light leading-relaxed text-white/50">
         Swap <code className="text-slate-400/95">prisma</code> for{" "}
         <code className="text-slate-400/95">drizzle</code> or{" "}
         <code className="text-slate-400/95">sql</code>.{" "}

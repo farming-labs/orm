@@ -6,7 +6,27 @@ import { cn } from "@/lib/utils";
 
 const GITHUB_URL = "https://github.com/farming-labs/orms";
 
-const iconClass = "size-3.5 shrink-0 opacity-80";
+const iconClass =
+  "size-3.5 shrink-0 opacity-55 transition-opacity duration-200 group-hover:opacity-90 group-focus-visible:opacity-90";
+
+function FooterNavLabel({ text }: { text: string }) {
+  return (
+    <span
+      className={cn(
+        "underline decoration-dotted decoration-from-font underline-offset-[7px]",
+        "decoration-transparent [text-decoration-skip-ink:none]",
+        "transition-[text-decoration-color] duration-200 ease-out",
+        "group-hover:decoration-slate-200/85 group-focus-visible:decoration-slate-200/85",
+      )}
+    >
+      <span className="inline-flex items-baseline">
+        <span className="text-[1.2em] font-medium leading-none tracking-tight">[</span>
+        <span className="px-[0.3em]">{text}</span>
+        <span className="text-[1.2em] font-medium leading-none tracking-tight">]</span>
+      </span>
+    </span>
+  );
+}
 
 function IconUseCases({ className }: { className?: string }) {
   return (
@@ -62,8 +82,8 @@ function IconGithub({ className }: { className?: string }) {
 }
 
 const footerLinkClass = cn(
-  "font-mono text-[0.72rem] font-light uppercase tracking-tight text-slate-400",
-  "inline-flex min-h-10 items-center gap-1.5 py-1.5 transition-colors duration-200 hover:text-slate-100 sm:min-h-0 sm:py-0",
+  "group font-mono text-[0.72rem] font-light uppercase tracking-tight text-slate-400/55",
+  "inline-flex min-h-10 items-center gap-1.5 py-1.5 transition-colors duration-200 hover:text-slate-100/92 sm:min-h-0 sm:py-0",
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white/35",
 );
 
@@ -271,15 +291,15 @@ export default function HomePage() {
             <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
               <Link href="/docs/use-cases" className={footerLinkClass}>
                 <IconUseCases className={iconClass} />
-                <span>[ USE CASES ]</span>
+                <FooterNavLabel text="USE CASES" />
               </Link>
               <Link href="/docs/getting-started" className={footerLinkClass}>
                 <IconInstall className={iconClass} />
-                <span>[ INSTALL ]</span>
+                <FooterNavLabel text="INSTALL" />
               </Link>
               <Link href="/docs" className={footerLinkClass}>
                 <IconDocs className={iconClass} />
-                <span>[ DOCS ]</span>
+                <FooterNavLabel text="DOCS" />
               </Link>
             </div>
             <a
@@ -289,7 +309,7 @@ export default function HomePage() {
               rel="noopener noreferrer"
             >
               <IconGithub className={iconClass} />
-              <span>[ GITHUB ]</span>
+              <FooterNavLabel text="GITHUB" />
             </a>
           </nav>
         </div>
