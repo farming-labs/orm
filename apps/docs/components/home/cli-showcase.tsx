@@ -220,7 +220,7 @@ export function CliShowcase({ className }: { className?: string }) {
             handleCopy();
           }}
         >
-          <CopyIcon copied={copied} className="mr-1 text-slate-200" />
+          <CopyIcon copied={copied} className="mr-2 size-4 text-white/60" />
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
