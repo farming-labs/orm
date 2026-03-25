@@ -35,7 +35,47 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
+    env:
+      FARM_ORM_LOCAL_PG_ADMIN_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
+      FARM_ORM_LOCAL_MYSQL_ADMIN_URL: mysql://root:root@127.0.0.1:3306
+      FARM_ORM_LOCAL_MONGODB_URL: mongodb://127.0.0.1:27017
+      FARM_ORM_DEMO_REQUIRE_LOCAL: "1"
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: mysql
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 20
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 20
     steps:
       - uses: actions/checkout@v4
 
@@ -49,6 +89,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm test
+
+      - run: pnpm test:local:sql
+
+      - run: pnpm test:local:mongodb
+
+      - run: pnpm --filter demo test:local
   security-audit:
     name: Security audit
     runs-on: ubuntu-latest
