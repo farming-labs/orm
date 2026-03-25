@@ -6,6 +6,10 @@ One schema. Many stacks.
 Prisma/Drizzle/SQL output from it, and run one typed query API across multiple
 runtime drivers.
 
+If an app already uses Prisma, Drizzle, Kysely, direct SQL, MongoDB, or
+Mongoose, the matching runtime package lets shared libraries keep one storage
+layer while the app keeps its own database stack.
+
 ## Packages
 
 - `@farming-labs/orm`
@@ -16,6 +20,8 @@ runtime drivers.
   Runtime driver for `PrismaClient`
 - `@farming-labs/orm-drizzle`
   Runtime driver for Drizzle-backed SQLite, MySQL, and PostgreSQL
+- `@farming-labs/orm-kysely`
+  Runtime driver for Kysely-backed SQLite, MySQL, and PostgreSQL
 - `@farming-labs/orm-sql`
   Direct SQL runtime for SQLite, MySQL, and PostgreSQL
 - `@farming-labs/orm-mongo`
@@ -33,6 +39,7 @@ runtime drivers.
   - memory
   - Prisma
   - Drizzle
+  - Kysely
   - SQLite
   - MySQL
   - PostgreSQL
@@ -43,10 +50,6 @@ runtime drivers.
   - `hasOne`
   - `hasMany`
   - explicit join-table `manyToMany`
-
-## Not shipped yet
-
-- Kysely runtime driver
 
 ## Quick example
 
@@ -103,6 +106,32 @@ const user = await orm.user.findOne({
 });
 ```
 
+## Kysely runtime example
+
+```ts
+import { createOrm } from "@farming-labs/orm";
+import { createKyselyDriver } from "@farming-labs/orm-kysely";
+import { Kysely, PostgresDialect } from "kysely";
+import { Pool } from "pg";
+import { schema } from "./schema";
+
+const kysely = new Kysely({
+  dialect: new PostgresDialect({
+    pool: new Pool({
+      connectionString: process.env.DATABASE_URL,
+    }),
+  }),
+});
+
+const orm = createOrm({
+  schema,
+  driver: createKyselyDriver({
+    db: kysely,
+    dialect: "postgres",
+  }),
+});
+```
+
 ## Generate artifacts
 
 ```ts
@@ -149,6 +178,7 @@ Real local database checks:
 ```bash
 pnpm test:local
 pnpm test:local:prisma
+pnpm test:local:kysely
 pnpm test:local:drizzle
 pnpm test:local:sqlite
 pnpm test:local:postgres

@@ -61,7 +61,7 @@ importers:
         version: 6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3)
       drizzle-orm:
         specifier: ^0.44.6
-        version: 0.44.7(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(better-sqlite3@11.10.0)(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0)(prisma@6.19.2(typescript@5.9.3))
+        version: 0.44.7(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(better-sqlite3@11.10.0)(kysely@0.28.14)(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0)(prisma@6.19.2(typescript@5.9.3))
       mongodb:
         specifier: ^6.20.0
         version: 6.20.0
@@ -173,7 +173,32 @@ importers:
         version: 8.20.0
       drizzle-orm:
         specifier: ^0.44.6
-        version: 0.44.7(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(better-sqlite3@11.10.0)(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0)(prisma@6.19.2(typescript@5.9.3))
+        version: 0.44.7(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(better-sqlite3@11.10.0)(kysely@0.28.14)(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0)(prisma@6.19.2(typescript@5.9.3))
+      mysql2:
+        specifier: ^3.15.2
+        version: 3.20.0(@types/node@22.19.15)
+      pg:
+        specifier: ^8.16.3
+        version: 8.20.0
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)
+
+  packages/kysely:
+    dependencies:
+      '@farming-labs/orm':
+        specifier: workspace:*
+        version: link:../orm
+      '@farming-labs/orm-sql':
+        specifier: workspace:*
+        version: link:../sql
+    devDependencies:
+      '@types/pg':
+        specifier: ^8.15.6
+        version: 8.20.0
+      kysely:
+        specifier: ^0.28.14
+        version: 0.28.14
       mysql2:
         specifier: ^3.15.2
         version: 3.20.0(@types/node@22.19.15)
@@ -261,7 +286,7 @@ importers:
         version: 8.20.0
       pg-mem:
         specifier: ^3.0.5
-        version: 3.0.14
+        version: 3.0.14(kysely@0.28.14)
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)
@@ -2607,6 +2632,10 @@ packages:
   kind-of@6.0.3:
     resolution: {integrity: sha512-dcS1ul+9tmeD95T+x28/ehLgd9mENa3LsvDTtzm3vyBEO7RPptvAD+t44WVXaUjTBRcrpFeFlC8WCruUR456hw==}
     engines: {node: '>=0.10.0'}
+
+  kysely@0.28.14:
+    resolution: {integrity: sha512-SU3lgh0rPvq7upc6vvdVrCsSMUG1h3ChvHVOY7wJ2fw4C9QEB7X3d5eyYEyULUX7UQtxZJtZXGuT6U2US72UYA==}
+    engines: {node: '>=20.0.0'}
 
   lie@3.3.0:
     resolution: {integrity: sha512-UaiMJzeWRlEujzAuw5LokY1L5ecNQYZKfmyZ9L7wDHb/p5etKaxXhohBcrw0EYby+G/NA52vRSN4N39dxHAIwQ==}
@@ -5575,11 +5604,12 @@ snapshots:
 
   draco3d@1.5.7: {}
 
-  drizzle-orm@0.44.7(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(better-sqlite3@11.10.0)(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0)(prisma@6.19.2(typescript@5.9.3)):
+  drizzle-orm@0.44.7(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(better-sqlite3@11.10.0)(kysely@0.28.14)(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0)(prisma@6.19.2(typescript@5.9.3)):
     optionalDependencies:
       '@prisma/client': 6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3)
       '@types/pg': 8.20.0
       better-sqlite3: 11.10.0
+      kysely: 0.28.14
       mysql2: 3.20.0(@types/node@22.19.15)
       pg: 8.20.0
       prisma: 6.19.2(typescript@5.9.3)
@@ -6094,6 +6124,8 @@ snapshots:
   kareem@2.6.3: {}
 
   kind-of@6.0.3: {}
+
+  kysely@0.28.14: {}
 
   lie@3.3.0:
     dependencies:
@@ -6898,7 +6930,7 @@ snapshots:
 
   pg-int8@1.0.1: {}
 
-  pg-mem@3.0.14:
+  pg-mem@3.0.14(kysely@0.28.14):
     dependencies:
       functional-red-black-tree: 1.0.1
       immutable: 4.3.8
@@ -6907,6 +6939,8 @@ snapshots:
       moment: 2.30.1
       object-hash: 2.2.0
       pgsql-ast-parser: 12.0.2
+    optionalDependencies:
+      kysely: 0.28.14
 
   pg-pool@3.13.0(pg@8.20.0):
     dependencies:

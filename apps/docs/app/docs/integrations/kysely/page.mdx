@@ -1,0 +1,194 @@
+---
+title: "Kysely"
+description: "How the unified schema and runtime fit into Kysely-based apps."
+order: 3
+icon: braces
+---
+
+# Kysely
+
+Kysely integration in this repo is runtime-first.
+
+Use `@farming-labs/orm-kysely` when:
+
+- the app already owns a real `Kysely` instance
+- a shared package wants to keep writing the unified Farming ORM API
+- you want SQLite, MySQL, or PostgreSQL without rewriting the package storage layer
+
+## Supported Kysely dialects
+
+- `postgres`
+- `mysql`
+- `sqlite`
+
+## Runtime setup
+
+```ts
+import { createOrm } from "@farming-labs/orm";
+import { createKyselyDriver } from "@farming-labs/orm-kysely";
+import { Kysely, PostgresDialect } from "kysely";
+import { Pool } from "pg";
+import { authSchema } from "./schema";
+
+const kysely = new Kysely({
+  dialect: new PostgresDialect({
+    pool: new Pool({
+      connectionString: process.env.DATABASE_URL,
+    }),
+  }),
+});
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createKyselyDriver({
+    db: kysely,
+    dialect: "postgres",
+  }),
+});
+```
+
+From there, library code keeps using the unified API:
+
+```ts
+const user = await orm.user.findUnique({
+  where: {
+    email: "ada@farminglabs.dev",
+  },
+  select: {
+    id: true,
+    email: true,
+    profile: {
+      select: {
+        bio: true,
+      },
+    },
+    sessions: {
+      orderBy: {
+        token: "asc",
+      },
+      select: {
+        token: true,
+      },
+    },
+  },
+});
+```
+
+## What the Kysely driver is doing
+
+The Kysely runtime package does not invent a second ORM API.
+
+Instead it:
+
+1. receives the unified Farming ORM query
+2. executes through the app’s real `Kysely` database
+3. reuses the shared SQL runtime behavior for relation loading, filtering, sorting, paging, and mutation semantics
+
+That keeps the runtime behavior aligned with:
+
+- `@farming-labs/orm-sql`
+- `@farming-labs/orm-drizzle`
+- `@farming-labs/orm-prisma`
+
+## Relation support
+
+The Kysely runtime covers:
+
+- `belongsTo(...)`
+- `hasOne(...)`
+- `hasMany(...)`
+- explicit join-table `manyToMany(...)`
+
+That means auth-style lookups such as:
+
+```ts
+await orm.user.findUnique({
+  where: { email: "ada@farminglabs.dev" },
+  select: {
+    id: true,
+    profile: {
+      select: { bio: true },
+    },
+    sessions: {
+      select: { token: true },
+    },
+    organizations: {
+      select: { name: true },
+    },
+  },
+});
+```
+
+work the same way they do in the other live runtimes.
+
+## Mutations and transactions
+
+The Kysely runtime also supports:
+
+- `create`
+- `createMany`
+- `update`
+- `updateMany`
+- `upsert`
+- `delete`
+- `deleteMany`
+- `transaction`
+
+Example:
+
+```ts
+await orm.transaction(async (tx) => {
+  const user = await tx.user.create({
+    data: {
+      email: "ada@farminglabs.dev",
+      name: "Ada",
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  await tx.session.upsert({
+    where: {
+      token: "session-token",
+    },
+    create: {
+      userId: user.id,
+      token: "session-token",
+      expiresAt: new Date("2027-01-01T00:00:00.000Z"),
+    },
+    update: {
+      expiresAt: new Date("2027-01-01T00:00:00.000Z"),
+    },
+  });
+});
+```
+
+## Real integration coverage
+
+The Kysely package is tested against real local databases in:
+
+- SQLite
+- PostgreSQL
+- MySQL
+
+The integration suite lives at:
+
+- `packages/kysely/test/local.integration.ts`
+
+Run it with:
+
+```bash
+pnpm test:local:kysely
+```
+
+## How it fits into a Kysely app
+
+Typical flow:
+
+1. the library defines a reusable schema in `@farming-labs/orm`
+2. the app creates its own Kysely instance normally
+3. the app passes that instance to `createKyselyDriver(...)`
+4. the shared package keeps one storage/query layer for every supported stack
+
+That is the main value: Kysely apps can participate in the same package-level storage contract as Prisma, Drizzle, SQL, and Mongo-backed apps.

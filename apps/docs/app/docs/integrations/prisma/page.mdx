@@ -265,12 +265,15 @@ The same demo registry also supports:
 - `mysql-connection`
 - `mongoose`
 
-## What comes next
+## Runtime family
 
-The Prisma runtime package now exists. The next runtime-driver layers are:
+The Prisma runtime now lives alongside the other shipped runtime packages:
 
 - Drizzle
 - Kysely
+- direct SQL
+- MongoDB
+- Mongoose
 
-The important constraint is that they should plug into the same query contract
-instead of redefining the API.
+The important constraint is the same across all of them: they plug into one
+shared query contract instead of redefining the API per stack.
