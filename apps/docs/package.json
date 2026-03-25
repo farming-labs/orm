@@ -6,7 +6,7 @@
     "build": "next build",
     "dev": "next dev",
     "test": "next build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "next build"
   },
   "dependencies": {
     "@farming-labs/docs": "0.0.61",

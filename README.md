@@ -1,4 +1,4 @@
-# @farming-labs/orm 
+# @farming-labs/orm
 
 One schema. Many stacks.
 
@@ -15,6 +15,8 @@ model once in TypeScript, then:
   Core schema DSL, typed client, generators, and memory runtime
 - `@farming-labs/orm-cli`
   `farm-orm` CLI for generating Prisma, Drizzle, and SQL artifacts
+- `@farming-labs/orm-prisma`
+  Live runtime driver for apps that already use `PrismaClient`
 - `@farming-labs/orm-sql`
   Live runtime driver for SQLite, MySQL, and PostgreSQL
 - `@farming-labs/orm-mongoose`
@@ -28,6 +30,7 @@ model once in TypeScript, then:
 - generated safe SQL output
 - live runtime queries for:
   - memory
+  - Prisma through `PrismaClient`
   - SQLite
   - MySQL
   - PostgreSQL
@@ -40,24 +43,15 @@ model once in TypeScript, then:
 
 ## What does not exist yet
 
-- live Prisma runtime driver
 - live Drizzle runtime driver
 - live Kysely runtime driver
 
-Prisma and Drizzle are generator targets in this repo today, not runtime drivers.
+Drizzle is a generator target in this repo today, not a runtime driver yet.
 
 ## Simple example
 
 ```ts
-import {
-  belongsTo,
-  createOrm,
-  defineSchema,
-  hasMany,
-  id,
-  model,
-  string,
-} from "@farming-labs/orm";
+import { belongsTo, createOrm, defineSchema, hasMany, id, model, string } from "@farming-labs/orm";
 import { createPgPoolDriver } from "@farming-labs/orm-sql";
 import { Pool } from "pg";
 
@@ -171,10 +165,26 @@ Real local database integration tests:
 
 ```bash
 pnpm test:local
+pnpm test:local:prisma
 pnpm test:local:sqlite
 pnpm test:local:postgres
 pnpm test:local:mysql
 pnpm test:local:mongodb
+```
+
+Unified adapter-swap demo:
+
+```bash
+pnpm --filter demo demo -- all
+pnpm --filter demo demo -- memory
+pnpm --filter demo demo -- sqlite
+pnpm --filter demo demo -- prisma
+```
+
+Full local adapter matrix:
+
+```bash
+pnpm --filter demo test:local
 ```
 
 ## Releasing packages

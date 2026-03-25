@@ -33,10 +33,10 @@ type SqlQueryResult = {
   affectedRows: number;
 };
 
-type SqlAdapter = {
+export type SqlAdapterLike = {
   dialect: SqlDialect;
   query(sql: string, params: unknown[]): Promise<SqlQueryResult>;
-  transaction<TResult>(run: (adapter: SqlAdapter) => Promise<TResult>): Promise<TResult>;
+  transaction<TResult>(run: (adapter: SqlAdapterLike) => Promise<TResult>): Promise<TResult>;
 };
 
 type PgQueryResultLike = {
@@ -670,10 +670,10 @@ function buildDeleteStatement(model: ManifestModel, dialect: SqlDialect, where: 
   };
 }
 
-function createSqliteAdapter(database: SqliteDatabaseLike): SqlAdapter {
+function createSqliteAdapter(database: SqliteDatabaseLike): SqlAdapterLike {
   let transactionDepth = 0;
 
-  const adapter: SqlAdapter = {
+  const adapter: SqlAdapterLike = {
     dialect: "sqlite",
     async query(sql, params) {
       const statement = database.prepare(sql);
@@ -731,10 +731,10 @@ function createSqliteAdapter(database: SqliteDatabaseLike): SqlAdapter {
   return adapter;
 }
 
-function createPgTransactionalAdapter(client: PgClientLike): SqlAdapter {
+function createPgTransactionalAdapter(client: PgClientLike): SqlAdapterLike {
   let transactionDepth = 0;
 
-  const adapter: SqlAdapter = {
+  const adapter: SqlAdapterLike = {
     dialect: "postgres",
     async query(sql, params) {
       const result = await client.query(sql, params);
@@ -783,7 +783,7 @@ function createPgTransactionalAdapter(client: PgClientLike): SqlAdapter {
   return adapter;
 }
 
-function createPgPoolAdapter(pool: PgPoolLike): SqlAdapter {
+function createPgPoolAdapter(pool: PgPoolLike): SqlAdapterLike {
   return {
     dialect: "postgres",
     async query(sql, params) {
@@ -804,10 +804,10 @@ function createPgPoolAdapter(pool: PgPoolLike): SqlAdapter {
   };
 }
 
-function createMysqlTransactionalAdapter(connection: MysqlConnectionLike): SqlAdapter {
+function createMysqlTransactionalAdapter(connection: MysqlConnectionLike): SqlAdapterLike {
   let transactionDepth = 0;
 
-  const adapter: SqlAdapter = {
+  const adapter: SqlAdapterLike = {
     dialect: "mysql",
     async query(sql, params) {
       const [result] = await connection.execute(sql, params);
@@ -863,7 +863,7 @@ function createMysqlTransactionalAdapter(connection: MysqlConnectionLike): SqlAd
   return adapter;
 }
 
-function createMysqlPoolAdapter(pool: MysqlPoolLike): SqlAdapter {
+function createMysqlPoolAdapter(pool: MysqlPoolLike): SqlAdapterLike {
   return {
     dialect: "mysql",
     async query(sql, params) {
@@ -892,7 +892,7 @@ function createMysqlPoolAdapter(pool: MysqlPoolLike): SqlAdapter {
 }
 
 function createSqlDriver<TSchema extends SchemaDefinition<any>>(
-  adapter: SqlAdapter,
+  adapter: SqlAdapterLike,
 ): OrmDriver<TSchema> {
   async function loadRows<
     TModelName extends ModelName<TSchema>,
@@ -1269,6 +1269,12 @@ export function createSqliteDriver<TSchema extends SchemaDefinition<any>>(
   database: SqliteDatabaseLike,
 ) {
   return createSqlDriver<TSchema>(createSqliteAdapter(database));
+}
+
+export function createSqlDriverFromAdapter<TSchema extends SchemaDefinition<any>>(
+  adapter: SqlAdapterLike,
+) {
+  return createSqlDriver<TSchema>(adapter);
 }
 
 export function createPgPoolDriver<TSchema extends SchemaDefinition<any>>(pool: PgPoolLike) {

@@ -12,7 +12,7 @@ The recommended path is:
 1. Define a schema in `@farming-labs/orm`
 2. Add a `farm-orm.config.ts`
 3. Generate target output with `@farming-labs/orm-cli`
-4. Pick a runtime driver: memory, direct SQL, or Mongoose depending on the app stack
+4. Pick a runtime driver: memory, Prisma, direct SQL, or Mongoose depending on the app stack
 
 ## Step 1: Define a real schema
 
@@ -204,6 +204,40 @@ const user = await orm.user.findFirst({
 });
 ```
 
+If the app already uses Prisma Client, you can run the same unified API through
+`@farming-labs/orm-prisma`:
+
+```ts
+import { createOrm } from "@farming-labs/orm";
+import { createPrismaDriver } from "@farming-labs/orm-prisma";
+import { PrismaClient } from "@prisma/client";
+import { authSchema } from "./schema";
+
+const prisma = new PrismaClient();
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createPrismaDriver({
+    client: prisma,
+  }),
+});
+
+const user = await orm.user.findUnique({
+  where: {
+    email: "ada@farminglabs.dev",
+  },
+  select: {
+    id: true,
+    email: true,
+    sessions: {
+      select: {
+        token: true,
+      },
+    },
+  },
+});
+```
+
 If you want to run the unified API against a real SQL backend, use
 `@farming-labs/orm-sql`:
 
@@ -229,6 +263,7 @@ There are matching factories for:
 - `createPgClientDriver(client)`
 - `createMysqlDriver(poolOrConnection)`
 - `createSqliteDriver(database)`
+- `createPrismaDriver({ client })`
 
 If the app stack is already on MongoDB with Mongoose, use
 `@farming-labs/orm-mongoose`:
