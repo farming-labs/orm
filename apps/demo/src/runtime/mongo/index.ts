@@ -5,7 +5,12 @@ import type { AuthOrm } from "../../auth-store";
 import { authSchema } from "../../schema";
 import { mongoBaseUrl } from "../shared/config";
 import type { DemoRuntimeHandle } from "../shared/types";
-import { assignMongoDatabase, createIsolatedName, formatLocalRuntimeError, toDirectCheck } from "../shared/utils";
+import {
+  assignMongoDatabase,
+  createIsolatedName,
+  formatLocalRuntimeError,
+  toDirectCheck,
+} from "../shared/utils";
 
 async function closeMongoClient(client: MongoClient, databaseName: string) {
   try {

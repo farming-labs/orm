@@ -1,9 +1,5 @@
 import { createOrm } from "@farming-labs/orm";
-import type {
-  MongoCollectionLike,
-  MongoCursorLike,
-  MongoSessionLike,
-} from "../../src";
+import type { MongoCollectionLike, MongoCursorLike, MongoSessionLike } from "../../src";
 import { createMongoDriver } from "../../src";
 import { schema, type RuntimeOrm } from "../../../mongoose/test/support/auth";
 

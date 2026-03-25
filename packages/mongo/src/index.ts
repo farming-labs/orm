@@ -1,8 +1,4 @@
-import {
-  createManifest,
-  type OrmDriver,
-  type SchemaDefinition,
-} from "@farming-labs/orm";
+import { createManifest, type OrmDriver, type SchemaDefinition } from "@farming-labs/orm";
 import type { ModelName } from "@farming-labs/orm";
 import {
   createMongooseDriver,
@@ -211,7 +207,10 @@ function adaptCollection(collection: MongoCollectionLike): MongooseModelLike {
       );
     },
     async create(doc, options) {
-      const result = await collection.insertOne(doc, options?.session ? { session: options.session } : undefined);
+      const result = await collection.insertOne(
+        doc,
+        options?.session ? { session: options.session } : undefined,
+      );
       if (doc._id === undefined && result?.insertedId !== undefined) {
         return {
           ...doc,
@@ -222,12 +221,18 @@ function adaptCollection(collection: MongoCollectionLike): MongooseModelLike {
     },
     async insertMany(docs, options) {
       if (collection.insertMany) {
-        await collection.insertMany(docs, options?.session ? { session: options.session } : undefined);
+        await collection.insertMany(
+          docs,
+          options?.session ? { session: options.session } : undefined,
+        );
         return docs;
       }
 
       for (const doc of docs) {
-        await collection.insertOne(doc, options?.session ? { session: options.session } : undefined);
+        await collection.insertOne(
+          doc,
+          options?.session ? { session: options.session } : undefined,
+        );
       }
 
       return docs;
