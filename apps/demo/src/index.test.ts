@@ -9,7 +9,10 @@ import {
 
 const LOCAL_TIMEOUT_MS = 20_000;
 
-function assertUnifiedAuthDemo(result: Awaited<ReturnType<typeof runUnifiedAuthDemo>>, adapterName: DemoAdapterName) {
+function assertUnifiedAuthDemo(
+  result: Awaited<ReturnType<typeof runUnifiedAuthDemo>>,
+  adapterName: DemoAdapterName,
+) {
   expect(result.adapter.name).toBe(adapterName);
   expect(result.created).toEqual({
     user: {

@@ -272,7 +272,10 @@ async function createSqliteRuntime(): Promise<DemoRuntimeHandle> {
   const databasePath = path.join(directory, "demo.db");
   const database = new DatabaseSync(databasePath);
 
-  await applyStatements(database.exec.bind(database), renderSafeSql(authSchema, { dialect: "sqlite" }));
+  await applyStatements(
+    database.exec.bind(database),
+    renderSafeSql(authSchema, { dialect: "sqlite" }),
+  );
 
   const orm: AuthOrm = createOrm({
     schema: authSchema,
@@ -447,9 +450,10 @@ async function createPostgresClientRuntime(): Promise<DemoRuntimeHandle> {
     client: "pg Client",
     orm,
     directCheck: async (userId) => {
-      const result = await client.query('select "id", "email_address" from "users" where "id" = $1', [
-        userId,
-      ]);
+      const result = await client.query(
+        'select "id", "email_address" from "users" where "id" = $1',
+        [userId],
+      );
       return toDirectCheck(result.rows[0] as { id: string; email_address: string } | undefined);
     },
     close: async () => {
@@ -509,7 +513,7 @@ async function createMysqlPoolRuntime(): Promise<DemoRuntimeHandle> {
     client: "mysql2 pool",
     orm,
     directCheck: async (userId) => {
-      const [rows] = await pool.query('select `id`, `email_address` from `users` where `id` = ?', [
+      const [rows] = await pool.query("select `id`, `email_address` from `users` where `id` = ?", [
         userId,
       ]);
       return toDirectCheck((rows as Array<{ id: string; email_address: string }>)[0]);
@@ -570,7 +574,7 @@ async function createMysqlConnectionRuntime(): Promise<DemoRuntimeHandle> {
     orm,
     directCheck: async (userId) => {
       const [rows] = await connection.query(
-        'select `id`, `email_address` from `users` where `id` = ?',
+        "select `id`, `email_address` from `users` where `id` = ?",
         [userId],
       );
       return toDirectCheck((rows as Array<{ id: string; email_address: string }>)[0]);
@@ -673,9 +677,7 @@ async function createMongooseRuntime(): Promise<DemoRuntimeHandle> {
         .lean()
         .exec();
 
-      return toDirectCheck(
-        row as { id?: string; email_address?: string } | null | undefined,
-      );
+      return toDirectCheck(row as { id?: string; email_address?: string } | null | undefined);
     },
     close: async () => {
       await connection.dropDatabase();
@@ -735,7 +737,11 @@ export const demoAdapters: Record<DemoAdapterName, DemoAdapterFactory> = {
   },
 };
 
-export const selfContainedDemoAdapters = ["memory", "sqlite", "prisma"] as const satisfies readonly DemoAdapterName[];
+export const selfContainedDemoAdapters = [
+  "memory",
+  "sqlite",
+  "prisma",
+] as const satisfies readonly DemoAdapterName[];
 export const localDemoAdapters = [
   "postgres-pool",
   "postgres-client",
@@ -788,9 +794,7 @@ export async function runUnifiedAuthDemo(adapterName: DemoAdapterName = defaultD
 
     const user = await auth.findUserByEmail("ADA@FARMINGLABS.DEV");
     const summary = await auth.getAuthSummary(created.user.id);
-    const directCheck = runtime.directCheck
-      ? await runtime.directCheck(created.user.id)
-      : null;
+    const directCheck = runtime.directCheck ? await runtime.directCheck(created.user.id) : null;
 
     return {
       adapter: {

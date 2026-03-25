@@ -78,14 +78,10 @@ try {
   database.close();
 }
 
-await execFileAsync(
-  "pnpm",
-  ["exec", "prisma", "generate", "--schema", "./prisma/schema.prisma"],
-  {
-    cwd: demoRoot,
-    env: {
-      ...process.env,
-      DATABASE_URL: `file:${databasePath}`,
-    },
+await execFileAsync("pnpm", ["exec", "prisma", "generate", "--schema", "./prisma/schema.prisma"], {
+  cwd: demoRoot,
+  env: {
+    ...process.env,
+    DATABASE_URL: `file:${databasePath}`,
   },
-);
+});

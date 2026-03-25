@@ -223,7 +223,7 @@ export async function assertOneToOneAndHasManyQueries(
       },
     },
   });
-  console.log({user: user?.organizations})
+  console.log({ user: user?.organizations });
 
   const sessions = await orm.session.findMany({
     where: {

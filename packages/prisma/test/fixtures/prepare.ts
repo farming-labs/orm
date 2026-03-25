@@ -117,17 +117,13 @@ function mysqlGenerateUrl() {
 }
 
 async function runPrismaGenerate(schemaPath: string, databaseUrl: string) {
-  await execFileAsync(
-    "pnpm",
-    ["exec", "prisma", "generate", "--schema", schemaPath],
-    {
-      cwd: packageRoot,
-      env: {
-        ...process.env,
-        DATABASE_URL: databaseUrl,
-      },
+  await execFileAsync("pnpm", ["exec", "prisma", "generate", "--schema", schemaPath], {
+    cwd: packageRoot,
+    env: {
+      ...process.env,
+      DATABASE_URL: databaseUrl,
     },
-  );
+  });
 }
 
 async function prepareProvider(provider: PrismaFixtureProvider) {

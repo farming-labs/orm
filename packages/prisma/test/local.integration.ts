@@ -147,7 +147,9 @@ async function pushSchema(target: Exclude<PrismaTarget, "sqlite">, databaseUrl: 
 
 function formatLocalDbError(label: string, error: unknown, hint: string) {
   const message = error instanceof Error ? error.message : String(error);
-  return new Error(`${label} local Prisma integration test could not connect. ${hint}\nOriginal error: ${message}`);
+  return new Error(
+    `${label} local Prisma integration test could not connect. ${hint}\nOriginal error: ${message}`,
+  );
 }
 
 async function resolvePostgresAdminUrl() {

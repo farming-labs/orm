@@ -28,8 +28,8 @@
     "@farming-labs/orm": "workspace:*"
   },
   "devDependencies": {
-    "@types/pg": "^8.15.6",
     "@prisma/client": "^6.5.0",
+    "@types/pg": "^8.15.6",
     "mysql2": "^3.15.2",
     "pg": "^8.16.3",
     "prisma": "^6.5.0",
