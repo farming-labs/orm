@@ -207,6 +207,46 @@ function adaptCollection(collection: MongoCollectionLike): MongooseModelLike {
       );
     },
     async create(doc, options) {
+      if (Array.isArray(doc)) {
+        if (doc.length === 0) return [];
+
+        if (collection.insertMany) {
+          const result = await collection.insertMany(
+            doc,
+            options?.session ? { session: options.session } : undefined,
+          );
+          const insertedIds =
+            result &&
+            typeof result === "object" &&
+            "insertedIds" in result &&
+            result.insertedIds &&
+            typeof result.insertedIds === "object"
+              ? (result.insertedIds as Record<number, unknown>)
+              : undefined;
+
+          return doc.map((entry, index) => {
+            const insertedId = insertedIds?.[index];
+
+            if (entry._id === undefined && insertedId !== undefined) {
+              return {
+                ...entry,
+                _id: insertedId,
+              };
+            }
+
+            return entry;
+          });
+        }
+
+        const created: MongoRow[] = [];
+        for (const entry of doc) {
+          created.push(
+            (await this.create(entry, options)) as MongoRow,
+          );
+        }
+        return created;
+      }
+
       const result = await collection.insertOne(
         doc,
         options?.session ? { session: options.session } : undefined,

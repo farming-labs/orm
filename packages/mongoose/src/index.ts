@@ -62,7 +62,7 @@ export type MongooseModelLike = {
   findOne(filter: Record<string, unknown>): MongooseQueryLike<MongoRow | null>;
   countDocuments(filter: Record<string, unknown>): Promise<number> | MongooseExecLike<number>;
   create(
-    doc: MongoRow,
+    doc: MongoRow | MongoRow[],
     options?: { session?: MongooseSessionLike },
   ): Promise<MongoRow | MongoRow[]>;
   insertMany?(docs: MongoRow[], options?: { session?: MongooseSessionLike }): Promise<MongoRow[]>;
@@ -798,11 +798,11 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
     },
     async create(schema, model, args) {
       const manifest = getManifest(schema);
+      const document = buildDocument(manifest.models[model], args.data as Partial<Record<string, unknown>>);
       const created = await normalizeCreated(
-        getModel(model).create(
-          buildDocument(manifest.models[model], args.data as Partial<Record<string, unknown>>),
-          state.session ? { session: state.session } : undefined,
-        ),
+        state.session
+          ? getModel(model).create([document], { session: state.session })
+          : getModel(model).create(document),
       );
       if (!created) {
         throw new Error(`Create on model "${String(model)}" did not return a document.`);
