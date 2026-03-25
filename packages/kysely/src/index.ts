@@ -5,9 +5,9 @@ import { CompiledQuery, type Compilable, type QueryResult } from "kysely";
 export type KyselyDialect = "sqlite" | "mysql" | "postgres";
 
 export type KyselyDatabaseLike = {
-  executeQuery<R>(query: Readonly<ReturnType<typeof CompiledQuery.raw>> | Compilable<R>): Promise<
-    Pick<QueryResult<R>, "rows" | "numAffectedRows" | "numChangedRows">
-  >;
+  executeQuery<R>(
+    query: Readonly<ReturnType<typeof CompiledQuery.raw>> | Compilable<R>,
+  ): Promise<Pick<QueryResult<R>, "rows" | "numAffectedRows" | "numChangedRows">>;
   transaction(): {
     execute<TResult>(run: (trx: KyselyDatabaseLike) => Promise<TResult>): Promise<TResult>;
   };
