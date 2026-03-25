@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 /** Token order + classes — spaces tied to preceding token so typing stays aligned. */
@@ -37,10 +37,66 @@ function renderTypedSpans(typedLen: number) {
   });
 }
 
+function CopyIcon({ copied, className }: { copied: boolean; className?: string }) {
+  if (copied) {
+    return (
+      <svg
+        className={className}
+        width="1.25em"
+        height="1.25em"
+        viewBox="0 0 20 20"
+        fill="none"
+        aria-hidden
+      >
+        <path
+          d="M5 10.8l3.1 3.1 6.2-6.8"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+  // Copy icon
+  return (
+    <svg
+      className={className}
+      width="1.25em"
+      height="1.25em"
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden
+    >
+      <rect
+        x="5"
+        y="7"
+        width="8"
+        height="8"
+        rx="2"
+        stroke="currentColor"
+        strokeWidth="1.3"
+      />
+      <rect
+        x="8"
+        y="5"
+        width="7"
+        height="7"
+        rx="2"
+        stroke="currentColor"
+        strokeWidth="1.3"
+      />
+    </svg>
+  );
+}
+
 export function CliShowcase({ className }: { className?: string }) {
   const [typedLen, setTypedLen] = useState(0);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [lowEffects, setLowEffects] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const timeoutRef = useRef<number | null>(null);
 
   const commandLen = COMMAND.length;
 
@@ -92,8 +148,25 @@ export function CliShowcase({ className }: { className?: string }) {
     };
   }, [commandLen]);
 
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current != null) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
   const spans = useMemo(() => renderTypedSpans(typedLen), [typedLen]);
   const shimmerOn = !reducedMotion && !lowEffects;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(COMMAND);
+      setCopied(true);
+      if (timeoutRef.current != null) clearTimeout(timeoutRef.current);
+      timeoutRef.current = window.setTimeout(() => setCopied(false), 1200) as unknown as number;
+    } catch (e) {
+      // ignore error, optionally show UI
+    }
+  };
 
   return (
     <div className={cn("w-full rounded-none max-w-full", className)}>
@@ -104,7 +177,23 @@ export function CliShowcase({ className }: { className?: string }) {
         className={cn(
           "relative overflow-x-auto overscroll-x-contain rounded-none border border-white/12",
           "bg-[rgba(6,6,8,0.42)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] md:backdrop-blur-xl",
+          "group/cli"
         )}
+        tabIndex={0}
+        role="button"
+        aria-label="Copy CLI command"
+        onClick={handleCopy}
+        onKeyDown={e => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleCopy();
+          }
+        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        onFocus={() => setIsHovered(true)}
+        onBlur={() => setIsHovered(false)}
+        style={{ cursor: "pointer" }}
       >
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.35]"
@@ -119,7 +208,7 @@ export function CliShowcase({ className }: { className?: string }) {
         <pre
           className={cn(
             "relative m-0 max-w-full overflow-x-auto overscroll-x-contain px-3 py-3 font-mono sm:px-4 sm:py-3.5",
-            "text-[clamp(0.7rem,3.1vw,0.85rem)] leading-relaxed [tab-size:2] [-webkit-overflow-scrolling:touch]",
+            "text-[clamp(0.7rem,3.1vw,0.85rem)] leading-relaxed [tab-size:2] [-webkit-overflow-scrolling:touch]"
           )}
         >
           <code className="wrap-break-word [word-break:break-word]">{spans}</code>
@@ -130,6 +219,24 @@ export function CliShowcase({ className }: { className?: string }) {
             ▍
           </span>
         </pre>
+        <button
+          type="button"
+          aria-label={copied ? "Copied" : "Copy command"}
+          tabIndex={-1}
+          className={cn(
+            "absolute top-0 right-0 z-10 h-[50px] w-[100px] cursor-pointer flex font-mono uppercase text-xs items-center justify-center bg-transparent rounded-none border border-r-0 border-y-0 border-white/10 px-2",
+            "text-slate-300 shadow transition-opacity",
+            isHovered || copied ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
+            "outline-none"
+          )}
+          onClick={e => {
+            e.stopPropagation();
+            handleCopy();
+          }}
+        >
+          <CopyIcon copied={copied} className="mr-1 text-slate-200" />
+          {copied ? "Copied" : "Copy"}
+        </button>
       </div>
       <p className="mb-0 mt-3 font-mono text-[0.68rem] font-light leading-relaxed text-white/50">
         Swap <code className="text-slate-400/95">prisma</code> for{" "}

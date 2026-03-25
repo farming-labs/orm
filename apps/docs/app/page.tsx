@@ -6,8 +6,14 @@ import { cn } from "@/lib/utils";
 
 const GITHUB_URL = "https://github.com/farming-labs/orms";
 
-const iconClass =
-  "size-3.5 shrink-0 opacity-55 transition-opacity duration-200 group-hover:opacity-90 group-focus-visible:opacity-90";
+const footerNavTransition =
+  "duration-300 ease-out motion-reduce:transition-none motion-reduce:duration-0";
+
+const iconClass = cn(
+  "size-3.5 shrink-0 opacity-55 transition-opacity",
+  footerNavTransition,
+  "group-hover:opacity-90 group-focus-visible:opacity-90",
+);
 
 function FooterNavLabel({ text }: { text: string }) {
   return (
@@ -15,14 +21,34 @@ function FooterNavLabel({ text }: { text: string }) {
       className={cn(
         "underline decoration-dotted decoration-from-font underline-offset-[7px]",
         "decoration-transparent [text-decoration-skip-ink:none]",
-        "transition-[text-decoration-color] duration-200 ease-out",
-        "group-hover:decoration-slate-200/85 group-focus-visible:decoration-slate-200/85",
+        "transition-[text-decoration-color,text-underline-offset]",
+        footerNavTransition,
+        "group-hover:decoration-slate-200/85 group-hover:underline-offset-[9px]",
+        "group-focus-visible:decoration-slate-200/85 group-focus-visible:underline-offset-[9px]",
       )}
     >
       <span className="inline-flex items-baseline">
-        <span className="text-[1.2em] font-medium leading-none tracking-tight">[</span>
-        <span className="px-[0.3em]">{text}</span>
-        <span className="text-[1.2em] font-medium leading-none tracking-tight">]</span>
+        <span
+          className={cn(
+            "text-[1.2em] font-medium leading-none tracking-tight text-current",
+            "opacity-40 transition-opacity",
+            footerNavTransition,
+            "group-hover:opacity-100 group-focus-visible:opacity-100",
+          )}
+        >
+          [
+        </span>
+        <span className={cn("px-[0.3em] transition-colors", footerNavTransition)}>{text}</span>
+        <span
+          className={cn(
+            "text-[1.2em] font-medium leading-none tracking-tight text-current",
+            "opacity-40 transition-opacity",
+            footerNavTransition,
+            "group-hover:opacity-100 group-focus-visible:opacity-100",
+          )}
+        >
+          ]
+        </span>
       </span>
     </span>
   );
@@ -83,7 +109,9 @@ function IconGithub({ className }: { className?: string }) {
 
 const footerLinkClass = cn(
   "group font-mono text-[0.72rem] font-light uppercase tracking-tight text-slate-400/55",
-  "inline-flex min-h-10 items-center gap-1.5 py-1.5 transition-colors duration-200 hover:text-slate-100/92 sm:min-h-0 sm:py-0",
+  "inline-flex min-h-10 items-center gap-1.5 py-1.5 transition-colors",
+  footerNavTransition,
+  "hover:text-slate-100/92 sm:min-h-0 sm:py-0",
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white/35",
 );
 
