@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   localDemoAdapters,
+  parseDemoAdapterName,
   probeDemoAdapter,
   runUnifiedAuthDemo,
   selfContainedDemoAdapters,
@@ -71,6 +72,12 @@ function assertUnifiedAuthDemo(
 }
 
 describe("unified auth demo", () => {
+  it("rejects prototype keys when parsing adapter names", () => {
+    expect(parseDemoAdapterName("memory")).toBe("memory");
+    expect(parseDemoAdapterName("all")).toBe("all");
+    expect(() => parseDemoAdapterName("__proto__")).toThrow(/Unknown demo adapter/);
+  });
+
   for (const adapterName of selfContainedDemoAdapters) {
     it(`runs the same auth flow through the ${adapterName} adapter`, async () => {
       const result = await runUnifiedAuthDemo(adapterName);

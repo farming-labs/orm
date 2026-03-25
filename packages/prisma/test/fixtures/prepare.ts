@@ -2,10 +2,9 @@ import { execFile } from "node:child_process";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { userInfo } from "node:os";
 import path from "node:path";
-import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { createManifest, renderPrismaSchema, type ManifestField } from "@farming-labs/orm";
+import { renderPrismaSchema } from "@farming-labs/orm";
 import { schema } from "../support/auth";
 
 const execFileAsync = promisify(execFile);
@@ -13,57 +12,6 @@ const dirname = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(dirname, "..", "..");
 
 type PrismaFixtureProvider = "sqlite" | "postgresql" | "mysql";
-
-function sqliteIdentifier(value: string) {
-  return `"${value}"`;
-}
-
-function sqliteType(field: ManifestField) {
-  if (field.kind === "boolean") return "boolean";
-  if (field.kind === "datetime") return "datetime";
-  return "text";
-}
-
-function renderPrismaSqliteTables() {
-  const manifest = createManifest(schema);
-
-  return Object.values(manifest.models)
-    .map((model) => {
-      const columns = Object.values(model.fields).map((field) => {
-        const parts = [`${sqliteIdentifier(field.column)} ${sqliteType(field)}`];
-
-        if (field.kind === "id") parts.push("primary key");
-        if (!field.nullable) parts.push("not null");
-        if (field.unique && field.kind !== "id") parts.push("unique");
-
-        if (field.references) {
-          const [targetModel, targetField] = field.references.split(".");
-          const targetTable = manifest.models[targetModel]?.table ?? targetModel;
-          const targetColumn =
-            manifest.models[targetModel]?.fields[targetField]?.column ?? targetField;
-          parts.push(
-            `references ${sqliteIdentifier(targetTable)}(${sqliteIdentifier(targetColumn)})`,
-          );
-        }
-
-        return `  ${parts.join(" ")}`;
-      });
-
-      return `create table if not exists ${sqliteIdentifier(model.table)} (\n${columns.join(",\n")}\n);`;
-    })
-    .join("\n\n");
-}
-
-function applyStatements(database: DatabaseSync, sql: string) {
-  const statements = sql
-    .split(";")
-    .map((statement) => statement.trim())
-    .filter(Boolean);
-
-  for (const statement of statements) {
-    database.exec(`${statement};`);
-  }
-}
 
 function fixtureDir(provider: PrismaFixtureProvider) {
   return path.join(dirname, provider);
@@ -73,15 +21,8 @@ function fixtureSchemaPath(provider: PrismaFixtureProvider) {
   return path.join(fixtureDir(provider), "schema.prisma");
 }
 
-function fixtureClientOutput(provider: PrismaFixtureProvider) {
-  return "./generated/client";
-}
-
-function withFixtureOutput(rendered: string) {
-  return rendered.replace(
-    `generator client {\n  provider = "prisma-client-js"\n}`,
-    `generator client {\n  provider = "prisma-client-js"\n  output   = "${fixtureClientOutput("sqlite")}"\n}`,
-  );
+function fixtureSqlPath(provider: PrismaFixtureProvider) {
+  return path.join(fixtureDir(provider), "schema.sql");
 }
 
 function withDatabaseEnv(rendered: string) {
@@ -126,25 +67,64 @@ async function runPrismaGenerate(schemaPath: string, databaseUrl: string) {
   });
 }
 
+async function runPrismaDbExecute(schemaPath: string, sqlPath: string, databaseUrl: string) {
+  await execFileAsync(
+    "pnpm",
+    ["exec", "prisma", "db", "execute", "--schema", schemaPath, "--file", sqlPath],
+    {
+      cwd: packageRoot,
+      env: {
+        ...process.env,
+        DATABASE_URL: databaseUrl,
+      },
+    },
+  );
+}
+
+async function writePrismaDiffSql(schemaPath: string, sqlPath: string, databaseUrl: string) {
+  const { stdout } = await execFileAsync(
+    "pnpm",
+    [
+      "exec",
+      "prisma",
+      "migrate",
+      "diff",
+      "--from-empty",
+      "--to-schema-datamodel",
+      schemaPath,
+      "--script",
+    ],
+    {
+      cwd: packageRoot,
+      env: {
+        ...process.env,
+        DATABASE_URL: databaseUrl,
+      },
+      maxBuffer: 10 * 1024 * 1024,
+    },
+  );
+
+  await writeFile(sqlPath, stdout, "utf8");
+}
+
 async function prepareProvider(provider: PrismaFixtureProvider) {
   const dir = fixtureDir(provider);
   const schemaPath = fixtureSchemaPath(provider);
+  const sqlPath = fixtureSqlPath(provider);
   const generatedDir = path.join(dir, "generated");
 
   await mkdir(dir, { recursive: true });
   await rm(generatedDir, { recursive: true, force: true });
+  await rm(sqlPath, { force: true });
   await writeFile(schemaPath, renderFixtureSchema(provider), "utf8");
 
   if (provider === "sqlite") {
     const databasePath = path.join(dir, "dev.db");
     await rm(databasePath, { force: true });
-    const database = new DatabaseSync(databasePath);
-    try {
-      applyStatements(database, renderPrismaSqliteTables());
-    } finally {
-      database.close();
-    }
-    await runPrismaGenerate(schemaPath, `file:${databasePath}`);
+    const databaseUrl = "file:dev.db";
+    await writePrismaDiffSql(schemaPath, sqlPath, databaseUrl);
+    await runPrismaDbExecute(schemaPath, sqlPath, databaseUrl);
+    await runPrismaGenerate(schemaPath, databaseUrl);
     return;
   }
 

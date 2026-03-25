@@ -93,8 +93,7 @@ function assignDatabase(connectionString: string, databaseName: string) {
 }
 
 function assignMongoDatabase(connectionString: string, databaseName: string) {
-  const normalized = connectionString.endsWith("/") ? connectionString : `${connectionString}/`;
-  const url = new URL(normalized);
+  const url = new URL(connectionString);
   url.pathname = `/${databaseName}`;
   return url.toString();
 }
@@ -759,7 +758,7 @@ export async function probeDemoAdapter(adapterName: DemoAdapterName) {
 export function parseDemoAdapterName(input?: string): DemoAdapterInput {
   if (!input) return defaultDemoAdapter;
   if (input === "all") return "all";
-  if (input in demoAdapters) return input as DemoAdapterName;
+  if (Object.hasOwn(demoAdapters, input)) return input as DemoAdapterName;
 
   throw new Error(
     `Unknown demo adapter "${input}". Expected one of: ${[...allDemoAdapters, "all"].join(", ")}.`,

@@ -30,7 +30,9 @@ const dirname = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(dirname, "..");
 const LOCAL_TIMEOUT_MS = 30_000;
 
-type PrismaTarget = "sqlite" | "postgresql" | "mysql";
+const prismaTargets = ["sqlite", "postgresql", "mysql"] as const;
+
+type PrismaTarget = (typeof prismaTargets)[number];
 
 type RealGeneratedPrismaClient = {
   user: { deleteMany(): Promise<unknown> };
@@ -51,12 +53,21 @@ type RuntimeFactory = () => Promise<{
   close: () => Promise<void>;
 }>;
 
-const requestedTargets = new Set(
-  (process.env.FARM_ORM_LOCAL_PRISMA_TARGETS ?? "")
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean),
+const requestedTargetValues = (process.env.FARM_ORM_LOCAL_PRISMA_TARGETS ?? "")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
+const invalidTargets = requestedTargetValues.filter(
+  (value): value is string => !(prismaTargets as readonly string[]).includes(value),
 );
+
+if (invalidTargets.length) {
+  throw new Error(
+    `Invalid FARM_ORM_LOCAL_PRISMA_TARGETS values: ${invalidTargets.join(", ")}. Expected one of: ${prismaTargets.join(", ")}.`,
+  );
+}
+
+const requestedTargets = new Set(requestedTargetValues as PrismaTarget[]);
 
 function shouldRunTarget(target: PrismaTarget) {
   return requestedTargets.size === 0 || requestedTargets.has(target);
@@ -83,14 +94,7 @@ const generatedPrismaClients = {
 } satisfies Record<PrismaTarget, RealGeneratedPrismaClientCtor>;
 
 function getGeneratedPrismaClient(target: PrismaTarget): RealGeneratedPrismaClientCtor {
-  switch (target) {
-    case "sqlite":
-      return SqlitePrismaClient as RealGeneratedPrismaClientCtor;
-    case "postgresql":
-      return PostgresqlPrismaClient as RealGeneratedPrismaClientCtor;
-    case "mysql":
-      return MysqlPrismaClient as RealGeneratedPrismaClientCtor;
-  }
+  return generatedPrismaClients[target] as RealGeneratedPrismaClientCtor;
 }
 
 async function resetDatabase(prisma: RealGeneratedPrismaClient) {

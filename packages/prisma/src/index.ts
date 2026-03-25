@@ -587,7 +587,7 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
             where: identityWhere,
             data: updateData,
           });
-          return current;
+          return null;
         })();
 
       const row = await updated;
@@ -651,7 +651,7 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
           }
 
           return txDriver.create(schema, model, {
-            data: args.create as any,
+            data: createData as any,
           } as CreateArgs<TSchema, ModelName<TSchema>, undefined>) as Promise<PrismaRow>;
         }));
 
