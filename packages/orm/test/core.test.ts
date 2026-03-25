@@ -53,6 +53,9 @@ const schema = defineSchema({
       userId: string().references("user.id"),
       token: string().unique(),
     },
+    constraints: {
+      indexes: [["userId", "token"]],
+    },
     relations: {
       user: belongsTo("user", { foreignKey: "userId" }),
     },
@@ -80,6 +83,10 @@ const schema = defineSchema({
       organizationId: string().references("organization.id"),
       role: string(),
     },
+    constraints: {
+      unique: [["userId", "organizationId"]],
+      indexes: [["organizationId", "role"]],
+    },
     relations: {
       user: belongsTo("user", { foreignKey: "userId" }),
       organization: belongsTo("organization", { foreignKey: "organizationId" }),
@@ -95,6 +102,14 @@ describe("@farming-labs/orm core", () => {
     expect(manifest.models.session.fields.userId.references).toBe("user.id");
     expect(manifest.models.user.relations.profile.kind).toBe("hasOne");
     expect(manifest.models.user.relations.organizations.kind).toBe("manyToMany");
+    expect(manifest.models.member.constraints.unique).toEqual([
+      {
+        name: "members_userid_organizationid_unique",
+        fields: ["userId", "organizationId"],
+        columns: ["userId", "organizationId"],
+        unique: true,
+      },
+    ]);
   });
 
   it("renders Prisma, Drizzle, and safe SQL outputs with relation-aware generation", () => {
@@ -109,8 +124,12 @@ describe("@farming-labs/orm core", () => {
     expect(prisma).toContain("sessions Session[]");
     expect(prisma).toContain("user User @relation(fields: [userId], references: [id])");
     expect(prisma).toContain("model Member");
+    expect(prisma).toContain("@@unique([userId, organizationId])");
+    expect(prisma).toContain("@@index([organizationId, role])");
     expect(drizzle).toContain('export const user = pgTable("users"');
     expect(drizzle).toContain('import { relations } from "drizzle-orm";');
+    expect(drizzle).toContain('uniqueIndex("members_userid_organizationid_unique")');
+    expect(drizzle).toContain('index("members_organizationid_role_idx")');
     expect(drizzle).toContain("export const userRelations = relations(user");
     expect(drizzle).toContain("profile: one(profile)");
     expect(drizzle).toContain("sessions: many(session)");
@@ -120,7 +139,16 @@ describe("@farming-labs/orm core", () => {
     expect(sql).toContain('create table if not exists "users"');
     expect(sql).toContain('references "users"("user_id")');
     expect(sql).toContain('create table if not exists "members"');
+    expect(sql).toContain(
+      'create unique index if not exists "members_userid_organizationid_unique" on "members"("userId", "organizationId");',
+    );
+    expect(sql).toContain(
+      'create index if not exists "members_organizationid_role_idx" on "members"("organizationId", "role");',
+    );
     expect(mysqlSql).toContain("`userId` varchar(191) not null references `users`(`user_id`)");
+    expect(mysqlSql).toContain(
+      "create unique index `members_userid_organizationid_unique` on `members`(`userId`, `organizationId`);",
+    );
   });
 
   it("supports nested relation selection in the memory driver", async () => {

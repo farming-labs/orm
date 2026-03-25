@@ -1,5 +1,5 @@
 import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { tmpdir, userInfo } from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
@@ -67,6 +67,9 @@ const schema = defineSchema({
       token: string().unique(),
       expiresAt: datetime().map("expires_at"),
     },
+    constraints: {
+      indexes: [["userId", "expiresAt"]],
+    },
     relations: {
       user: belongsTo("user", { foreignKey: "userId" }),
     },
@@ -93,6 +96,10 @@ const schema = defineSchema({
       userId: string().references("user.id").map("user_id"),
       organizationId: string().references("organization.id").map("organization_id"),
       role: string(),
+    },
+    constraints: {
+      unique: [["userId", "organizationId"]],
+      indexes: [["organizationId", "role"]],
     },
     relations: {
       user: belongsTo("user", { foreignKey: "userId" }),
@@ -261,7 +268,35 @@ async function seedAuthData(orm: RuntimeOrm) {
   return {
     ada,
     grace,
+    acme,
+    farmingLabs,
   };
+}
+
+async function assertModelLevelConstraints(orm: RuntimeOrm) {
+  const { ada, acme } = await seedAuthData(orm);
+
+  await expect(
+    orm.member.create({
+      data: {
+        userId: ada.id,
+        organizationId: acme.id,
+        role: "duplicate",
+      },
+    }),
+  ).rejects.toThrow();
+
+  const memberships = await orm.member.findMany({
+    where: {
+      userId: ada.id,
+      organizationId: acme.id,
+    },
+    select: {
+      role: true,
+    },
+  });
+
+  expect(memberships).toEqual([{ role: "owner" }]);
 }
 
 async function exerciseRuntime(orm: RuntimeOrm) {
@@ -465,9 +500,32 @@ async function createLocalSqliteOrm() {
 }
 
 async function createLocalPostgresPoolOrm() {
-  const adminUrl =
-    process.env.FARM_ORM_LOCAL_PG_ADMIN_URL ??
-    "postgres://postgres:postgres@127.0.0.1:5432/postgres";
+  const adminUrl = await (async () => {
+    const candidates = [
+      process.env.FARM_ORM_LOCAL_PG_ADMIN_URL,
+      "postgres://postgres:postgres@127.0.0.1:5432/postgres",
+      `postgres://${userInfo().username}@127.0.0.1:5432/postgres`,
+    ].filter(Boolean) as string[];
+
+    let lastError: unknown;
+    for (const candidate of candidates) {
+      const pool = new Pool({ connectionString: candidate });
+      try {
+        await pool.query("select 1");
+        await pool.end();
+        return candidate;
+      } catch (error) {
+        lastError = error;
+        await pool.end().catch(() => undefined);
+      }
+    }
+
+    throw formatLocalDbError(
+      "PostgreSQL",
+      lastError,
+      `Make sure a local PostgreSQL server is running and reachable via FARM_ORM_LOCAL_PG_ADMIN_URL (tried: ${candidates.join(", ")}).`,
+    );
+  })();
   const databaseName = createIsolatedName("farm_orm_pg");
   const adminPool = new Pool({ connectionString: adminUrl });
 
@@ -519,9 +577,32 @@ async function createLocalPostgresPoolOrm() {
 }
 
 async function createLocalPostgresClientOrm() {
-  const adminUrl =
-    process.env.FARM_ORM_LOCAL_PG_ADMIN_URL ??
-    "postgres://postgres:postgres@127.0.0.1:5432/postgres";
+  const adminUrl = await (async () => {
+    const candidates = [
+      process.env.FARM_ORM_LOCAL_PG_ADMIN_URL,
+      "postgres://postgres:postgres@127.0.0.1:5432/postgres",
+      `postgres://${userInfo().username}@127.0.0.1:5432/postgres`,
+    ].filter(Boolean) as string[];
+
+    let lastError: unknown;
+    for (const candidate of candidates) {
+      const pool = new Pool({ connectionString: candidate });
+      try {
+        await pool.query("select 1");
+        await pool.end();
+        return candidate;
+      } catch (error) {
+        lastError = error;
+        await pool.end().catch(() => undefined);
+      }
+    }
+
+    throw formatLocalDbError(
+      "PostgreSQL",
+      lastError,
+      `Make sure a local PostgreSQL server is running and reachable via FARM_ORM_LOCAL_PG_ADMIN_URL (tried: ${candidates.join(", ")}).`,
+    );
+  })();
   const databaseName = createIsolatedName("farm_orm_pg_client");
   const adminPool = new Pool({ connectionString: adminUrl });
 
@@ -687,6 +768,16 @@ for (const [target, factory] of [
 
       try {
         await exerciseRuntime(orm);
+      } finally {
+        await close();
+      }
+    });
+
+    it("enforces model-level constraints against a real local database", async () => {
+      const { orm, close } = await factory();
+
+      try {
+        await assertModelLevelConstraints(orm);
       } finally {
         await close();
       }

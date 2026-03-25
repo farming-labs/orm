@@ -5,6 +5,7 @@ import { createMongoDriver } from "../src";
 import type { RuntimeOrm } from "../../mongoose/test/support/auth";
 import {
   assertBelongsToAndManyToManyQueries,
+  assertModelLevelConstraints,
   assertMutationQueries,
   assertOneToOneAndHasManyQueries,
   createIsolatedName,
@@ -44,6 +45,9 @@ async function createLocalMongoOrm() {
   }
 
   const db = client.db(databaseName);
+  await db.collection("members").createIndex({ user_id: 1, organization_id: 1 }, { unique: true });
+  await db.collection("members").createIndex({ organization_id: 1, role: 1 });
+  await db.collection("sessions").createIndex({ user_id: 1, expires_at: 1 });
 
   return {
     orm: createOrm({
@@ -94,6 +98,14 @@ describe("mongo local integration", () => {
           expectTransactionRollback: process.env.FARM_ORM_LOCAL_MONGODB_TRANSACTIONS === "1",
         }),
       );
+    },
+    LOCAL_TIMEOUT_MS,
+  );
+
+  it(
+    "enforces model-level constraints against a real local MongoDB instance",
+    async () => {
+      await withLocalOrm((orm) => assertModelLevelConstraints(orm, expect));
     },
     LOCAL_TIMEOUT_MS,
   );

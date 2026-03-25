@@ -52,6 +52,9 @@ export const schema = defineSchema({
       token: string().unique(),
       expiresAt: datetime().map("expires_at"),
     },
+    constraints: {
+      indexes: [["userId", "expiresAt"]],
+    },
     relations: {
       user: belongsTo("user", { foreignKey: "userId" }),
     },
@@ -78,6 +81,10 @@ export const schema = defineSchema({
       userId: string().references("user.id").map("user_id"),
       organizationId: string().references("organization.id").map("organization_id"),
       role: string(),
+    },
+    constraints: {
+      unique: [["userId", "organizationId"]],
+      indexes: [["organizationId", "role"]],
     },
     relations: {
       user: belongsTo("user", { foreignKey: "userId" }),
@@ -169,6 +176,8 @@ export async function seedAuthData(orm: RuntimeOrm) {
   return {
     ada,
     grace,
+    acme,
+    farmingLabs,
   };
 }
 
@@ -442,4 +451,33 @@ export async function assertMutationQueries(
 
     expect(rollbackCount).toBe(0);
   }
+}
+
+export async function assertModelLevelConstraints(
+  orm: RuntimeOrm,
+  expect: typeof import("vitest").expect,
+) {
+  const { ada, acme } = await seedAuthData(orm);
+
+  await expect(
+    orm.member.create({
+      data: {
+        userId: ada.id,
+        organizationId: acme.id,
+        role: "duplicate",
+      },
+    }),
+  ).rejects.toThrow();
+
+  const memberships = await orm.member.findMany({
+    where: {
+      userId: ada.id,
+      organizationId: acme.id,
+    },
+    select: {
+      role: true,
+    },
+  });
+
+  expect(memberships).toEqual([{ role: "owner" }]);
 }

@@ -10,6 +10,7 @@ import { createOrm } from "@farming-labs/orm";
 import { createPrismaDriver } from "../src";
 import {
   assertBelongsToAndManyToManyQueries,
+  assertModelLevelConstraints,
   assertMutationQueries,
   assertOneToOneAndHasManyQueries,
   schema,
@@ -370,6 +371,19 @@ for (const [target, factory] of [
         const { orm, close } = await factory();
         try {
           await assertMutationQueries(orm, expect, { expectTransactionRollback: true });
+        } finally {
+          await close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
+
+    it(
+      "enforces model-level constraints against a real local database",
+      async () => {
+        const { orm, close } = await factory();
+        try {
+          await assertModelLevelConstraints(orm, expect);
         } finally {
           await close();
         }

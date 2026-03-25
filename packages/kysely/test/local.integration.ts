@@ -18,6 +18,7 @@ import { createOrm, renderSafeSql } from "@farming-labs/orm";
 import { createKyselyDriver } from "../src";
 import {
   assertBelongsToAndManyToManyQueries,
+  assertModelLevelConstraints,
   assertMutationQueries,
   assertOneToOneAndHasManyQueries,
   schema,
@@ -428,6 +429,20 @@ describe("local Kysely integration", () => {
           await assertMutationQueries(runtime.orm, expect, {
             expectTransactionRollback: true,
           });
+        } finally {
+          await runtime.close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
+
+    it(
+      `${target} local Kysely integration > enforces model-level constraints against a real local database`,
+      async () => {
+        const runtime = await runtimeFactories[target]();
+
+        try {
+          await assertModelLevelConstraints(runtime.orm, expect);
         } finally {
           await runtime.close();
         }

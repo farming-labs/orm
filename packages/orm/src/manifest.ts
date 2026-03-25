@@ -1,6 +1,6 @@
 import type { ScalarKind } from "./fields";
 import type { AnyRelation } from "./relations";
-import type { AnyModelDefinition, SchemaDefinition } from "./schema";
+import type { AnyModelDefinition, ModelConstraints, SchemaDefinition } from "./schema";
 
 export type ManifestField = {
   name: string;
@@ -14,17 +14,77 @@ export type ManifestField = {
   description?: string;
 };
 
+export type ManifestConstraint = {
+  name: string;
+  fields: string[];
+  columns: string[];
+  unique: boolean;
+};
+
 export type ManifestModel = {
   name: string;
   table: string;
   description?: string;
   fields: Record<string, ManifestField>;
   relations: Record<string, AnyRelation>;
+  constraints: {
+    unique: ManifestConstraint[];
+    indexes: ManifestConstraint[];
+  };
 };
 
 export type SchemaManifest = {
   models: Record<string, ManifestModel>;
 };
+
+function createConstraintName(table: string, columns: string[], suffix: "unique" | "idx") {
+  const base = [table, ...columns]
+    .join("_")
+    .replace(/[^a-zA-Z0-9_]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .toLowerCase();
+
+  return `${base}_${suffix}`;
+}
+
+function normalizeConstraints(
+  modelName: string,
+  table: string,
+  fields: Record<string, ManifestField>,
+  constraints: ModelConstraints<any>,
+) {
+  const normalize = (entries: readonly (readonly string[])[] | undefined, unique: boolean) =>
+    (entries ?? []).map((entry) => {
+      if (!entry.length) {
+        throw new Error(
+          `Model "${modelName}" defines an empty ${unique ? "unique" : "index"} constraint.`,
+        );
+      }
+
+      const columns = entry.map((fieldName) => {
+        const field = fields[fieldName];
+        if (!field) {
+          throw new Error(
+            `Model "${modelName}" defines a ${unique ? "unique" : "index"} constraint on unknown field "${fieldName}".`,
+          );
+        }
+        return field.column;
+      });
+
+      return {
+        name: createConstraintName(table, columns, unique ? "unique" : "idx"),
+        fields: [...entry],
+        columns,
+        unique,
+      } satisfies ManifestConstraint;
+    });
+
+  return {
+    unique: normalize(constraints.unique, true),
+    indexes: normalize(constraints.indexes, false),
+  };
+}
 
 export function createManifest<
   TSchema extends SchemaDefinition<Record<string, AnyModelDefinition>>,
@@ -61,6 +121,12 @@ export function createManifest<
             description: definition.description,
             fields,
             relations: definition.relations,
+            constraints: normalizeConstraints(
+              name,
+              definition.table,
+              fields,
+              definition.constraints,
+            ),
           } satisfies ManifestModel,
         ];
       },

@@ -173,6 +173,18 @@ function normalizeNaiveSqlDate(value: Date) {
   );
 }
 
+function parseSqlDateString(value: string) {
+  const trimmed = value.trim();
+  const hasTimezone = /(?:z|[+-]\d{2}(?::?\d{2})?)$/i.test(trimmed);
+  const naiveSqlDate = /^\d{4}-\d{2}-\d{2}[ t]\d{2}:\d{2}:\d{2}(?:\.\d+)?$/i.test(trimmed);
+
+  if (naiveSqlDate && !hasTimezone) {
+    return new Date(trimmed.replace(" ", "T") + "Z");
+  }
+
+  return new Date(trimmed);
+}
+
 function decodeValue(field: ManifestField, dialect: SqlDialect, value: unknown) {
   if (value === undefined) return value;
   if (value === null) return null;
@@ -187,7 +199,10 @@ function decodeValue(field: ManifestField, dialect: SqlDialect, value: unknown) 
 
   if (field.kind === "datetime") {
     if (value instanceof Date) {
-      return dialect === "mysql" || dialect === "postgres" ? normalizeNaiveSqlDate(value) : value;
+      return dialect === "mysql" ? normalizeNaiveSqlDate(value) : value;
+    }
+    if (typeof value === "string") {
+      return parseSqlDateString(value);
     }
     return new Date(String(value));
   }

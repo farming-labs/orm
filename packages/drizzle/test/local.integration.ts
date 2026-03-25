@@ -12,6 +12,7 @@ import { createOrm, renderSafeSql } from "@farming-labs/orm";
 import { createDrizzleDriver } from "../src";
 import {
   assertBelongsToAndManyToManyQueries,
+  assertModelLevelConstraints,
   assertMutationQueries,
   assertOneToOneAndHasManyQueries,
   schema,
@@ -366,6 +367,20 @@ describe("local Drizzle integration", () => {
           await assertMutationQueries(runtime.orm, expect, {
             expectTransactionRollback: true,
           });
+        } finally {
+          await runtime.close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
+
+    it(
+      `${target} local Drizzle integration > enforces model-level constraints against a real local database`,
+      async () => {
+        const runtime = await runtimeFactories[target]();
+
+        try {
+          await assertModelLevelConstraints(runtime.orm, expect);
         } finally {
           await runtime.close();
         }
