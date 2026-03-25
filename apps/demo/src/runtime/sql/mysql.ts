@@ -14,6 +14,16 @@ import {
   toDirectCheck,
 } from "../shared/utils";
 
+async function dropMysqlDatabase(databaseName: string) {
+  const cleanupAdmin = mysql.createPool(mysqlAdminUrl);
+
+  try {
+    await cleanupAdmin.query(`drop database if exists \`${databaseName}\``);
+  } finally {
+    await cleanupAdmin.end().catch(() => undefined);
+  }
+}
+
 export async function createMysqlPoolRuntime(): Promise<DemoRuntimeHandle> {
   const databaseName = createIsolatedName("farm_orm_demo_mysql_pool");
   const adminPool = mysql.createPool(mysqlAdminUrl);
@@ -41,9 +51,7 @@ export async function createMysqlPoolRuntime(): Promise<DemoRuntimeHandle> {
     );
   } catch (error) {
     await pool.end();
-    const cleanupAdmin = mysql.createPool(mysqlAdminUrl);
-    await cleanupAdmin.query(`drop database if exists \`${databaseName}\``);
-    await cleanupAdmin.end();
+    await dropMysqlDatabase(databaseName);
     throw error;
   }
 
@@ -65,9 +73,7 @@ export async function createMysqlPoolRuntime(): Promise<DemoRuntimeHandle> {
     },
     close: async () => {
       await pool.end();
-      const cleanupAdmin = mysql.createPool(mysqlAdminUrl);
-      await cleanupAdmin.query(`drop database if exists \`${databaseName}\``);
-      await cleanupAdmin.end();
+      await dropMysqlDatabase(databaseName);
     },
   };
 }
@@ -91,25 +97,33 @@ export async function createMysqlConnectionRuntime(): Promise<DemoRuntimeHandle>
 
   const databaseUrl = assignDatabase(mysqlAdminUrl, databaseName);
   const pool = mysql.createPool(databaseUrl);
-  const connection = await pool.getConnection();
+  let connection: mysql.PoolConnection | null = null;
 
   try {
+    const activeConnection = await pool.getConnection();
+    connection = activeConnection;
     await applyStatements(
-      (statement) => connection.query(statement),
+      (statement) => activeConnection.query(statement),
       renderSafeSql(authSchema, { dialect: "mysql" }),
     );
   } catch (error) {
-    connection.release();
-    await pool.end();
-    const cleanupAdmin = mysql.createPool(mysqlAdminUrl);
-    await cleanupAdmin.query(`drop database if exists \`${databaseName}\``);
-    await cleanupAdmin.end();
+    connection?.release();
+    await pool.end().catch(() => undefined);
+    await dropMysqlDatabase(databaseName);
     throw error;
   }
 
+  if (!connection) {
+    await pool.end().catch(() => undefined);
+    await dropMysqlDatabase(databaseName);
+    throw new Error("MySQL demo connection was not established.");
+  }
+
+  const activeConnection = connection;
+
   const orm: AuthOrm = createOrm({
     schema: authSchema,
-    driver: createMysqlDriver<typeof authSchema>(asMysqlConnectionLike(connection)),
+    driver: createMysqlDriver<typeof authSchema>(asMysqlConnectionLike(activeConnection)),
   });
 
   return {
@@ -118,18 +132,16 @@ export async function createMysqlConnectionRuntime(): Promise<DemoRuntimeHandle>
     client: "mysql2 connection",
     orm,
     directCheck: async (userId) => {
-      const [rows] = await connection.query(
+      const [rows] = await activeConnection.query(
         "select `id`, `email_address` from `users` where `id` = ?",
         [userId],
       );
       return toDirectCheck((rows as Array<{ id: string; email_address: string }>)[0]);
     },
     close: async () => {
-      connection.release();
+      activeConnection.release();
       await pool.end();
-      const cleanupAdmin = mysql.createPool(mysqlAdminUrl);
-      await cleanupAdmin.query(`drop database if exists \`${databaseName}\``);
-      await cleanupAdmin.end();
+      await dropMysqlDatabase(databaseName);
     },
   };
 }

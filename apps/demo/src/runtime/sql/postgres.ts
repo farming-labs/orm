@@ -13,6 +13,23 @@ import {
   toDirectCheck,
 } from "../shared/utils";
 
+async function dropPostgresDatabase(databaseName: string, terminateConnections = false) {
+  const cleanupAdmin = new Pool({ connectionString: pgAdminUrl });
+
+  try {
+    if (terminateConnections) {
+      await cleanupAdmin.query(
+        "select pg_terminate_backend(pid) from pg_stat_activity where datname = $1 and pid <> pg_backend_pid()",
+        [databaseName],
+      );
+    }
+
+    await cleanupAdmin.query(`drop database if exists "${databaseName}"`);
+  } finally {
+    await cleanupAdmin.end().catch(() => undefined);
+  }
+}
+
 export async function createPostgresPoolRuntime(): Promise<DemoRuntimeHandle> {
   const databaseName = createIsolatedName("farm_orm_demo_pg_pool");
   const adminPool = new Pool({ connectionString: pgAdminUrl });
@@ -40,9 +57,7 @@ export async function createPostgresPoolRuntime(): Promise<DemoRuntimeHandle> {
     );
   } catch (error) {
     await pool.end();
-    const cleanupAdmin = new Pool({ connectionString: pgAdminUrl });
-    await cleanupAdmin.query(`drop database if exists "${databaseName}"`);
-    await cleanupAdmin.end();
+    await dropPostgresDatabase(databaseName);
     throw error;
   }
 
@@ -64,13 +79,7 @@ export async function createPostgresPoolRuntime(): Promise<DemoRuntimeHandle> {
     },
     close: async () => {
       await pool.end();
-      const cleanupAdmin = new Pool({ connectionString: pgAdminUrl });
-      await cleanupAdmin.query(
-        "select pg_terminate_backend(pid) from pg_stat_activity where datname = $1 and pid <> pg_backend_pid()",
-        [databaseName],
-      );
-      await cleanupAdmin.query(`drop database if exists "${databaseName}"`);
-      await cleanupAdmin.end();
+      await dropPostgresDatabase(databaseName, true);
     },
   };
 }
@@ -94,18 +103,16 @@ export async function createPostgresClientRuntime(): Promise<DemoRuntimeHandle> 
 
   const databaseUrl = assignDatabase(pgAdminUrl, databaseName);
   const client = new Client({ connectionString: databaseUrl });
-  await client.connect();
 
   try {
+    await client.connect();
     await applyStatements(
       (statement) => client.query(statement),
       renderSafeSql(authSchema, { dialect: "postgres" }),
     );
   } catch (error) {
     await client.end().catch(() => undefined);
-    const cleanupAdmin = new Pool({ connectionString: pgAdminUrl });
-    await cleanupAdmin.query(`drop database if exists "${databaseName}"`);
-    await cleanupAdmin.end();
+    await dropPostgresDatabase(databaseName);
     throw error;
   }
 
@@ -128,13 +135,7 @@ export async function createPostgresClientRuntime(): Promise<DemoRuntimeHandle> 
     },
     close: async () => {
       await client.end();
-      const cleanupAdmin = new Pool({ connectionString: pgAdminUrl });
-      await cleanupAdmin.query(
-        "select pg_terminate_backend(pid) from pg_stat_activity where datname = $1 and pid <> pg_backend_pid()",
-        [databaseName],
-      );
-      await cleanupAdmin.query(`drop database if exists "${databaseName}"`);
-      await cleanupAdmin.end();
+      await dropPostgresDatabase(databaseName, true);
     },
   };
 }

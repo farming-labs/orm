@@ -14,6 +14,16 @@ import {
   toDirectCheck,
 } from "../shared/utils";
 
+async function dropMysqlDatabase(databaseName: string) {
+  const cleanupAdmin = mysql.createPool(mysqlAdminUrl);
+
+  try {
+    await cleanupAdmin.query(`drop database if exists \`${databaseName}\``);
+  } finally {
+    await cleanupAdmin.end().catch(() => undefined);
+  }
+}
+
 export async function createDrizzleMysqlRuntime(): Promise<DemoRuntimeHandle> {
   const databaseName = createIsolatedName("farm_orm_demo_drizzle_mysql");
   const adminPool = mysql.createPool(mysqlAdminUrl);
@@ -41,9 +51,7 @@ export async function createDrizzleMysqlRuntime(): Promise<DemoRuntimeHandle> {
     );
   } catch (error) {
     await pool.end().catch(() => undefined);
-    const cleanupAdmin = mysql.createPool(mysqlAdminUrl);
-    await cleanupAdmin.query(`drop database if exists \`${databaseName}\``);
-    await cleanupAdmin.end();
+    await dropMysqlDatabase(databaseName);
     throw error;
   }
 
@@ -69,9 +77,7 @@ export async function createDrizzleMysqlRuntime(): Promise<DemoRuntimeHandle> {
     },
     close: async () => {
       await pool.end();
-      const cleanupAdmin = mysql.createPool(mysqlAdminUrl);
-      await cleanupAdmin.query(`drop database if exists \`${databaseName}\``);
-      await cleanupAdmin.end();
+      await dropMysqlDatabase(databaseName);
     },
   };
 }
