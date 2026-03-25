@@ -97,6 +97,7 @@ export default defineDocs({
       children: [
         { slug: "prisma" },
         { slug: "drizzle" },
+        { slug: "kysely" },
         { slug: "sql-databases" },
         { slug: "mongodb" },
       ],
