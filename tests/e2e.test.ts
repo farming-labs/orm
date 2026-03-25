@@ -70,8 +70,33 @@ describe("workspace end to end", () => {
     expect(drizzleSchema).toContain("sessions: many(session)");
 
     const demoRun = await runPnpm(["exec", "tsx", "src/index.ts"], demoDir);
-    expect(demoRun.stdout).toContain('"name": "Ada Lovelace"');
-    expect(demoRun.stdout).toContain('"provider": "github"');
-    expect(demoRun.stdout).toContain('"bio": "Design once, ship to every storage layer."');
+    const demoPayload = JSON.parse(demoRun.stdout) as {
+      adapter: string;
+      result: {
+        adapter: {
+          name: string;
+          client: string;
+        };
+        user: {
+          name: string;
+          profile: {
+            bio: string;
+          } | null;
+        } | null;
+        created: {
+          account: {
+            provider: string;
+          };
+        };
+      };
+    };
+
+    expect(demoPayload.adapter).toBe("memory");
+    expect(demoPayload.result.adapter.name).toBe("memory");
+    expect(demoPayload.result.user?.name).toBe("Ada Lovelace");
+    expect(demoPayload.result.created.account.provider).toBe("github");
+    expect(demoPayload.result.user?.profile?.bio).toBe(
+      `Unified auth flow running through ${demoPayload.result.adapter.client}.`,
+    );
   }, 120_000);
 });
