@@ -24,8 +24,8 @@ different storage adapter for every ORM.
 ## What this project is not
 
 - It is not a second full ORM with its own migrations, query planner, and SQL execution engine.
-- It does not yet ship live Drizzle or Kysely runtime drivers in this repo.
-- Generated Drizzle output still does not imply a live Drizzle runtime executor in this repo.
+- It does not yet ship a live Kysely runtime driver in this repo.
+- Generated Prisma and Drizzle output is still separate from the runtime layer. You can use generation, runtime, or both together.
 - Join-table-backed `manyToMany(...)` relationships still stay explicit in generated Prisma and Drizzle output.
 
 ## Recommended reading order
@@ -89,16 +89,18 @@ await orm.user.create({
 | `@farming-labs/orm`          | Live   | Schema DSL, manifest, typed client, generators, memory runtime              |
 | `@farming-labs/orm-cli`      | Live   | Loads schemas directly and writes target output                             |
 | `@farming-labs/orm-prisma`   | Live   | Prisma runtime driver that translates the unified API into Prisma delegates |
+| `@farming-labs/orm-drizzle`  | Live   | Drizzle runtime driver that translates the unified API into Drizzle-backed clients |
 | `@farming-labs/orm-sql`      | Live   | Direct SQL runtime for SQLite, MySQL, and PostgreSQL pools                  |
 | `@farming-labs/orm-mongoose` | Live   | MongoDB / Mongoose runtime using the same typed query API                   |
 | Memory runtime               | Live   | Supports typed CRUD, nested relation selection, and transactions            |
 | Prisma runtime               | Live   | Uses the same query API against `PrismaClient` delegates                    |
+| Drizzle runtime              | Live   | Uses the same query API against Drizzle databases for SQLite, MySQL, and PostgreSQL |
 | Direct SQL runtime           | Live   | Uses the same query API against SQLite, MySQL, and `pg.Pool`                |
 | Mongoose runtime             | Live   | Uses the same query API against Mongoose models and sessions                |
 | Prisma generation            | Live   | PostgreSQL, MySQL, and SQLite providers with direct relation output         |
 | Drizzle generation           | Live   | `pg`, `mysql`, and `sqlite` dialects with direct relation helpers           |
 | Safe SQL generation          | Live   | PostgreSQL, MySQL, and SQLite                                               |
-| Runtime driver packages      | Mixed  | Prisma is live; Drizzle and Kysely are the next runtime layers              |
+| Runtime driver packages      | Mixed  | Prisma, Drizzle, SQL, and Mongoose are live; Kysely is the next runtime layer |
 
 ## Current architecture
 
@@ -106,7 +108,7 @@ await orm.user.create({
 - The manifest layer turns that schema into normalized table and column information.
 - The generators consume manifest-level field data such as mapped column names, uniqueness, defaults, and references.
 - The Prisma and Drizzle generators now also emit direct `belongsTo`, `hasOne`, and `hasMany` relation shapes from that same schema metadata.
-- The Prisma runtime, memory driver, direct SQL runtime, and Mongoose runtime consume both field data and relation metadata so nested `select` queries work today, including explicit join-table `manyToMany(...)`.
+- The Prisma runtime, Drizzle runtime, memory driver, direct SQL runtime, and Mongoose runtime consume both field data and relation metadata so nested `select` queries work today, including explicit join-table `manyToMany(...)`.
 - The CLI merges multiple schema objects and refuses duplicate model names.
 
 ## Where this fits best

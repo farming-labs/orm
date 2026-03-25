@@ -12,7 +12,7 @@ The recommended path is:
 1. Define a schema in `@farming-labs/orm`
 2. Add a `farm-orm.config.ts`
 3. Generate target output with `@farming-labs/orm-cli`
-4. Pick a runtime driver: memory, Prisma, direct SQL, or Mongoose depending on the app stack
+4. Pick a runtime driver: memory, Prisma, Drizzle, direct SQL, or Mongoose depending on the app stack
 
 ## Step 1: Define a real schema
 
@@ -265,6 +265,31 @@ There are matching factories for:
 - `createSqliteDriver(database)`
 - `createPrismaDriver({ client })`
 
+If the app already uses Drizzle, you can keep that stack and still run the same
+unified API through `@farming-labs/orm-drizzle`:
+
+```ts
+import { createOrm } from "@farming-labs/orm";
+import { createDrizzleDriver } from "@farming-labs/orm-drizzle";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import { authSchema } from "./schema";
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+const db = drizzle(pool);
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createDrizzleDriver({
+    db,
+    dialect: "postgres",
+  }),
+});
+```
+
 If the app stack is already on MongoDB with Mongoose, use
 `@farming-labs/orm-mongoose`:
 
@@ -292,7 +317,9 @@ const orm = createOrm({
 Those are the live runtime translators in this repo right now:
 
 - memory for docs, tests, and demos
+- Drizzle for Drizzle-backed SQLite, MySQL, and PostgreSQL apps
 - direct SQL for SQLite, MySQL, and PostgreSQL
+- Prisma for `PrismaClient`-backed apps
 - Mongoose for MongoDB-oriented apps
 
 ## Step 5: Understand what gets generated
@@ -318,6 +345,8 @@ test commands for the live runtime packages:
 
 ```bash
 pnpm test:local
+pnpm test:local:prisma
+pnpm test:local:drizzle
 pnpm test:local:sqlite
 pnpm test:local:postgres
 pnpm test:local:mysql

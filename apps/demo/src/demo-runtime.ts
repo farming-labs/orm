@@ -4,9 +4,13 @@ import { tmpdir, userInfo } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
+import { drizzle as drizzleMysqlDatabase } from "drizzle-orm/mysql2";
+import { drizzle as drizzlePostgresDatabase } from "drizzle-orm/node-postgres";
+import { drizzle as drizzleSqliteDatabase } from "drizzle-orm/sqlite-proxy";
 import mysql from "mysql2/promise";
 import mongoose from "mongoose";
 import { Client, Pool } from "pg";
+import { createDrizzleDriver } from "@farming-labs/orm-drizzle";
 import { createMongooseDriver, type MongooseModelLike } from "@farming-labs/orm-mongoose";
 import { createPrismaDriver } from "@farming-labs/orm-prisma";
 import {
@@ -33,11 +37,14 @@ const prismaDatabaseUrl = `file:${prismaDatabasePath}`;
 export type DemoAdapterName =
   | "memory"
   | "sqlite"
+  | "drizzle-sqlite"
   | "prisma"
   | "postgres-pool"
   | "postgres-client"
+  | "drizzle-postgres"
   | "mysql-pool"
   | "mysql-connection"
+  | "drizzle-mysql"
   | "mongoose";
 
 export type DemoAdapterInput = DemoAdapterName | "all";
@@ -342,6 +349,62 @@ async function createPrismaRuntime(): Promise<DemoRuntimeHandle> {
   };
 }
 
+async function createDrizzleSqliteRuntime(): Promise<DemoRuntimeHandle> {
+  const directory = await mkdtemp(path.join(tmpdir(), "farm-orm-demo-drizzle-sqlite-"));
+  const databasePath = path.join(directory, "demo.db");
+  const database = new DatabaseSync(databasePath);
+
+  await applyStatements(
+    database.exec.bind(database),
+    renderSafeSql(authSchema, { dialect: "sqlite" }),
+  );
+
+  const db = drizzleSqliteDatabase(async (sql, params, method) => {
+    const statement = database.prepare(sql);
+
+    if (method === "run") {
+      statement.run(...params);
+      return { rows: [] };
+    }
+
+    if (method === "get") {
+      const row = statement.get(...params) as Record<string, unknown> | undefined;
+      return { rows: row ? [row] : [] };
+    }
+
+    return {
+      rows: statement.all(...params) as Record<string, unknown>[],
+    };
+  });
+
+  const orm: AuthOrm = createOrm({
+    schema: authSchema,
+    driver: createDrizzleDriver<typeof authSchema>({
+      db,
+      client: database,
+      dialect: "sqlite",
+    }),
+  });
+
+  return {
+    name: "drizzle-sqlite",
+    label: "Drizzle runtime (sqlite)",
+    client: "Drizzle sqlite-proxy",
+    orm,
+    directCheck: async (userId) => {
+      const rows = database
+        .prepare('select "id", "email_address" from "users" where "id" = ?')
+        .all(userId) as Array<{ id: string; email_address: string }>;
+
+      return toDirectCheck(rows[0]);
+    },
+    close: async () => {
+      database.close();
+      await rm(directory, { recursive: true, force: true });
+    },
+  };
+}
+
 async function createPostgresPoolRuntime(): Promise<DemoRuntimeHandle> {
   const databaseName = createIsolatedName("farm_orm_demo_pg_pool");
   const adminPool = new Pool({ connectionString: pgAdminUrl });
@@ -457,6 +520,72 @@ async function createPostgresClientRuntime(): Promise<DemoRuntimeHandle> {
     },
     close: async () => {
       await client.end();
+      const cleanupAdmin = new Pool({ connectionString: pgAdminUrl });
+      await cleanupAdmin.query(
+        "select pg_terminate_backend(pid) from pg_stat_activity where datname = $1 and pid <> pg_backend_pid()",
+        [databaseName],
+      );
+      await cleanupAdmin.query(`drop database if exists "${databaseName}"`);
+      await cleanupAdmin.end();
+    },
+  };
+}
+
+async function createDrizzlePostgresRuntime(): Promise<DemoRuntimeHandle> {
+  const databaseName = createIsolatedName("farm_orm_demo_drizzle_pg");
+  const adminPool = new Pool({ connectionString: pgAdminUrl });
+
+  try {
+    await adminPool.query(`create database "${databaseName}"`);
+  } catch (error) {
+    await adminPool.end();
+    throw formatLocalRuntimeError(
+      "PostgreSQL",
+      error,
+      `Set FARM_ORM_DEMO_PG_ADMIN_URL or FARM_ORM_LOCAL_PG_ADMIN_URL if your local admin URL is not ${pgAdminUrl}.`,
+    );
+  }
+
+  await adminPool.end();
+
+  const databaseUrl = assignDatabase(pgAdminUrl, databaseName);
+  const pool = new Pool({ connectionString: databaseUrl });
+
+  try {
+    await applyStatements(
+      (statement) => pool.query(statement),
+      renderSafeSql(authSchema, { dialect: "postgres" }),
+    );
+  } catch (error) {
+    await pool.end().catch(() => undefined);
+    const cleanupAdmin = new Pool({ connectionString: pgAdminUrl });
+    await cleanupAdmin.query(`drop database if exists "${databaseName}"`);
+    await cleanupAdmin.end();
+    throw error;
+  }
+
+  const db = drizzlePostgresDatabase(pool);
+  const orm: AuthOrm = createOrm({
+    schema: authSchema,
+    driver: createDrizzleDriver<typeof authSchema>({
+      db,
+      dialect: "postgres",
+    }),
+  });
+
+  return {
+    name: "drizzle-postgres",
+    label: "Drizzle runtime (postgres)",
+    client: "Drizzle node-postgres",
+    orm,
+    directCheck: async (userId) => {
+      const result = await pool.query('select "id", "email_address" from "users" where "id" = $1', [
+        userId,
+      ]);
+      return toDirectCheck(result.rows[0] as { id: string; email_address: string } | undefined);
+    },
+    close: async () => {
+      await pool.end();
       const cleanupAdmin = new Pool({ connectionString: pgAdminUrl });
       await cleanupAdmin.query(
         "select pg_terminate_backend(pid) from pg_stat_activity where datname = $1 and pid <> pg_backend_pid()",
@@ -588,6 +717,68 @@ async function createMysqlConnectionRuntime(): Promise<DemoRuntimeHandle> {
   };
 }
 
+async function createDrizzleMysqlRuntime(): Promise<DemoRuntimeHandle> {
+  const databaseName = createIsolatedName("farm_orm_demo_drizzle_mysql");
+  const adminPool = mysql.createPool(mysqlAdminUrl);
+
+  try {
+    await adminPool.query(`create database \`${databaseName}\``);
+  } catch (error) {
+    await adminPool.end();
+    throw formatLocalRuntimeError(
+      "MySQL",
+      error,
+      `Set FARM_ORM_DEMO_MYSQL_ADMIN_URL or FARM_ORM_LOCAL_MYSQL_ADMIN_URL if your local admin URL is not ${mysqlAdminUrl}.`,
+    );
+  }
+
+  await adminPool.end();
+
+  const databaseUrl = assignDatabase(mysqlAdminUrl, databaseName);
+  const pool = mysql.createPool(databaseUrl);
+
+  try {
+    await applyStatements(
+      (statement) => pool.query(statement),
+      renderSafeSql(authSchema, { dialect: "mysql" }),
+    );
+  } catch (error) {
+    await pool.end().catch(() => undefined);
+    const cleanupAdmin = mysql.createPool(mysqlAdminUrl);
+    await cleanupAdmin.query(`drop database if exists \`${databaseName}\``);
+    await cleanupAdmin.end();
+    throw error;
+  }
+
+  const db = drizzleMysqlDatabase(pool);
+  const orm: AuthOrm = createOrm({
+    schema: authSchema,
+    driver: createDrizzleDriver<typeof authSchema>({
+      db,
+      dialect: "mysql",
+    }),
+  });
+
+  return {
+    name: "drizzle-mysql",
+    label: "Drizzle runtime (mysql)",
+    client: "Drizzle mysql2",
+    orm,
+    directCheck: async (userId) => {
+      const [rows] = await pool.query("select `id`, `email_address` from `users` where `id` = ?", [
+        userId,
+      ]);
+      return toDirectCheck((rows as Array<{ id: string; email_address: string }>)[0]);
+    },
+    close: async () => {
+      await pool.end();
+      const cleanupAdmin = mysql.createPool(mysqlAdminUrl);
+      await cleanupAdmin.query(`drop database if exists \`${databaseName}\``);
+      await cleanupAdmin.end();
+    },
+  };
+}
+
 async function createMongooseRuntime(): Promise<DemoRuntimeHandle> {
   const databaseUrl = assignMongoDatabase(mongoBaseUrl, createIsolatedName("farm_orm_demo_mongo"));
   const connection = mongoose.createConnection(databaseUrl, {
@@ -698,6 +889,12 @@ export const demoAdapters: Record<DemoAdapterName, DemoAdapterFactory> = {
     availability: alwaysAvailable,
     create: createSqliteRuntime,
   },
+  "drizzle-sqlite": {
+    label: "Drizzle runtime (sqlite)",
+    client: "Drizzle sqlite-proxy",
+    availability: alwaysAvailable,
+    create: createDrizzleSqliteRuntime,
+  },
   prisma: {
     label: "Prisma runtime",
     client: "Generated PrismaClient",
@@ -716,6 +913,12 @@ export const demoAdapters: Record<DemoAdapterName, DemoAdapterFactory> = {
     availability: probePostgres,
     create: createPostgresClientRuntime,
   },
+  "drizzle-postgres": {
+    label: "Drizzle runtime (postgres)",
+    client: "Drizzle node-postgres",
+    availability: probePostgres,
+    create: createDrizzlePostgresRuntime,
+  },
   "mysql-pool": {
     label: "MySQL runtime (pool)",
     client: "mysql2 pool",
@@ -728,6 +931,12 @@ export const demoAdapters: Record<DemoAdapterName, DemoAdapterFactory> = {
     availability: probeMysql,
     create: createMysqlConnectionRuntime,
   },
+  "drizzle-mysql": {
+    label: "Drizzle runtime (mysql)",
+    client: "Drizzle mysql2",
+    availability: probeMysql,
+    create: createDrizzleMysqlRuntime,
+  },
   mongoose: {
     label: "MongoDB runtime",
     client: "Mongoose models",
@@ -739,13 +948,16 @@ export const demoAdapters: Record<DemoAdapterName, DemoAdapterFactory> = {
 export const selfContainedDemoAdapters = [
   "memory",
   "sqlite",
+  "drizzle-sqlite",
   "prisma",
 ] as const satisfies readonly DemoAdapterName[];
 export const localDemoAdapters = [
   "postgres-pool",
   "postgres-client",
+  "drizzle-postgres",
   "mysql-pool",
   "mysql-connection",
+  "drizzle-mysql",
   "mongoose",
 ] as const satisfies readonly DemoAdapterName[];
 export const allDemoAdapters = Object.keys(demoAdapters) as DemoAdapterName[];

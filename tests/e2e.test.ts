@@ -98,5 +98,29 @@ describe("workspace end to end", () => {
     expect(demoPayload.result.user?.profile?.bio).toBe(
       `Unified auth flow running through ${demoPayload.result.adapter.client}.`,
     );
+
+    const drizzleDemoRun = await runPnpm(["exec", "tsx", "src/index.ts", "--", "drizzle-sqlite"], demoDir);
+    const drizzleDemoPayload = JSON.parse(drizzleDemoRun.stdout) as {
+      adapter: string;
+      result: {
+        adapter: {
+          name: string;
+          client: string;
+        };
+        user: {
+          name: string;
+          profile: {
+            bio: string;
+          } | null;
+        } | null;
+      };
+    };
+
+    expect(drizzleDemoPayload.adapter).toBe("drizzle-sqlite");
+    expect(drizzleDemoPayload.result.adapter.name).toBe("drizzle-sqlite");
+    expect(drizzleDemoPayload.result.user?.name).toBe("Ada Lovelace");
+    expect(drizzleDemoPayload.result.user?.profile?.bio).toBe(
+      `Unified auth flow running through ${drizzleDemoPayload.result.adapter.client}.`,
+    );
   }, 120_000);
 });
