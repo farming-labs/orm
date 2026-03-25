@@ -7,16 +7,14 @@ icon: rocket
 
 # Getting Started
 
-The recommended path is:
+The shortest path is:
 
 1. Define a schema in `@farming-labs/orm`
-2. Add a `farm-orm.config.ts`
-3. Generate target output with `@farming-labs/orm-cli`
-4. Pick a runtime driver: memory, Prisma, Drizzle, direct SQL, native MongoDB, or Mongoose depending on the app stack
+2. Add `farm-orm.config.ts`
+3. Generate target output
+4. Pick a runtime driver
 
-## Step 1: Define a real schema
-
-This example mirrors the auth-flavored demo already present in the repo.
+## 1. Define a schema
 
 ```ts
 import {
@@ -34,7 +32,6 @@ import {
 export const authSchema = defineSchema({
   user: model({
     table: "users",
-    description: "Core user records for auth-like libraries.",
     fields: {
       id: id(),
       name: string(),
@@ -49,7 +46,6 @@ export const authSchema = defineSchema({
       sessions: hasMany("session", { foreignKey: "userId" }),
     },
   }),
-
   profile: model({
     table: "profiles",
     fields: {
@@ -61,7 +57,6 @@ export const authSchema = defineSchema({
       user: belongsTo("user", { foreignKey: "userId" }),
     },
   }),
-
   session: model({
     table: "sessions",
     fields: {
@@ -74,7 +69,6 @@ export const authSchema = defineSchema({
       user: belongsTo("user", { foreignKey: "userId" }),
     },
   }),
-
   account: model({
     table: "accounts",
     fields: {
@@ -90,9 +84,7 @@ export const authSchema = defineSchema({
 });
 ```
 
-## Step 2: Add `farm-orm.config.ts`
-
-The CLI takes one or more schema objects and one or more targets.
+## 2. Add `farm-orm.config.ts`
 
 ```ts
 import { defineConfig } from "@farming-labs/orm-cli";
@@ -104,7 +96,6 @@ export default defineConfig({
     prisma: {
       out: "./generated/prisma/schema.prisma",
       provider: "postgresql",
-      mode: "replace",
     },
     drizzle: {
       out: "./generated/drizzle/schema.ts",
@@ -118,7 +109,7 @@ export default defineConfig({
 });
 ```
 
-## Step 3: Generate artifacts
+## 3. Generate artifacts
 
 ```bash
 farm-orm generate prisma
@@ -127,67 +118,130 @@ farm-orm generate sql
 farm-orm check prisma
 ```
 
-### What each command does
+Generated Prisma and Drizzle output already includes direct relation metadata for:
 
-- `generate prisma` renders Prisma schema output
-- `generate drizzle` renders generated Drizzle table code
-- `generate sql` emits safe SQL
-- `check prisma` verifies that the generated Prisma output on disk still matches the schema
+- `belongsTo`
+- `hasOne`
+- `hasMany`
 
-For direct relations, the generated Prisma and Drizzle output now already reflects:
+Join-table `manyToMany` stays explicit through the join model.
 
-- `belongsTo(...)`
-- `hasOne(...)`
-- `hasMany(...)`
+## 4. Pick a runtime
 
-Join-table-backed `manyToMany(...)` stays explicit through the join model in generated
-Prisma and Drizzle output.
-
-## Step 4: Use the runtime client today
-
-The simplest runtime option is still the memory driver, which is useful for
-docs, tests, demos, and schema-level validation.
+### Memory
 
 ```ts
 import { createMemoryDriver, createOrm } from "@farming-labs/orm";
-import { authSchema } from "./schema";
 
 const orm = createOrm({
   schema: authSchema,
-  driver: createMemoryDriver({
-    user: [
-      {
-        id: "user_1",
-        name: "Ada Lovelace",
-        email: "ada@farminglabs.dev",
-        emailVerified: true,
-        createdAt: new Date("2025-01-01T00:00:00.000Z"),
-        updatedAt: new Date("2025-01-01T00:00:00.000Z"),
-      },
-    ],
-    profile: [
-      {
-        id: "profile_1",
-        userId: "user_1",
-        bio: "Design once, ship to every storage layer.",
-      },
-    ],
-    session: [
-      {
-        id: "session_1",
-        userId: "user_1",
-        token: "session-token",
-        expiresAt: new Date("2026-01-01T00:00:00.000Z"),
-      },
-    ],
+  driver: createMemoryDriver(),
+});
+```
+
+### Prisma
+
+```ts
+import { createOrm } from "@farming-labs/orm";
+import { createPrismaDriver } from "@farming-labs/orm-prisma";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createPrismaDriver({ client: prisma }),
+});
+```
+
+### Drizzle
+
+```ts
+import { createOrm } from "@farming-labs/orm";
+import { createDrizzleDriver } from "@farming-labs/orm-drizzle";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+
+const db = drizzle(
+  new Pool({
+    connectionString: process.env.DATABASE_URL,
+  }),
+);
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createDrizzleDriver({
+    db,
+    dialect: "postgres",
   }),
 });
+```
 
-const user = await orm.user.findFirst({
-  where: { email: "ada@farminglabs.dev" },
+### Direct SQL
+
+```ts
+import { createOrm } from "@farming-labs/orm";
+import { createPgPoolDriver } from "@farming-labs/orm-sql";
+import { Pool } from "pg";
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createPgPoolDriver(
+    new Pool({
+      connectionString: process.env.DATABASE_URL,
+    }),
+  ),
+});
+```
+
+### MongoDB
+
+```ts
+import { createOrm } from "@farming-labs/orm";
+import { createMongoDriver } from "@farming-labs/orm-mongo";
+import { MongoClient } from "mongodb";
+
+const client = new MongoClient(process.env.MONGODB_URL!);
+await client.connect();
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createMongoDriver({
+    db: client.db("app"),
+    client,
+  }),
+});
+```
+
+### Mongoose
+
+```ts
+import { createOrm } from "@farming-labs/orm";
+import { createMongooseDriver } from "@farming-labs/orm-mongoose";
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createMongooseDriver<typeof authSchema>({
+    models: {
+      user: UserModel,
+      profile: ProfileModel,
+      session: SessionModel,
+      account: AccountModel,
+    },
+    connection: mongoose.connection,
+  }),
+});
+```
+
+## 5. Use the client
+
+```ts
+const user = await orm.user.findUnique({
+  where: {
+    email: "ada@farminglabs.dev",
+  },
   select: {
     id: true,
-    name: true,
     email: true,
     profile: {
       select: {
@@ -204,166 +258,7 @@ const user = await orm.user.findFirst({
 });
 ```
 
-If the app already uses Prisma Client, you can run the same unified API through
-`@farming-labs/orm-prisma`:
-
-```ts
-import { createOrm } from "@farming-labs/orm";
-import { createPrismaDriver } from "@farming-labs/orm-prisma";
-import { PrismaClient } from "@prisma/client";
-import { authSchema } from "./schema";
-
-const prisma = new PrismaClient();
-
-const orm = createOrm({
-  schema: authSchema,
-  driver: createPrismaDriver({
-    client: prisma,
-  }),
-});
-
-const user = await orm.user.findUnique({
-  where: {
-    email: "ada@farminglabs.dev",
-  },
-  select: {
-    id: true,
-    email: true,
-    sessions: {
-      select: {
-        token: true,
-      },
-    },
-  },
-});
-```
-
-If you want to run the unified API against a real SQL backend, use
-`@farming-labs/orm-sql`:
-
-```ts
-import { createOrm } from "@farming-labs/orm";
-import { createPgPoolDriver } from "@farming-labs/orm-sql";
-import { Pool } from "pg";
-import { authSchema } from "./schema";
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-const orm = createOrm({
-  schema: authSchema,
-  driver: createPgPoolDriver(pool),
-});
-```
-
-There are matching factories for:
-
-- `createPgPoolDriver(pool)`
-- `createPgClientDriver(client)`
-- `createMysqlDriver(poolOrConnection)`
-- `createSqliteDriver(database)`
-- `createPrismaDriver({ client })`
-
-If the app already uses Drizzle, you can keep that stack and still run the same
-unified API through `@farming-labs/orm-drizzle`:
-
-```ts
-import { createOrm } from "@farming-labs/orm";
-import { createDrizzleDriver } from "@farming-labs/orm-drizzle";
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
-import { authSchema } from "./schema";
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-const db = drizzle(pool);
-
-const orm = createOrm({
-  schema: authSchema,
-  driver: createDrizzleDriver({
-    db,
-    dialect: "postgres",
-  }),
-});
-```
-
-If the app stack already uses the native MongoDB client, use
-`@farming-labs/orm-mongo`:
-
-```ts
-import { createOrm } from "@farming-labs/orm";
-import { createMongoDriver } from "@farming-labs/orm-mongo";
-import { MongoClient } from "mongodb";
-import { authSchema } from "./schema";
-
-const client = new MongoClient(process.env.MONGODB_URL!);
-await client.connect();
-
-const orm = createOrm({
-  schema: authSchema,
-  driver: createMongoDriver({
-    db: client.db("app"),
-    client,
-  }),
-});
-```
-
-If the app stack is already on MongoDB with Mongoose, use
-`@farming-labs/orm-mongoose`:
-
-```ts
-import { createOrm } from "@farming-labs/orm";
-import { createMongooseDriver } from "@farming-labs/orm-mongoose";
-import mongoose from "mongoose";
-import { authSchema } from "./schema";
-import { AccountModel, ProfileModel, SessionModel, UserModel } from "./models";
-
-const orm = createOrm({
-  schema: authSchema,
-  driver: createMongooseDriver<typeof authSchema>({
-    models: {
-      user: UserModel,
-      profile: ProfileModel,
-      session: SessionModel,
-      account: AccountModel,
-    },
-    connection: mongoose.connection,
-  }),
-});
-```
-
-Those are the live runtime translators in this repo right now:
-
-- memory for docs, tests, and demos
-- Drizzle for Drizzle-backed SQLite, MySQL, and PostgreSQL apps
-- direct SQL for SQLite, MySQL, and PostgreSQL
-- Prisma for `PrismaClient`-backed apps
-- native MongoDB for apps using `mongodb`
-- Mongoose for MongoDB-oriented apps
-
-## Step 5: Understand what gets generated
-
-From the schema above:
-
-- `email: string().unique().map("email_address")` becomes `email_address` in generated database output
-- `id()` becomes a primary key and generated id field
-- `datetime().defaultNow()` becomes a generated `now` default where supported
-- `references("user.id")` becomes a real foreign key/reference in generated output
-
-## Step 6: Pick how it fits your stack
-
-- [Prisma integration](/docs/integrations/prisma)
-- [Drizzle integration](/docs/integrations/drizzle)
-- [SQL databases](/docs/integrations/sql-databases)
-- [MongoDB](/docs/integrations/mongodb)
-
-## Step 7: Verify against real local databases
-
-Once you want to go beyond the memory driver, the repo also ships local integration
-test commands for the live runtime packages:
+## 6. Verify with local databases
 
 ```bash
 pnpm test:local
@@ -375,42 +270,10 @@ pnpm test:local:mysql
 pnpm test:local:mongodb
 ```
 
-That is a good way to validate auth-style relation flows against real local SQLite,
-PostgreSQL, MySQL, and MongoDB instances before wiring the package into an app.
+## Continue
 
-## Common first tasks
-
-### Add a second schema package
-
-```ts
-import { defineConfig } from "@farming-labs/orm-cli";
-import { authSchema } from "@acme/auth";
-import { billingSchema } from "@acme/billing";
-
-export default defineConfig({
-  schemas: [authSchema, billingSchema],
-  targets: {
-    prisma: { out: "./generated/prisma/schema.prisma", provider: "postgresql" },
-  },
-});
-```
-
-### Seed a demo or test quickly
-
-```ts
-const orm = createOrm({
-  schema: authSchema,
-  driver: createMemoryDriver({
-    user: [{ id: "user_1", name: "Ada", email: "ada@farminglabs.dev" }],
-  }),
-});
-```
-
-## Verify everything together
-
-This repo is intentionally set up so docs, generators, and demo flows can be
-checked together.
-
-```bash
-pnpm test
-```
+- [Runtime](/docs/runtime)
+- [Prisma integration](/docs/integrations/prisma)
+- [Drizzle integration](/docs/integrations/drizzle)
+- [SQL databases](/docs/integrations/sql-databases)
+- [MongoDB](/docs/integrations/mongodb)

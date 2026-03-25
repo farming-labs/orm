@@ -2,56 +2,53 @@
 
 One schema. Many stacks.
 
-`@farming-labs/orm` lets library authors and shared platform packages define a data
-model once in TypeScript, then:
+`@farming-labs/orm` lets you define a schema once in TypeScript, generate
+Prisma/Drizzle/SQL output from it, and run one typed query API across multiple
+runtime drivers.
 
-- generate Prisma, Drizzle, and SQL output
-- run one typed query API against memory, Prisma, Drizzle, SQL, MongoDB, or Mongoose
-- keep app code independent from the consumer's ORM choice
-
-## What it is
+## Packages
 
 - `@farming-labs/orm`
-  Core schema DSL, typed client, generators, and memory runtime
+  Core schema DSL, typed client, generators, and memory driver
 - `@farming-labs/orm-cli`
-  `farm-orm` CLI for generating Prisma, Drizzle, and SQL artifacts
+  CLI for generating Prisma, Drizzle, and safe SQL artifacts
 - `@farming-labs/orm-prisma`
-  Live runtime driver for apps that already use `PrismaClient`
+  Runtime driver for `PrismaClient`
 - `@farming-labs/orm-drizzle`
-  Live runtime driver for apps that already use Drizzle database instances
+  Runtime driver for Drizzle-backed SQLite, MySQL, and PostgreSQL
 - `@farming-labs/orm-sql`
-  Live runtime driver for SQLite, MySQL, and PostgreSQL
+  Direct SQL runtime for SQLite, MySQL, and PostgreSQL
 - `@farming-labs/orm-mongo`
-  Live runtime driver for MongoDB apps that use the native `mongodb` client
+  Runtime driver for the native `mongodb` client
 - `@farming-labs/orm-mongoose`
-  Live runtime driver for MongoDB apps that use Mongoose
+  Runtime driver for Mongoose
 
 ## What works today
 
-- schema definition with fields, defaults, uniqueness, mapped column names, and relations
+- schema definition with fields, defaults, unique fields, mapped column names, and relations
 - generated Prisma output
 - generated Drizzle output
 - generated safe SQL output
-- live runtime queries for:
+- live runtime drivers for:
   - memory
-  - Prisma through `PrismaClient`
-  - Drizzle through Drizzle database instances backed by SQLite, MySQL, or PostgreSQL
+  - Prisma
+  - Drizzle
   - SQLite
   - MySQL
   - PostgreSQL
-  - MongoDB through the native `mongodb` driver
-  - MongoDB through Mongoose
+  - MongoDB via `mongodb`
+  - MongoDB via Mongoose
 - relation support for:
   - `belongsTo`
   - `hasOne`
   - `hasMany`
   - explicit join-table `manyToMany`
 
-## What does not exist yet
+## Not shipped yet
 
-- live Kysely runtime driver
+- Kysely runtime driver
 
-## Simple example
+## Quick example
 
 ```ts
 import { belongsTo, createOrm, defineSchema, hasMany, id, model, string } from "@farming-labs/orm";
@@ -83,13 +80,13 @@ const schema = defineSchema({
   }),
 });
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
 const orm = createOrm({
   schema,
-  driver: createPgPoolDriver(pool),
+  driver: createPgPoolDriver(
+    new Pool({
+      connectionString: process.env.DATABASE_URL,
+    }),
+  ),
 });
 
 const user = await orm.user.findOne({
@@ -107,8 +104,6 @@ const user = await orm.user.findOne({
 ```
 
 ## Generate artifacts
-
-Define a `farm-orm.config.ts`:
 
 ```ts
 import { defineConfig } from "@farming-labs/orm-cli";
@@ -133,8 +128,6 @@ export default defineConfig({
 });
 ```
 
-Then run:
-
 ```bash
 farm-orm generate prisma
 farm-orm generate drizzle
@@ -143,28 +136,15 @@ farm-orm generate sql
 
 ## Local development
 
-Requirements:
-
-- Node.js 20+
-- pnpm 10
-
-Install and build:
-
 ```bash
 pnpm install
 pnpm build
-```
-
-Common commands:
-
-```bash
 pnpm test
-pnpm check
 pnpm dev:docs
 pnpm dev:demo
 ```
 
-Real local database integration tests:
+Real local database checks:
 
 ```bash
 pnpm test:local
@@ -176,68 +156,26 @@ pnpm test:local:mysql
 pnpm test:local:mongodb
 ```
 
-Unified adapter-swap demo:
+Demo:
 
 ```bash
 pnpm --filter demo demo -- all
 pnpm --filter demo demo -- memory
-pnpm --filter demo demo -- sqlite
 pnpm --filter demo demo -- prisma
 pnpm --filter demo demo -- mongo
 pnpm --filter demo demo -- mongoose
 ```
 
-Full local adapter matrix:
-
-```bash
-pnpm --filter demo test:local
-```
-
-## Releasing packages
-
-Version and tag a release:
+## Release
 
 ```bash
 pnpm release:latest
-```
-
-Publish the latest version:
-
-```bash
 pnpm publish:latest
 ```
-
-Beta flow:
 
 ```bash
 pnpm release:beta
 pnpm publish:beta
 ```
 
-Dry runs:
-
-```bash
-pnpm publish:latest:dry-run
-pnpm publish:beta:dry-run
-```
-
-## Repo layout
-
-- `packages/orm`
-- `packages/cli`
-- `packages/prisma`
-- `packages/drizzle`
-- `packages/sql`
-- `packages/mongoose`
-- `apps/demo`
-- `apps/docs`
-
-## Docs
-
-Run the docs site locally with:
-
-```bash
-pnpm dev:docs
-```
-
-The main docs live under [`apps/docs/app/docs`](/Users/mac/oss/orms/apps/docs/app/docs).
+Docs live in [apps/docs/app/docs](/Users/mac/oss/orms/apps/docs/app/docs).

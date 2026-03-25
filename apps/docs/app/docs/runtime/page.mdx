@@ -7,77 +7,14 @@ icon: server
 
 # Runtime
 
-In Farming Labs ORM, **runtime** means the part of the system that executes the
-typed query API against a driver.
+In Farming Labs ORM, **runtime** is the layer that executes the typed query API.
 
-That is different from:
+It is separate from:
 
-- **schema authoring**, which defines the contract
-- **generation**, which emits Prisma, Drizzle, or SQL files
+- schema authoring
+- code generation
 
-## Short version
-
-- `defineSchema(...)` describes the data model
-- `createOrm(...)` creates the typed runtime client
-- a driver implements how queries actually run
-
-## What runtime is responsible for
-
-- typed model clients like `orm.user`
-- unified query and mutation methods like `findUnique`, `findOne`, `findFirst`,
-  `findMany`, `count`, `create`, `createMany`, `update`, `updateMany`,
-  `upsert`, `delete`, and `deleteMany`
-- nested relation selection
-- transaction boundaries
-- grouped workflows through `orm.batch(...)`
-- returning typed results based on the `select` object
-
-## What runtime is not responsible for
-
-- generating Prisma or Drizzle files
-- deciding physical column names by itself
-- owning a second source of truth for schema semantics
-
-## Current runtime implementation in this repo
-
-Today, the implemented runtime drivers are:
-
-- `createMemoryDriver(...)` from `@farming-labs/orm`
-- `createPrismaDriver(...)` from `@farming-labs/orm-prisma`
-- `createDrizzleDriver(...)` from `@farming-labs/orm-drizzle`
-- `createSqliteDriver(...)` from `@farming-labs/orm-sql`
-- `createMysqlDriver(...)` from `@farming-labs/orm-sql`
-- `createPgPoolDriver(...)` from `@farming-labs/orm-sql`
-- `createPgClientDriver(...)` from `@farming-labs/orm-sql`
-- `createMongoDriver(...)` from `@farming-labs/orm-mongo`
-- `createMongooseDriver(...)` from `@farming-labs/orm-mongoose`
-
-That makes the runtime layer already useful for:
-
-- docs examples
-- tests
-- seeded demos
-- Prisma-backed apps that already use `PrismaClient`
-- Drizzle-backed apps that already use Drizzle database instances
-- direct SQL-backed apps using SQLite, MySQL, or PostgreSQL pools
-- MongoDB-backed apps that already use the native `mongodb` client
-- MongoDB-backed apps that already use Mongoose models and sessions
-- validating the query API shape before a Kysely driver is added
-
-## Current relation support
-
-The live runtime drivers in this repo already cover:
-
-- `belongsTo(...)`
-- `hasOne(...)`
-- `hasMany(...)`
-- explicit join-table `manyToMany(...)`
-
-That support is exercised today in memory, Prisma, Drizzle, SQL, native MongoDB, and Mongoose tests, so auth-style
-lookups such as `user.profile`, `user.sessions`, `session.user`, and join-table-backed
-membership traversal are part of the real runtime surface now.
-
-## The runtime shape
+## The shape
 
 ```ts
 import { createMemoryDriver, createOrm } from "@farming-labs/orm";
@@ -89,31 +26,56 @@ const orm = createOrm({
 });
 ```
 
-That creates model clients from the schema:
+That gives you typed model clients such as `orm.user`, `orm.session`, and
+`orm.account`.
 
-```ts
-orm.user.findUnique(...)
-orm.user.findOne(...)
-orm.user.findFirst(...)
-orm.user.findMany(...)
-orm.user.count(...)
-orm.user.create(...)
-orm.user.createMany(...)
-orm.user.update(...)
-orm.user.updateMany(...)
-orm.user.upsert(...)
-orm.user.delete(...)
-orm.user.deleteMany(...)
-orm.transaction(...)
-orm.batch(...)
-```
+## Query surface
 
-## Why the runtime matters
+The runtime client supports:
 
-The runtime is where a library package can expose one storage-facing API
-without forcing every consumer to think in raw generated artifacts.
+- `findUnique`
+- `findOne`
+- `findFirst`
+- `findMany`
+- `count`
+- `create`
+- `createMany`
+- `update`
+- `updateMany`
+- `upsert`
+- `delete`
+- `deleteMany`
+- `transaction`
+- `batch`
 
-For example, an auth package can write one helper like:
+## Relations
+
+All live runtime drivers support:
+
+- `belongsTo`
+- `hasOne`
+- `hasMany`
+- explicit join-table `manyToMany`
+
+That means nested queries like `user.profile`, `user.sessions`, and
+`session.user` work across the supported runtimes.
+
+## Available drivers
+
+- `createMemoryDriver(...)` from `@farming-labs/orm`
+- `createPrismaDriver(...)` from `@farming-labs/orm-prisma`
+- `createDrizzleDriver(...)` from `@farming-labs/orm-drizzle`
+- `createSqliteDriver(...)` from `@farming-labs/orm-sql`
+- `createMysqlDriver(...)` from `@farming-labs/orm-sql`
+- `createPgPoolDriver(...)` from `@farming-labs/orm-sql`
+- `createPgClientDriver(...)` from `@farming-labs/orm-sql`
+- `createMongoDriver(...)` from `@farming-labs/orm-mongo`
+- `createMongooseDriver(...)` from `@farming-labs/orm-mongoose`
+
+## Why this matters
+
+Libraries can write one storage layer against `createOrm(...)` and let each app
+bring its own runtime.
 
 ```ts
 async function findUserByEmail(orm: typeof authOrm, email: string) {
@@ -130,74 +92,10 @@ async function findUserByEmail(orm: typeof authOrm, email: string) {
 }
 ```
 
-And a mutation helper can stay just as stable:
+That helper stays the same whether the app uses Prisma, Drizzle, direct SQL,
+MongoDB, or Mongoose.
 
-```ts
-function rotateSession(
-  orm: typeof authOrm,
-  input: { userId: string; token: string; expiresAt: Date },
-) {
-  return orm.session.upsert({
-    where: { token: input.token },
-    create: {
-      userId: input.userId,
-      token: input.token,
-      expiresAt: input.expiresAt,
-    },
-    update: {
-      expiresAt: input.expiresAt,
-    },
-    select: {
-      token: true,
-      expiresAt: true,
-    },
-  });
-}
-```
-
-Those helpers stay stable even as the app-side generation target changes.
-
-## Drivers
-
-A driver implements this kind of work:
-
-- execute `findUnique`
-- execute `findMany`
-- execute `findFirst`
-- execute `count`
-- execute `create`
-- execute `createMany`
-- execute `update`
-- execute `updateMany`
-- execute `upsert`
-- execute `delete`
-- execute `deleteMany`
-- run `transaction`
-- support grouped runtime workflows like `batch`
-
-The driver contract lives inside `@farming-labs/orm`, and `createOrm(...)`
-wraps that driver into typed model clients.
-
-Today, the live method-translation layers in this repo are:
-
-- memory, through `createMemoryDriver(...)`
-- Prisma Client, through `@farming-labs/orm-prisma`
-- Drizzle, through `@farming-labs/orm-drizzle`
-- direct SQL, through `@farming-labs/orm-sql`
-- native MongoDB, through `@farming-labs/orm-mongo`
-- Mongoose, through `@farming-labs/orm-mongoose`
-
-So the full query API already translates to SQLite, MySQL, PostgreSQL, and
-MongoDB documents today, and it also translates to `PrismaClient` delegates,
-Drizzle database instances, and Mongoose models through
-`@farming-labs/orm-prisma`, `@farming-labs/orm-drizzle`,
-`@farming-labs/orm-mongo`, and `@farming-labs/orm-mongoose`. Kysely is still
-the next runtime package.
-
-## Local database verification
-
-If you want to exercise the live runtime packages against local databases instead of
-the in-memory driver, the repo already exposes local integration commands:
+## Local verification
 
 ```bash
 pnpm test:local
@@ -209,37 +107,22 @@ pnpm test:local:mysql
 pnpm test:local:mongodb
 ```
 
-Those commands hit the implemented runtime packages:
+## Status
 
-- `@farming-labs/orm-prisma` for real local Prisma Client runs against SQLite, PostgreSQL, and MySQL
-- `@farming-labs/orm-drizzle` for real local Drizzle runs against SQLite, PostgreSQL, and MySQL
-- `@farming-labs/orm-sql` for SQLite, MySQL, and PostgreSQL
-- `@farming-labs/orm-mongo` for MongoDB through the native `mongodb` client
-- `@farming-labs/orm-mongoose` for MongoDB through Mongoose
+Live today:
 
-## Current and future runtime story
+- memory
+- Prisma
+- Drizzle
+- direct SQL
+- MongoDB
+- Mongoose
 
-### Implemented now
+Next:
 
-- the unified runtime contract inside `@farming-labs/orm`
-- `createMemoryDriver(...)` as the first concrete runtime driver
-- `@farming-labs/orm-prisma` for Prisma-backed apps
-- `@farming-labs/orm-drizzle` for Drizzle-backed apps
-- `@farming-labs/orm-sql` for SQLite, MySQL, and `pg.Pool`
-- `@farming-labs/orm-mongo` for MongoDB-backed apps using the native driver
-- `@farming-labs/orm-mongoose` for MongoDB-oriented apps that already use Mongoose
+- Kysely
 
-That means libraries can already standardize on one query and mutation API
-today, and Prisma, Drizzle, SQL, MongoDB, and Mongoose consumers can run that API
-against real databases while Kysely-specific runtime support is still the next step.
-
-### Planned next
-
-- Kysely runtime driver package
-- The important design constraint is that those future drivers should plug into
-  the same typed runtime contract instead of redefining the API from scratch.
-
-## Continue reading
+## Continue
 
 - [Query API](/docs/runtime/query-api)
 - [Memory driver](/docs/runtime/memory-driver)
