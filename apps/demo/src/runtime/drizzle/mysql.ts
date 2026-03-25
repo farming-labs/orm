@@ -6,7 +6,13 @@ import type { AuthOrm } from "../../auth-store";
 import { authSchema } from "../../schema";
 import { mysqlAdminUrl } from "../shared/config";
 import type { DemoRuntimeHandle } from "../shared/types";
-import { applyStatements, assignDatabase, createIsolatedName, formatLocalRuntimeError, toDirectCheck } from "../shared/utils";
+import {
+  applyStatements,
+  assignDatabase,
+  createIsolatedName,
+  formatLocalRuntimeError,
+  toDirectCheck,
+} from "../shared/utils";
 
 export async function createDrizzleMysqlRuntime(): Promise<DemoRuntimeHandle> {
   const databaseName = createIsolatedName("farm_orm_demo_drizzle_mysql");

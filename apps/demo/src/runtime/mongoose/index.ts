@@ -5,7 +5,12 @@ import type { AuthOrm } from "../../auth-store";
 import { authSchema } from "../../schema";
 import { mongoBaseUrl } from "../shared/config";
 import type { DemoRuntimeHandle } from "../shared/types";
-import { assignMongoDatabase, createIsolatedName, formatLocalRuntimeError, toDirectCheck } from "../shared/utils";
+import {
+  assignMongoDatabase,
+  createIsolatedName,
+  formatLocalRuntimeError,
+  toDirectCheck,
+} from "../shared/utils";
 
 function asMongooseModelLike(model: mongoose.Model<any>) {
   return model as unknown as MongooseModelLike;

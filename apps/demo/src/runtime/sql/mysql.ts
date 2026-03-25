@@ -6,7 +6,13 @@ import { authSchema } from "../../schema";
 import { mysqlAdminUrl } from "../shared/config";
 import { asMysqlConnectionLike, asMysqlPoolLike } from "../shared/mysql";
 import type { DemoRuntimeHandle } from "../shared/types";
-import { applyStatements, assignDatabase, createIsolatedName, formatLocalRuntimeError, toDirectCheck } from "../shared/utils";
+import {
+  applyStatements,
+  assignDatabase,
+  createIsolatedName,
+  formatLocalRuntimeError,
+  toDirectCheck,
+} from "../shared/utils";
 
 export async function createMysqlPoolRuntime(): Promise<DemoRuntimeHandle> {
   const databaseName = createIsolatedName("farm_orm_demo_mysql_pool");

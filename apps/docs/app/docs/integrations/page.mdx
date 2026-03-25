@@ -26,17 +26,17 @@ So when people ask “does this support Prisma or Drizzle?” the honest answer 
 
 ## Current support matrix
 
-| Layer                  | PostgreSQL | MySQL   | SQLite  | MongoDB | Notes                                                                                            |
-| ---------------------- | ---------- | ------- | ------- | ------- | ------------------------------------------------------------------------------------------------ |
-| Prisma generation      | Yes        | Yes     | Yes     | No      | Uses Prisma providers `postgresql`, `mysql`, `sqlite`                                            |
-| Drizzle generation     | Yes        | Yes     | Yes     | No      | Uses Drizzle dialects `pg`, `mysql`, `sqlite`                                                    |
-| Safe SQL generation    | Yes        | Yes     | Yes     | No      | Uses SQL dialects `postgres`, `mysql`, `sqlite`                                                  |
-| Memory runtime         | N/A        | N/A     | N/A     | N/A     | In-memory driver for tests, demos, and docs                                                      |
-| Direct SQL runtime     | Yes        | Yes     | Yes     | No      | `@farming-labs/orm-sql` for SQLite, MySQL, and PostgreSQL                                        |
-| Drizzle runtime        | Yes        | Yes     | Yes     | No      | `@farming-labs/orm-drizzle` for Drizzle databases backed by SQLite, MySQL, and PostgreSQL        |
-| Mongoose runtime       | No         | No      | No      | Yes     | `@farming-labs/orm-mongoose` for MongoDB-oriented apps                                           |
-| Prisma runtime driver  | Yes        | Yes     | Yes     | Later   | `@farming-labs/orm-prisma`; local integration is exercised against SQLite, PostgreSQL, and MySQL |
-| Kysely runtime driver  | Planned    | Planned | Planned | No      | Future package                                                                                   |
+| Layer                 | PostgreSQL | MySQL   | SQLite  | MongoDB | Notes                                                                                            |
+| --------------------- | ---------- | ------- | ------- | ------- | ------------------------------------------------------------------------------------------------ |
+| Prisma generation     | Yes        | Yes     | Yes     | No      | Uses Prisma providers `postgresql`, `mysql`, `sqlite`                                            |
+| Drizzle generation    | Yes        | Yes     | Yes     | No      | Uses Drizzle dialects `pg`, `mysql`, `sqlite`                                                    |
+| Safe SQL generation   | Yes        | Yes     | Yes     | No      | Uses SQL dialects `postgres`, `mysql`, `sqlite`                                                  |
+| Memory runtime        | N/A        | N/A     | N/A     | N/A     | In-memory driver for tests, demos, and docs                                                      |
+| Direct SQL runtime    | Yes        | Yes     | Yes     | No      | `@farming-labs/orm-sql` for SQLite, MySQL, and PostgreSQL                                        |
+| Drizzle runtime       | Yes        | Yes     | Yes     | No      | `@farming-labs/orm-drizzle` for Drizzle databases backed by SQLite, MySQL, and PostgreSQL        |
+| Mongoose runtime      | No         | No      | No      | Yes     | `@farming-labs/orm-mongoose` for MongoDB-oriented apps                                           |
+| Prisma runtime driver | Yes        | Yes     | Yes     | Later   | `@farming-labs/orm-prisma`; local integration is exercised against SQLite, PostgreSQL, and MySQL |
+| Kysely runtime driver | Planned    | Planned | Planned | No      | Future package                                                                                   |
 
 ## How to think about “fit”
 

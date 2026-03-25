@@ -103,7 +103,10 @@ describe("workspace end to end", () => {
       `Unified auth flow running through ${demoPayload.result.adapter.client}.`,
     );
 
-    const drizzleDemoRun = await runPnpm(["exec", "tsx", "src/index.ts", "--", "drizzle-sqlite"], demoDir);
+    const drizzleDemoRun = await runPnpm(
+      ["exec", "tsx", "src/index.ts", "--", "drizzle-sqlite"],
+      demoDir,
+    );
     const drizzleDemoPayload = JSON.parse(drizzleDemoRun.stdout) as {
       ok: boolean;
       status: string;
