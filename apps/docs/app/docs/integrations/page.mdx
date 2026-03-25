@@ -13,28 +13,30 @@ The most important idea is this:
 
 - `@farming-labs/orm` is the schema contract
 - `@farming-labs/orm-cli` generates artifacts for app-side tools
+- `@farming-labs/orm-prisma` runs the unified runtime against `PrismaClient`
+- `@farming-labs/orm-drizzle` runs the unified runtime against Drizzle databases
 - `@farming-labs/orm-sql` runs the unified runtime directly against SQL backends
 - `@farming-labs/orm-mongoose` runs the same runtime contract against Mongoose models
 
 So when people ask “does this support Prisma or Drizzle?” the honest answer is:
 
 - **yes for generation today**
-- **yes for live runtime execution today through memory, Prisma, direct SQL, and Mongoose drivers**
-- **not yet for live Drizzle or Kysely runtime execution in this repo**
+- **yes for live runtime execution today through memory, Prisma, Drizzle, direct SQL, and Mongoose drivers**
+- **not yet for live Kysely runtime execution in this repo**
 
 ## Current support matrix
 
-| Layer                  | PostgreSQL | MySQL   | SQLite  | MongoDB | Notes                                                                                            |
-| ---------------------- | ---------- | ------- | ------- | ------- | ------------------------------------------------------------------------------------------------ |
-| Prisma generation      | Yes        | Yes     | Yes     | No      | Uses Prisma providers `postgresql`, `mysql`, `sqlite`                                            |
-| Drizzle generation     | Yes        | Yes     | Yes     | No      | Uses Drizzle dialects `pg`, `mysql`, `sqlite`                                                    |
-| Safe SQL generation    | Yes        | Yes     | Yes     | No      | Uses SQL dialects `postgres`, `mysql`, `sqlite`                                                  |
-| Memory runtime         | N/A        | N/A     | N/A     | N/A     | In-memory driver for tests, demos, and docs                                                      |
-| Direct SQL runtime     | Yes        | Yes     | Yes     | No      | `@farming-labs/orm-sql` for SQLite, MySQL, and PostgreSQL                                        |
-| Mongoose runtime       | No         | No      | No      | Yes     | `@farming-labs/orm-mongoose` for MongoDB-oriented apps                                           |
-| Prisma runtime driver  | Yes        | Yes     | Yes     | Later   | `@farming-labs/orm-prisma`; local integration is exercised against SQLite, PostgreSQL, and MySQL |
-| Drizzle runtime driver | Planned    | Planned | Planned | No      | Future package                                                                                   |
-| Kysely runtime driver  | Planned    | Planned | Planned | No      | Future package                                                                                   |
+| Layer                 | PostgreSQL | MySQL   | SQLite  | MongoDB | Notes                                                                                            |
+| --------------------- | ---------- | ------- | ------- | ------- | ------------------------------------------------------------------------------------------------ |
+| Prisma generation     | Yes        | Yes     | Yes     | No      | Uses Prisma providers `postgresql`, `mysql`, `sqlite`                                            |
+| Drizzle generation    | Yes        | Yes     | Yes     | No      | Uses Drizzle dialects `pg`, `mysql`, `sqlite`                                                    |
+| Safe SQL generation   | Yes        | Yes     | Yes     | No      | Uses SQL dialects `postgres`, `mysql`, `sqlite`                                                  |
+| Memory runtime        | N/A        | N/A     | N/A     | N/A     | In-memory driver for tests, demos, and docs                                                      |
+| Direct SQL runtime    | Yes        | Yes     | Yes     | No      | `@farming-labs/orm-sql` for SQLite, MySQL, and PostgreSQL                                        |
+| Drizzle runtime       | Yes        | Yes     | Yes     | No      | `@farming-labs/orm-drizzle` for Drizzle databases backed by SQLite, MySQL, and PostgreSQL        |
+| Mongoose runtime      | No         | No      | No      | Yes     | `@farming-labs/orm-mongoose` for MongoDB-oriented apps                                           |
+| Prisma runtime driver | Yes        | Yes     | Yes     | Later   | `@farming-labs/orm-prisma`; local integration is exercised against SQLite, PostgreSQL, and MySQL |
+| Kysely runtime driver | Planned    | Planned | Planned | No      | Future package                                                                                   |
 
 ## How to think about “fit”
 
@@ -74,9 +76,10 @@ Those calls are handed to the active runtime driver.
 
 - In `@farming-labs/orm-sql`, they already compile into SQLite, MySQL, and PostgreSQL queries.
 - In `@farming-labs/orm-prisma`, they already compile into Prisma delegate calls.
+- In `@farming-labs/orm-drizzle`, they already compile through Drizzle-backed database handles for SQLite, MySQL, and PostgreSQL.
 - In `@farming-labs/orm-mongoose`, they already compile into Mongoose filters, writes, and transactions.
 - In the memory driver, they execute against in-memory rows for tests and demos.
-- In future Drizzle and Kysely drivers, those same methods would translate into the target client’s operations instead of SQL strings.
+- In a future Kysely driver, those same methods would translate into the target client’s operations instead of SQL strings.
 
 For generated Prisma and Drizzle output, direct relation definitions are also covered
 today:
@@ -105,14 +108,13 @@ When we say Prisma is supported **today**, we mean:
 When we say Drizzle is supported **today**, we mean:
 
 - the schema can be rendered into Drizzle output
-- the generated files can then be consumed by Drizzle workflows
-
-It does **not** mean that this repo already ships a live `drizzle-orm` runtime
-executor.
+- the repo ships a live `@farming-labs/orm-drizzle` runtime package for Drizzle databases backed by SQLite, MySQL, and PostgreSQL
+- the generated files can also be consumed by Drizzle workflows when you want generation as well as runtime
 
 It **does** mean the repo now ships live runtime packages for:
 
 - Prisma Client
+- Drizzle
 - SQLite
 - MySQL
 - PostgreSQL via `pg.Pool`

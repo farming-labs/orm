@@ -71,6 +71,8 @@ describe("workspace end to end", () => {
 
     const demoRun = await runPnpm(["exec", "tsx", "src/index.ts"], demoDir);
     const demoPayload = JSON.parse(demoRun.stdout) as {
+      ok: boolean;
+      status: string;
       adapter: string;
       result: {
         adapter: {
@@ -91,12 +93,45 @@ describe("workspace end to end", () => {
       };
     };
 
+    expect(demoPayload.ok).toBe(true);
+    expect(demoPayload.status).toBe("passed");
     expect(demoPayload.adapter).toBe("memory");
     expect(demoPayload.result.adapter.name).toBe("memory");
     expect(demoPayload.result.user?.name).toBe("Ada Lovelace");
     expect(demoPayload.result.created.account.provider).toBe("github");
     expect(demoPayload.result.user?.profile?.bio).toBe(
       `Unified auth flow running through ${demoPayload.result.adapter.client}.`,
+    );
+
+    const drizzleDemoRun = await runPnpm(
+      ["exec", "tsx", "src/index.ts", "--", "drizzle-sqlite"],
+      demoDir,
+    );
+    const drizzleDemoPayload = JSON.parse(drizzleDemoRun.stdout) as {
+      ok: boolean;
+      status: string;
+      adapter: string;
+      result: {
+        adapter: {
+          name: string;
+          client: string;
+        };
+        user: {
+          name: string;
+          profile: {
+            bio: string;
+          } | null;
+        } | null;
+      };
+    };
+
+    expect(drizzleDemoPayload.ok).toBe(true);
+    expect(drizzleDemoPayload.status).toBe("passed");
+    expect(drizzleDemoPayload.adapter).toBe("drizzle-sqlite");
+    expect(drizzleDemoPayload.result.adapter.name).toBe("drizzle-sqlite");
+    expect(drizzleDemoPayload.result.user?.name).toBe("Ada Lovelace");
+    expect(drizzleDemoPayload.result.user?.profile?.bio).toBe(
+      `Unified auth flow running through ${drizzleDemoPayload.result.adapter.client}.`,
     );
   }, 120_000);
 });

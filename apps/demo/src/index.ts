@@ -15,6 +15,8 @@ const result =
 console.log(
   JSON.stringify(
     {
+      ok: true,
+      status: "passed",
       adapter: adapterName ?? defaultDemoAdapter,
       result,
     },

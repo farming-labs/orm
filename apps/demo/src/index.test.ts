@@ -78,6 +78,17 @@ describe("unified auth demo", () => {
     expect(() => parseDemoAdapterName("__proto__")).toThrow(/Unknown demo adapter/);
   });
 
+  it("keeps the Drizzle adapters in the demo test matrix", () => {
+    expect(selfContainedDemoAdapters).toContain("drizzle-sqlite");
+    expect(localDemoAdapters).toContain("drizzle-postgres");
+    expect(localDemoAdapters).toContain("drizzle-mysql");
+  });
+
+  it("runs the auth flow through the drizzle-sqlite adapter explicitly", async () => {
+    const result = await runUnifiedAuthDemo("drizzle-sqlite");
+    assertUnifiedAuthDemo(result, "drizzle-sqlite");
+  });
+
   for (const adapterName of selfContainedDemoAdapters) {
     it(`runs the same auth flow through the ${adapterName} adapter`, async () => {
       const result = await runUnifiedAuthDemo(adapterName);

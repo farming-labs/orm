@@ -17,6 +17,8 @@ model once in TypeScript, then:
   `farm-orm` CLI for generating Prisma, Drizzle, and SQL artifacts
 - `@farming-labs/orm-prisma`
   Live runtime driver for apps that already use `PrismaClient`
+- `@farming-labs/orm-drizzle`
+  Live runtime driver for apps that already use Drizzle database instances
 - `@farming-labs/orm-sql`
   Live runtime driver for SQLite, MySQL, and PostgreSQL
 - `@farming-labs/orm-mongoose`
@@ -31,6 +33,7 @@ model once in TypeScript, then:
 - live runtime queries for:
   - memory
   - Prisma through `PrismaClient`
+  - Drizzle through Drizzle database instances backed by SQLite, MySQL, or PostgreSQL
   - SQLite
   - MySQL
   - PostgreSQL
@@ -43,10 +46,7 @@ model once in TypeScript, then:
 
 ## What does not exist yet
 
-- live Drizzle runtime driver
 - live Kysely runtime driver
-
-Drizzle is a generator target in this repo today, not a runtime driver yet.
 
 ## Simple example
 
@@ -166,6 +166,7 @@ Real local database integration tests:
 ```bash
 pnpm test:local
 pnpm test:local:prisma
+pnpm test:local:drizzle
 pnpm test:local:sqlite
 pnpm test:local:postgres
 pnpm test:local:mysql
@@ -219,6 +220,8 @@ pnpm publish:beta:dry-run
 
 - `packages/orm`
 - `packages/cli`
+- `packages/prisma`
+- `packages/drizzle`
 - `packages/sql`
 - `packages/mongoose`
 - `apps/demo`

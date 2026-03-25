@@ -1,39 +1,16 @@
 ---
 title: "Drizzle"
-description: "How the unified schema generates Drizzle tables and fits into Drizzle-based apps."
+description: "How the unified schema and runtime fit into Drizzle-based apps."
 order: 2
 icon: drizzle
 ---
 
 # Drizzle
 
-Drizzle integration in this repo is also **generation-first**.
+Drizzle integration in this repo is now both:
 
-## What Drizzle support means today
-
-Today, Drizzle support means:
-
-- the schema can render generated Drizzle table code
-- the app can consume that generated file in its Drizzle setup
-
-It does **not** yet mean:
-
-- there is already a live `@farming-labs/orm-drizzle` runtime driver in this repo
-
-## Runtime translation status
-
-The unified query methods do **not** translate to Drizzle builders in this repo
-today.
-
-What exists today:
-
-- generated Drizzle table output
-- normal app-side Drizzle usage after generation
-
-What is planned:
-
-- a future Drizzle runtime driver that maps the same `orm.user.*` methods onto
-  Drizzle query builders and relation-loading helpers
+- generation-first when you want generated Drizzle schema files
+- runtime-capable when the app already has a Drizzle database instance
 
 ## Basic config
 
@@ -57,6 +34,67 @@ export default defineConfig({
 - `pg`
 - `mysql`
 - `sqlite`
+
+## Runtime translation status
+
+The repo now ships a live `@farming-labs/orm-drizzle` runtime package.
+
+That means the unified query API can already run through Drizzle-backed apps for:
+
+- PostgreSQL
+- MySQL
+- SQLite
+
+The current runtime package unwraps the underlying client from the Drizzle database
+handle and routes the unified API through the existing SQL runtime contract. From a
+library author point of view, that still means one stable API:
+
+```ts
+orm.user.findUnique(...)
+orm.user.findMany(...)
+orm.user.create(...)
+orm.user.update(...)
+orm.user.upsert(...)
+```
+
+## Runtime example
+
+```ts
+import { createOrm } from "@farming-labs/orm";
+import { createDrizzleDriver } from "@farming-labs/orm-drizzle";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import { authSchema } from "./schema";
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+const db = drizzle(pool);
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createDrizzleDriver({
+    db,
+    dialect: "postgres",
+  }),
+});
+
+const user = await orm.user.findUnique({
+  where: {
+    email: "ada@farminglabs.dev",
+  },
+  select: {
+    id: true,
+    email: true,
+    sessions: {
+      select: {
+        token: true,
+      },
+    },
+  },
+});
+```
 
 ## Example generated output
 
@@ -97,20 +135,29 @@ model rather than a direct Drizzle relation shortcut.
 Typical flow:
 
 1. define the reusable schema once
-2. run `farm-orm generate drizzle`
-3. import the generated tables in the application’s Drizzle setup
-4. continue using Drizzle in the app as normal
+2. either run `farm-orm generate drizzle` for generated schema files
+3. or pass the live Drizzle database to `createDrizzleDriver(...)`
+4. keep writing one library-facing query API either way
 
-So again, Farming Labs ORM is feeding the app-side stack rather than replacing it.
+That means Farming Labs ORM can either feed the app-side Drizzle stack through
+generation, or sit above it as a runtime translation layer.
 
 ## Why Drizzle teams might like this
 
 - generated table definitions from shared package schemas
+- one unified runtime API for shared packages even when the app already uses Drizzle
 - no need to manually rewrite the same package tables per app
 - easier multi-package monorepo composition
 
 ## Important nuance
 
-The Drizzle generator now covers the direct relation helpers above, but explicit
-many-to-many traversal still belongs to the runtime layer or the app’s own join-model
-queries.
+The Drizzle generator now covers the direct relation helpers above, and the live
+runtime already covers:
+
+- `belongsTo(...)`
+- `hasOne(...)`
+- `hasMany(...)`
+- explicit join-table `manyToMany(...)`
+
+Generated Drizzle output still keeps many-to-many relationships explicit through the
+join model, which matches how Drizzle teams usually model those tables anyway.
