@@ -16,51 +16,11 @@ The model is simple:
 2. Generate Prisma, Drizzle, or SQL artifacts with `@farming-labs/orm-cli`
 3. Run the same typed API through a runtime driver
 
-## What ships today
+In practice, that means:
 
-- `@farming-labs/orm`
-  Schema DSL, typed client, generators, and memory driver
-- `@farming-labs/orm-cli`
-  Generator CLI
-- `@farming-labs/orm-prisma`
-  Runtime driver for `PrismaClient`
-- `@farming-labs/orm-drizzle`
-  Runtime driver for Drizzle-backed SQLite, MySQL, and PostgreSQL
-- `@farming-labs/orm-sql`
-  Direct SQL runtime for SQLite, MySQL, and PostgreSQL
-- `@farming-labs/orm-mongo`
-  Runtime driver for the native `mongodb` client
-- `@farming-labs/orm-mongoose`
-  Runtime driver for Mongoose
-
-## What works
-
-- schema definition with relations
-- typed CRUD and query methods
-- nested relation selection
-- Prisma generation
-- Drizzle generation
-- safe SQL generation
-- live runtime support for:
-  - memory
-  - Prisma
-  - Drizzle
-  - SQLite
-  - MySQL
-  - PostgreSQL
-  - MongoDB
-  - Mongoose
-
-## What is next
-
-- Kysely runtime driver
-
-## Best fit
-
-- auth libraries
-- billing and organization modules
-- shared platform packages
-- teams that want one schema but more than one app-side stack
+- one schema for shared packages
+- one typed query surface for runtime code
+- one generator CLI for app-side artifacts
 
 ## Start here
 
