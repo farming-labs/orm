@@ -5,12 +5,26 @@
   "type": "module",
   "scripts": {
     "build": "tsc --noEmit",
-    "dev": "tsx src/index.ts",
-    "test": "pnpm --filter @farming-labs/orm build && vitest run",
+    "demo": "pnpm --filter @farming-labs/orm build && pnpm --filter @farming-labs/orm-prisma build && pnpm --filter @farming-labs/orm-sql build && pnpm --filter @farming-labs/orm-mongoose build && pnpm run prisma:prepare && tsx src/index.ts",
+    "dev": "pnpm run demo",
+    "prisma:prepare": "tsx ./scripts/prepare-prisma.ts",
+    "test": "pnpm --filter @farming-labs/orm build && pnpm --filter @farming-labs/orm-prisma build && pnpm --filter @farming-labs/orm-sql build && pnpm --filter @farming-labs/orm-mongoose build && pnpm run prisma:prepare && vitest run",
+    "test:local": "pnpm --filter @farming-labs/orm build && pnpm --filter @farming-labs/orm-prisma build && pnpm --filter @farming-labs/orm-sql build && pnpm --filter @farming-labs/orm-mongoose build && pnpm run prisma:prepare && FARM_ORM_DEMO_INCLUDE_LOCAL=1 vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@farming-labs/orm": "workspace:*",
-    "@farming-labs/orm-cli": "workspace:*"
+    "@farming-labs/orm-cli": "workspace:*",
+    "@farming-labs/orm-mongoose": "workspace:*",
+    "@farming-labs/orm-prisma": "workspace:*",
+    "@farming-labs/orm-sql": "workspace:*",
+    "@prisma/client": "^6.5.0",
+    "mongoose": "^8.19.2",
+    "mysql2": "^3.15.2",
+    "pg": "^8.16.3",
+    "prisma": "^6.5.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.6"
   }
 }

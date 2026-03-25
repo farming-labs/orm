@@ -172,6 +172,21 @@ pnpm test:local:mysql
 pnpm test:local:mongodb
 ```
 
+Unified adapter-swap demo:
+
+```bash
+pnpm --filter demo demo -- all
+pnpm --filter demo demo -- memory
+pnpm --filter demo demo -- sqlite
+pnpm --filter demo demo -- prisma
+```
+
+Full local adapter matrix:
+
+```bash
+pnpm --filter demo test:local
+```
+
 ## Releasing packages
 
 Version and tag a release:

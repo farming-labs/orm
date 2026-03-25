@@ -7,3 +7,4 @@ generated
 packages/prisma/test/fixtures/*/dev.db
 packages/prisma/test/fixtures/*/schema.prisma
 packages/prisma/test/fixtures/*/generated
+apps/demo/prisma/dev.db

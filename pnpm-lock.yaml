@@ -38,6 +38,34 @@ importers:
       '@farming-labs/orm-cli':
         specifier: workspace:*
         version: link:../../packages/cli
+      '@farming-labs/orm-mongoose':
+        specifier: workspace:*
+        version: link:../../packages/mongoose
+      '@farming-labs/orm-prisma':
+        specifier: workspace:*
+        version: link:../../packages/prisma
+      '@farming-labs/orm-sql':
+        specifier: workspace:*
+        version: link:../../packages/sql
+      '@prisma/client':
+        specifier: ^6.5.0
+        version: 6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3)
+      mongoose:
+        specifier: ^8.19.2
+        version: 8.23.0
+      mysql2:
+        specifier: ^3.15.2
+        version: 3.20.0(@types/node@22.19.15)
+      pg:
+        specifier: ^8.16.3
+        version: 8.20.0
+      prisma:
+        specifier: ^6.5.0
+        version: 6.19.2(typescript@5.9.3)
+    devDependencies:
+      '@types/pg':
+        specifier: ^8.15.6
+        version: 8.20.0
 
   apps/docs:
     dependencies:

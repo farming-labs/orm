@@ -242,6 +242,29 @@ Run it with:
 pnpm test:local:prisma
 ```
 
+## Demo in this repo
+
+There is also a small app-level demo that uses one shared auth flow and swaps
+the runtime underneath it. One of those adapters is the real generated Prisma
+client path, and it double-checks the created user with a direct Prisma query.
+
+Run it with:
+
+```bash
+pnpm --filter demo demo -- all
+pnpm --filter demo demo -- prisma
+```
+
+The same demo registry also supports:
+
+- `memory`
+- `sqlite`
+- `postgres-pool`
+- `postgres-client`
+- `mysql-pool`
+- `mysql-connection`
+- `mongoose`
+
 ## What comes next
 
 The Prisma runtime package now exists. The next runtime-driver layers are:
