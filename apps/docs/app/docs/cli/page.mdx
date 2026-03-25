@@ -211,7 +211,6 @@ The repo’s package release flow is also `bumpp`-driven now:
 
 ```bash
 pnpm release:latest
-pnpm publish:latest
 ```
 
 For prereleases:
@@ -229,7 +228,9 @@ pnpm publish:beta:dry-run
 ```
 
 The current `release` script creates a version commit like `chore: release v0.0.x`
-and a matching git tag, while `publish:*` is the separate package-publishing step.
+and a matching git tag. `release:latest` now runs that bump flow and then publishes
+the new version to npm. `publish:*` is still useful when you need to retry a publish
+without bumping again.
 
 ## Where each target fits
 
