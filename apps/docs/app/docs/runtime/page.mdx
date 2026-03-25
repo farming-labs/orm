@@ -16,7 +16,7 @@ It is separate from:
 
 ## The shape
 
-```ts
+```ts title="create-orm.ts"
 import { createMemoryDriver, createOrm } from "@farming-labs/orm";
 import { authSchema } from "./schema";
 
@@ -77,7 +77,7 @@ That means nested queries like `user.profile`, `user.sessions`, and
 Libraries can write one storage layer against `createOrm(...)` and let each app
 bring its own runtime.
 
-```ts
+```ts title="find-user-by-email.ts"
 async function findUserByEmail(orm: typeof authOrm, email: string) {
   return orm.user.findUnique({
     where: { email },
@@ -97,7 +97,7 @@ MongoDB, or Mongoose.
 
 ## Local verification
 
-```bash
+```bash title="terminal"
 pnpm test:local
 pnpm test:local:prisma
 pnpm test:local:drizzle

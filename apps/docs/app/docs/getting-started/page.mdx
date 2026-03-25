@@ -16,7 +16,7 @@ The shortest path is:
 
 ## 1. Define a schema
 
-```ts
+```ts title="src/schema.ts"
 import {
   belongsTo,
   boolean,
@@ -86,7 +86,7 @@ export const authSchema = defineSchema({
 
 ## 2. Add `farm-orm.config.ts`
 
-```ts
+```ts title="farm-orm.config.ts"
 import { defineConfig } from "@farming-labs/orm-cli";
 import { authSchema } from "./src/schema";
 
@@ -111,7 +111,7 @@ export default defineConfig({
 
 ## 3. Generate artifacts
 
-```bash
+```bash title="terminal"
 farm-orm generate prisma
 farm-orm generate drizzle
 farm-orm generate sql
@@ -130,7 +130,7 @@ Join-table `manyToMany` stays explicit through the join model.
 
 ### Memory
 
-```ts
+```ts title="memory-runtime.ts"
 import { createMemoryDriver, createOrm } from "@farming-labs/orm";
 
 const orm = createOrm({
@@ -141,7 +141,7 @@ const orm = createOrm({
 
 ### Prisma
 
-```ts
+```ts title="prisma-runtime.ts"
 import { createOrm } from "@farming-labs/orm";
 import { createPrismaDriver } from "@farming-labs/orm-prisma";
 import { PrismaClient } from "@prisma/client";
@@ -156,7 +156,7 @@ const orm = createOrm({
 
 ### Drizzle
 
-```ts
+```ts title="drizzle-runtime.ts"
 import { createOrm } from "@farming-labs/orm";
 import { createDrizzleDriver } from "@farming-labs/orm-drizzle";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -179,7 +179,7 @@ const orm = createOrm({
 
 ### Direct SQL
 
-```ts
+```ts title="sql-runtime.ts"
 import { createOrm } from "@farming-labs/orm";
 import { createPgPoolDriver } from "@farming-labs/orm-sql";
 import { Pool } from "pg";
@@ -196,7 +196,7 @@ const orm = createOrm({
 
 ### MongoDB
 
-```ts
+```ts title="mongo-runtime.ts"
 import { createOrm } from "@farming-labs/orm";
 import { createMongoDriver } from "@farming-labs/orm-mongo";
 import { MongoClient } from "mongodb";
@@ -215,7 +215,7 @@ const orm = createOrm({
 
 ### Mongoose
 
-```ts
+```ts title="mongoose-runtime.ts"
 import { createOrm } from "@farming-labs/orm";
 import { createMongooseDriver } from "@farming-labs/orm-mongoose";
 
@@ -235,7 +235,7 @@ const orm = createOrm({
 
 ## 5. Use the client
 
-```ts
+```ts title="user-query.ts"
 const user = await orm.user.findUnique({
   where: {
     email: "ada@farminglabs.dev",
@@ -260,7 +260,7 @@ const user = await orm.user.findUnique({
 
 ## 6. Verify with local databases
 
-```bash
+```bash title="terminal"
 pnpm test:local
 pnpm test:local:prisma
 pnpm test:local:drizzle

@@ -1,3 +1,5 @@
+import { HoverLink } from "@/components/ui/hover-link";
+
 ---
 title: "MongoDB"
 description: "How MongoDB fits into Farming Labs ORM through the native MongoDB and Mongoose runtime packages."
@@ -16,7 +18,7 @@ MongoDB support is live through two runtime packages:
 
 ## Native MongoDB example
 
-```ts
+```ts title="mongo-runtime.ts"
 import { createOrm } from "@farming-labs/orm";
 import { createMongoDriver } from "@farming-labs/orm-mongo";
 import { MongoClient } from "mongodb";
@@ -36,7 +38,7 @@ const orm = createOrm({
 
 ## Mongoose example
 
-```ts
+```ts title="mongoose-runtime.ts"
 import { createOrm } from "@farming-labs/orm";
 import { createMongooseDriver } from "@farming-labs/orm-mongoose";
 import { authSchema } from "./schema";
@@ -60,7 +62,7 @@ const orm = createOrm({
 MongoDB support still uses the schema as the source of truth, including mapped
 field names.
 
-```ts
+```ts title="mongo-mapped-schema.ts"
 const authSchema = defineSchema({
   user: model({
     table: "users",
@@ -94,6 +96,21 @@ result shape as the other runtimes.
 - `@farming-labs/orm-mongo` uses MongoDB sessions when `client` or `startSession` is provided
 - `@farming-labs/orm-mongoose` uses Mongoose sessions when `connection` or `startSession` is provided
 - if no session source is configured, transactions fall back to non-transactional execution
+
+Helpful references:
+
+- <HoverLink
+    href="https://www.mongodb.com/docs/drivers/node/current/fundamentals/transactions/"
+    preview="Official MongoDB Node.js driver guide for sessions and transactions."
+  >
+    MongoDB Node.js transactions
+  </HoverLink>
+- <HoverLink
+    href="https://mongoosejs.com/docs/transactions.html"
+    preview="Official Mongoose guide for sessions and transactions."
+  >
+    Mongoose transactions
+  </HoverLink>
 
 ## Why there are two Mongo packages
 
