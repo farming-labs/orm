@@ -71,6 +71,8 @@ describe("workspace end to end", () => {
 
     const demoRun = await runPnpm(["exec", "tsx", "src/index.ts"], demoDir);
     const demoPayload = JSON.parse(demoRun.stdout) as {
+      ok: boolean;
+      status: string;
       adapter: string;
       result: {
         adapter: {
@@ -91,6 +93,8 @@ describe("workspace end to end", () => {
       };
     };
 
+    expect(demoPayload.ok).toBe(true);
+    expect(demoPayload.status).toBe("passed");
     expect(demoPayload.adapter).toBe("memory");
     expect(demoPayload.result.adapter.name).toBe("memory");
     expect(demoPayload.result.user?.name).toBe("Ada Lovelace");
@@ -101,6 +105,8 @@ describe("workspace end to end", () => {
 
     const drizzleDemoRun = await runPnpm(["exec", "tsx", "src/index.ts", "--", "drizzle-sqlite"], demoDir);
     const drizzleDemoPayload = JSON.parse(drizzleDemoRun.stdout) as {
+      ok: boolean;
+      status: string;
       adapter: string;
       result: {
         adapter: {
@@ -116,6 +122,8 @@ describe("workspace end to end", () => {
       };
     };
 
+    expect(drizzleDemoPayload.ok).toBe(true);
+    expect(drizzleDemoPayload.status).toBe("passed");
     expect(drizzleDemoPayload.adapter).toBe("drizzle-sqlite");
     expect(drizzleDemoPayload.result.adapter.name).toBe("drizzle-sqlite");
     expect(drizzleDemoPayload.result.user?.name).toBe("Ada Lovelace");
