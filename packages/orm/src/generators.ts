@@ -1,5 +1,6 @@
 import {
   createManifest,
+  type ManifestConstraint,
   type ManifestField,
   type ManifestModel,
   type SchemaManifest,
@@ -22,6 +23,11 @@ export type SqlGenerationOptions = {
 
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 const pluralize = (value: string) => (value.endsWith("s") ? value : `${value}s`);
+const camelize = (value: string) =>
+  value
+    .replace(/[^a-zA-Z0-9]+(.)/g, (_, char: string) => char.toUpperCase())
+    .replace(/^[^a-zA-Z]+/, "")
+    .replace(/^[A-Z]/, (char) => char.toLowerCase());
 
 function resolveReferenceTarget(
   manifest: SchemaManifest,
@@ -72,6 +78,18 @@ function prismaType(field: ManifestField) {
   }
 }
 
+function drizzleConstraintProperty(constraint: ManifestConstraint) {
+  return camelize(constraint.name) || "constraint";
+}
+
+function constrainedFields(model: ManifestModel) {
+  return new Set(
+    [...model.constraints.unique, ...model.constraints.indexes].flatMap(
+      (constraint) => constraint.fields,
+    ),
+  );
+}
+
 function drizzleImports(dialect: DrizzleGenerationOptions["dialect"], manifest: SchemaManifest) {
   const models = Object.values(manifest.models) as ManifestModel[];
   const needsBoolean = models.some((model) =>
@@ -80,6 +98,9 @@ function drizzleImports(dialect: DrizzleGenerationOptions["dialect"], manifest: 
   const needsDate = models.some((model) =>
     Object.values(model.fields).some((field) => field.kind === "datetime"),
   );
+  const needsIndexes = models.some(
+    (model) => model.constraints.indexes.length || model.constraints.unique.length,
+  );
 
   if (dialect === "pg") {
     return [
@@ -87,6 +108,8 @@ function drizzleImports(dialect: DrizzleGenerationOptions["dialect"], manifest: 
       "text",
       needsBoolean ? "boolean" : null,
       needsDate ? "timestamp" : null,
+      needsIndexes ? "index" : null,
+      needsIndexes ? "uniqueIndex" : null,
     ].filter(Boolean);
   }
 
@@ -97,13 +120,25 @@ function drizzleImports(dialect: DrizzleGenerationOptions["dialect"], manifest: 
       "text",
       needsBoolean ? "boolean" : null,
       needsDate ? "datetime" : null,
+      needsIndexes ? "index" : null,
+      needsIndexes ? "uniqueIndex" : null,
     ].filter(Boolean);
   }
 
-  return ["sqliteTable", "text", "integer"];
+  return [
+    "sqliteTable",
+    "text",
+    "integer",
+    needsIndexes ? "index" : null,
+    needsIndexes ? "uniqueIndex" : null,
+  ].filter(Boolean);
 }
 
-function drizzleColumn(field: ManifestField, dialect: DrizzleGenerationOptions["dialect"]) {
+function drizzleColumn(
+  field: ManifestField,
+  dialect: DrizzleGenerationOptions["dialect"],
+  options: { indexed?: boolean } = {},
+) {
   if (field.kind === "id") {
     if (dialect === "mysql") {
       return `varchar("${field.column}", { length: 191 }).primaryKey()`;
@@ -114,7 +149,7 @@ function drizzleColumn(field: ManifestField, dialect: DrizzleGenerationOptions["
   if (field.kind === "string") {
     if (dialect === "mysql") {
       const base =
-        field.unique || field.references
+        field.unique || field.references || options.indexed
           ? `varchar("${field.column}", { length: 191 })`
           : `text("${field.column}")`;
       return `${base}${field.nullable ? "" : ".notNull()"}${field.unique ? ".unique()" : ""}${
@@ -143,15 +178,21 @@ function drizzleColumn(field: ManifestField, dialect: DrizzleGenerationOptions["
   if (dialect === "sqlite") {
     return `integer("${field.column}", { mode: "timestamp" })${field.nullable ? "" : ".notNull()"}`;
   }
-  return `timestamp("${field.column}")${field.nullable ? "" : ".notNull()"}`;
+  return `timestamp("${field.column}", { withTimezone: true, mode: "date" })${field.nullable ? "" : ".notNull()"}`;
 }
 
-function sqlType(field: ManifestField, dialect: SqlGenerationOptions["dialect"]) {
+function sqlType(
+  field: ManifestField,
+  dialect: SqlGenerationOptions["dialect"],
+  options: { indexed?: boolean } = {},
+) {
   if (field.kind === "id") {
     return dialect === "mysql" ? "varchar(191)" : "text";
   }
   if (field.kind === "string") {
-    return dialect === "mysql" && (field.unique || field.references) ? "varchar(191)" : "text";
+    return dialect === "mysql" && (field.unique || field.references || options.indexed)
+      ? "varchar(191)"
+      : "text";
   }
   if (field.kind === "boolean") {
     return dialect === "sqlite" ? "integer" : "boolean";
@@ -162,7 +203,7 @@ function sqlType(field: ManifestField, dialect: SqlGenerationOptions["dialect"])
   if (dialect === "sqlite") {
     return "text";
   }
-  return "timestamp";
+  return "timestamptz";
 }
 
 function sqlIdentifier(dialect: SqlGenerationOptions["dialect"], value: string) {
@@ -171,6 +212,19 @@ function sqlIdentifier(dialect: SqlGenerationOptions["dialect"], value: string) 
   }
 
   return `"${value}"`;
+}
+
+function sqlCreateIndexStatement(
+  dialect: SqlGenerationOptions["dialect"],
+  table: string,
+  constraint: ManifestConstraint,
+) {
+  const indexName = sqlIdentifier(dialect, constraint.name);
+  const tableName = sqlIdentifier(dialect, table);
+  const columns = constraint.columns.map((column) => sqlIdentifier(dialect, column)).join(", ");
+  const createKeyword = constraint.unique ? "create unique index" : "create index";
+  const ifNotExists = dialect === "mysql" ? "" : " if not exists";
+  return `${createKeyword}${ifNotExists} ${indexName} on ${tableName}(${columns});`;
 }
 
 export function renderPrismaSchema(
@@ -280,8 +334,18 @@ export function renderPrismaSchema(
       );
     }
 
-    const mapLine = model.table !== modelName ? `\n  @@map("${model.table}")` : "";
-    return `model ${modelName} {\n${lines.join("\n")}${mapLine}\n}`;
+    const modelLines = [
+      ...lines,
+      ...model.constraints.unique.map(
+        (constraint) => `  @@unique([${constraint.fields.join(", ")}])`,
+      ),
+      ...model.constraints.indexes.map(
+        (constraint) => `  @@index([${constraint.fields.join(", ")}])`,
+      ),
+      ...(model.table !== modelName ? [`  @@map("${model.table}")`] : []),
+    ];
+
+    return `model ${modelName} {\n${modelLines.join("\n")}\n}`;
   });
 
   return (
@@ -306,8 +370,9 @@ export function renderDrizzleSchema(
         : "sqliteTable";
 
   const modelBlocks = (Object.values(manifest.models) as ManifestModel[]).map((model) => {
+    const indexedFields = constrainedFields(model);
     const lines = Object.values(model.fields).map((field) => {
-      let value = drizzleColumn(field, options.dialect);
+      let value = drizzleColumn(field, options.dialect, { indexed: indexedFields.has(field.name) });
       if (field.references) {
         const [targetModel, targetField] = field.references.split(".");
         value += `.references(() => ${targetModel}.${targetField})`;
@@ -315,7 +380,26 @@ export function renderDrizzleSchema(
       return `  ${field.name}: ${value}`;
     });
 
-    return `export const ${model.name} = ${tableFactory}("${model.table}", {\n${lines.join(",\n")}\n});`;
+    const constraintLines = [
+      ...model.constraints.unique.map(
+        (constraint) =>
+          `  ${drizzleConstraintProperty(constraint)}: uniqueIndex("${constraint.name}").on(${constraint.fields
+            .map((fieldName) => `table.${fieldName}`)
+            .join(", ")})`,
+      ),
+      ...model.constraints.indexes.map(
+        (constraint) =>
+          `  ${drizzleConstraintProperty(constraint)}: index("${constraint.name}").on(${constraint.fields
+            .map((fieldName) => `table.${fieldName}`)
+            .join(", ")})`,
+      ),
+    ];
+
+    if (!constraintLines.length) {
+      return `export const ${model.name} = ${tableFactory}("${model.table}", {\n${lines.join(",\n")}\n});`;
+    }
+
+    return `export const ${model.name} = ${tableFactory}("${model.table}", {\n${lines.join(",\n")}\n}, (table) => ({\n${constraintLines.join(",\n")}\n}));`;
   });
 
   const relationBlocks = (Object.values(manifest.models) as ManifestModel[])
@@ -370,10 +454,13 @@ export function renderDrizzleSchema(
 
 export function renderSafeSql(schema: SchemaDefinition<any>, options: SqlGenerationOptions) {
   const manifest = createManifest(schema);
-  const statements = (Object.values(manifest.models) as ManifestModel[]).map((model) => {
+  const statements = (Object.values(manifest.models) as ManifestModel[]).flatMap((model) => {
+    const indexedFields = constrainedFields(model);
     const columns = Object.values(model.fields).map((field) => {
       const parts = [
-        `${sqlIdentifier(options.dialect, field.column)} ${sqlType(field, options.dialect)}`,
+        `${sqlIdentifier(options.dialect, field.column)} ${sqlType(field, options.dialect, {
+          indexed: indexedFields.has(field.name),
+        })}`,
       ];
       if (field.kind === "id") parts.push("primary key");
       if (!field.nullable) parts.push("not null");
@@ -402,7 +489,15 @@ export function renderSafeSql(schema: SchemaDefinition<any>, options: SqlGenerat
       return `  ${parts.join(" ")}`;
     });
 
-    return `create table if not exists ${sqlIdentifier(options.dialect, model.table)} (\n${columns.join(",\n")}\n);`;
+    return [
+      `create table if not exists ${sqlIdentifier(options.dialect, model.table)} (\n${columns.join(",\n")}\n);`,
+      ...model.constraints.unique.map((constraint) =>
+        sqlCreateIndexStatement(options.dialect, model.table, constraint),
+      ),
+      ...model.constraints.indexes.map((constraint) =>
+        sqlCreateIndexStatement(options.dialect, model.table, constraint),
+      ),
+    ];
   });
 
   return `${statements.join("\n\n")}\n`;

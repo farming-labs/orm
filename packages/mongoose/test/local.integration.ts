@@ -5,6 +5,7 @@ import { createMongooseDriver } from "../src";
 import type { MongooseModelLike } from "../src";
 import {
   assertBelongsToAndManyToManyQueries,
+  assertModelLevelConstraints,
   assertMutationQueries,
   assertOneToOneAndHasManyQueries,
   createIsolatedName,
@@ -78,6 +79,7 @@ async function createLocalMongooseOrm() {
     },
     { versionKey: false },
   );
+  sessionSchema.index({ user_id: 1, expires_at: 1 });
 
   const organizationSchema = new mongoose.Schema(
     {
@@ -97,12 +99,21 @@ async function createLocalMongooseOrm() {
     },
     { versionKey: false },
   );
+  memberSchema.index({ user_id: 1, organization_id: 1 }, { unique: true });
+  memberSchema.index({ organization_id: 1, role: 1 });
 
   const UserModel = connection.model("User", userSchema, "users");
   const ProfileModel = connection.model("Profile", profileSchema, "profiles");
   const SessionModel = connection.model("Session", sessionSchema, "sessions");
   const OrganizationModel = connection.model("Organization", organizationSchema, "organizations");
   const MemberModel = connection.model("Member", memberSchema, "members");
+  await Promise.all([
+    UserModel.init(),
+    ProfileModel.init(),
+    SessionModel.init(),
+    OrganizationModel.init(),
+    MemberModel.init(),
+  ]);
 
   return {
     orm: createOrm({
@@ -162,6 +173,14 @@ describe("mongoose local integration", () => {
           expectTransactionRollback: process.env.FARM_ORM_LOCAL_MONGODB_TRANSACTIONS === "1",
         }),
       );
+    },
+    LOCAL_TIMEOUT_MS,
+  );
+
+  it(
+    "enforces model-level constraints against a real local MongoDB instance",
+    async () => {
+      await withLocalOrm((orm) => assertModelLevelConstraints(orm, expect));
     },
     LOCAL_TIMEOUT_MS,
   );

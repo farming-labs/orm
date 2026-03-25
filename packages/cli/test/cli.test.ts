@@ -67,6 +67,9 @@ export const schema = defineSchema({
       userId: string().references("user.id"),
       token: string().unique(),
     },
+    constraints: {
+      indexes: [["userId", "token"]],
+    },
     relations: {
       user: belongsTo("user", { foreignKey: "userId" }),
     },
@@ -115,11 +118,16 @@ describe("@farming-labs/orm-cli", () => {
       expect(await readFile(prismaPath, "utf8")).toContain("model User");
       expect(await readFile(prismaPath, "utf8")).toContain("profile Profile?");
       expect(await readFile(prismaPath, "utf8")).toContain("sessions Session[]");
+      expect(await readFile(prismaPath, "utf8")).toContain("@@index([userId, token])");
       expect(await readFile(drizzlePath, "utf8")).toContain("pgTable");
+      expect(await readFile(drizzlePath, "utf8")).toContain('index("sessions_userid_token_idx")');
       expect(await readFile(drizzlePath, "utf8")).toContain("export const userRelations");
       expect(await readFile(drizzlePath, "utf8")).toContain("profile: one(profile)");
       expect(await readFile(sqlPath, "utf8")).toContain('create table if not exists "users"');
       expect(await readFile(sqlPath, "utf8")).toContain('create table if not exists "profiles"');
+      expect(await readFile(sqlPath, "utf8")).toContain(
+        'create index if not exists "sessions_userid_token_idx" on "sessions"("userId", "token");',
+      );
     } finally {
       process.chdir(cwd);
     }

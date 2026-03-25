@@ -3,6 +3,15 @@ import type { AnyRelation, RelationDefinition } from "./relations";
 
 export type FieldMap = Record<string, AnyFieldBuilder>;
 export type RelationMap = Record<string, AnyRelation>;
+export type ConstraintFieldName<Fields extends FieldMap> = keyof Fields & string;
+export type ConstraintFieldSet<Fields extends FieldMap> = readonly [
+  ConstraintFieldName<Fields>,
+  ...ConstraintFieldName<Fields>[],
+];
+export type ModelConstraints<Fields extends FieldMap = FieldMap> = {
+  readonly unique?: readonly ConstraintFieldSet<Fields>[];
+  readonly indexes?: readonly ConstraintFieldSet<Fields>[];
+};
 
 export type ModelDefinition<
   Fields extends FieldMap = FieldMap,
@@ -12,10 +21,11 @@ export type ModelDefinition<
   readonly table: string;
   readonly fields: Fields;
   readonly relations: Relations;
+  readonly constraints: ModelConstraints<Fields>;
   readonly description?: string;
 };
 
-export type AnyModelDefinition = ModelDefinition<FieldMap, RelationMap>;
+export type AnyModelDefinition = ModelDefinition<any, any>;
 
 export type SchemaDefinition<
   Models extends Record<string, AnyModelDefinition> = Record<string, AnyModelDefinition>,
@@ -28,6 +38,7 @@ export function model<Fields extends FieldMap, Relations extends RelationMap = {
   table: string;
   fields: Fields;
   relations?: Relations;
+  constraints?: ModelConstraints<Fields>;
   description?: string;
 }): ModelDefinition<Fields, Relations> {
   return {
@@ -35,6 +46,7 @@ export function model<Fields extends FieldMap, Relations extends RelationMap = {
     table: config.table,
     fields: config.fields,
     relations: (config.relations ?? {}) as Relations,
+    constraints: (config.constraints ?? {}) as ModelConstraints<Fields>,
     description: config.description,
   };
 }
