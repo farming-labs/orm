@@ -6,11 +6,9 @@ import { cn } from "@/lib/utils";
 
 /** Token order + classes — spaces tied to preceding token so typing stays aligned. */
 const CLI_PARTS = [
-  { text: "pnpm", className: "text-white" },
+  { text: "pnpx", className: "text-white" },
   { text: " ", className: "text-white" },
-  { text: "exec", className: "text-white/70" },
-  { text: " ", className: "text-white/70" },
-  { text: "farm-orm", className: "text-white/85" },
+  { text: "@farming-labs/orm-cli", className: "text-white/85" },
   { text: " ", className: "text-white/85" },
   { text: "generate", className: "text-white/75" },
   { text: " ", className: "text-white/75" },
@@ -99,7 +97,7 @@ export function CliShowcase({ className }: { className?: string }) {
 
   return (
     <div className={cn("w-full rounded-none max-w-full", className)}>
-      <p className="mb-3 mt-0 font-mono text-[0.72rem] font-light uppercase tracking-tight text-slate-500">
+      <p className="mb-3 mt-0 font-mono text-[0.72rem] font-light uppercase tracking-tight text-white/50">
         Generate from your config
       </p>
       <div
