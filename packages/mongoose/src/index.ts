@@ -798,7 +798,10 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
     },
     async create(schema, model, args) {
       const manifest = getManifest(schema);
-      const document = buildDocument(manifest.models[model], args.data as Partial<Record<string, unknown>>);
+      const document = buildDocument(
+        manifest.models[model],
+        args.data as Partial<Record<string, unknown>>,
+      );
       const created = await normalizeCreated(
         state.session
           ? getModel(model).create([document], { session: state.session })

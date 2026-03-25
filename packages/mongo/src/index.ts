@@ -240,9 +240,7 @@ function adaptCollection(collection: MongoCollectionLike): MongooseModelLike {
 
         const created: MongoRow[] = [];
         for (const entry of doc) {
-          created.push(
-            (await this.create(entry, options)) as MongoRow,
-          );
+          created.push((await this.create(entry, options)) as MongoRow);
         }
         return created;
       }
