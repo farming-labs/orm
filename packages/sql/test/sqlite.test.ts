@@ -62,6 +62,24 @@ class RecordingSqliteDatabase implements SqliteDatabaseLike {
 }
 
 describe("sqlite SQL runtime", () => {
+  it("exposes the underlying sqlite database on orm.$driver", async () => {
+    const database = new RecordingSqliteDatabase();
+    const orm = createOrm({
+      schema,
+      driver: createSqliteDriver(database),
+    });
+
+    expect(orm.$driver.kind).toBe("sql");
+    expect(orm.$driver.dialect).toBe("sqlite");
+    expect(orm.$driver.client).toBe(database);
+
+    await orm.transaction(async (tx) => {
+      expect(tx.$driver.kind).toBe("sql");
+      expect(tx.$driver.dialect).toBe("sqlite");
+      expect(tx.$driver.client).toBe(database);
+    });
+  });
+
   it("uses sqlite placeholders, quoting, and transaction hooks", async () => {
     const database = new RecordingSqliteDatabase();
     const orm = createOrm({

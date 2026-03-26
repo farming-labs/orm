@@ -13,6 +13,7 @@ import {
   type ManifestModel,
   mergeUniqueLookupCreateData,
   type OrmDriver,
+  type OrmDriverHandle,
   isOperatorFilterObject,
   requireUniqueLookup,
   resolveRowIdentityLookup,
@@ -38,6 +39,11 @@ type SqlQueryResult = {
   rows: SqlRow[];
   affectedRows: number;
 };
+
+export type SqlDriverHandle<
+  TClient = unknown,
+  TDialect extends SqlDialect = SqlDialect,
+> = OrmDriverHandle<"sql", TClient, TDialect>;
 
 export type SqlAdapterLike = {
   dialect: SqlDialect;
@@ -844,9 +850,17 @@ function createMysqlPoolAdapter(pool: MysqlPoolLike): SqlAdapterLike {
   };
 }
 
-function createSqlDriver<TSchema extends SchemaDefinition<any>>(
-  adapter: SqlAdapterLike,
-): OrmDriver<TSchema> {
+function createSqlDriver<
+  TSchema extends SchemaDefinition<any>,
+  THandle extends OrmDriverHandle = SqlDriverHandle<SqlAdapterLike>,
+>(adapter: SqlAdapterLike, handle?: THandle): OrmDriver<TSchema, THandle> {
+  const resolvedHandle = (handle ??
+    ({
+      kind: "sql",
+      client: adapter,
+      dialect: adapter.dialect,
+    } satisfies SqlDriverHandle<SqlAdapterLike>)) as THandle;
+
   async function loadRows<
     TModelName extends ModelName<TSchema>,
     TSelect extends SelectShape<TSchema, TModelName> | undefined,
@@ -1468,7 +1482,8 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
     });
   }
 
-  const driver: OrmDriver<TSchema> = {
+  const driver: OrmDriver<TSchema, THandle> = {
+    handle: resolvedHandle,
     async findMany(schema, model, args) {
       return loadRows(schema, model, args);
     },
@@ -1624,7 +1639,9 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
       return result.affectedRows;
     },
     async transaction(_schema, run) {
-      return adapter.transaction(async (txAdapter) => run(createSqlDriver(txAdapter)));
+      return adapter.transaction(async (txAdapter) =>
+        run(createSqlDriver(txAdapter, resolvedHandle)),
+      );
     },
   };
 
@@ -1634,21 +1651,43 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
 export function createSqliteDriver<TSchema extends SchemaDefinition<any>>(
   database: SqliteDatabaseLike,
 ) {
-  return createSqlDriver<TSchema>(createSqliteAdapter(database));
+  return createSqlDriver<TSchema, SqlDriverHandle<SqliteDatabaseLike, "sqlite">>(
+    createSqliteAdapter(database),
+    {
+      kind: "sql",
+      client: database,
+      dialect: "sqlite",
+    },
+  );
 }
 
-export function createSqlDriverFromAdapter<TSchema extends SchemaDefinition<any>>(
-  adapter: SqlAdapterLike,
-) {
-  return createSqlDriver<TSchema>(adapter);
+export function createSqlDriverFromAdapter<
+  TSchema extends SchemaDefinition<any>,
+  THandle extends OrmDriverHandle = SqlDriverHandle<SqlAdapterLike>,
+>(adapter: SqlAdapterLike, handle?: THandle) {
+  return createSqlDriver<TSchema, THandle>(adapter, handle);
 }
 
 export function createPgPoolDriver<TSchema extends SchemaDefinition<any>>(pool: PgPoolLike) {
-  return createSqlDriver<TSchema>(createPgPoolAdapter(pool));
+  return createSqlDriver<TSchema, SqlDriverHandle<PgPoolLike, "postgres">>(
+    createPgPoolAdapter(pool),
+    {
+      kind: "sql",
+      client: pool,
+      dialect: "postgres",
+    },
+  );
 }
 
 export function createPgClientDriver<TSchema extends SchemaDefinition<any>>(client: PgClientLike) {
-  return createSqlDriver<TSchema>(createPgTransactionalAdapter(client));
+  return createSqlDriver<TSchema, SqlDriverHandle<PgClientLike, "postgres">>(
+    createPgTransactionalAdapter(client),
+    {
+      kind: "sql",
+      client,
+      dialect: "postgres",
+    },
+  );
 }
 
 export function createMysqlDriver<TSchema extends SchemaDefinition<any>>(
@@ -1658,5 +1697,12 @@ export function createMysqlDriver<TSchema extends SchemaDefinition<any>>(
     "getConnection" in poolOrConnection
       ? createMysqlPoolAdapter(poolOrConnection)
       : createMysqlTransactionalAdapter(poolOrConnection);
-  return createSqlDriver<TSchema>(adapter);
+  return createSqlDriver<TSchema, SqlDriverHandle<MysqlPoolLike | MysqlConnectionLike, "mysql">>(
+    adapter,
+    {
+      kind: "sql",
+      client: poolOrConnection,
+      dialect: "mysql",
+    },
+  );
 }

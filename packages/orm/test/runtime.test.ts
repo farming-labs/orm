@@ -146,6 +146,18 @@ function createAuthOrm() {
 }
 
 describe("runtime contract", () => {
+  it("exposes the attached driver handle on the ORM instance", async () => {
+    const orm = createAuthOrm();
+
+    expect(orm.$driver.kind).toBe("memory");
+    expect(orm.$driver.client.user?.[0]?.email).toBe("ada@farminglabs.dev");
+
+    await orm.transaction(async (tx) => {
+      expect(tx.$driver.kind).toBe("memory");
+      expect(tx.$driver.client).toBe(orm.$driver.client);
+    });
+  });
+
   it("supports auth-style reads with findOne, findUnique, count, and nested relations", async () => {
     const orm = createAuthOrm();
 

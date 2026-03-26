@@ -61,6 +61,7 @@ async function createLocalMongoOrm() {
         startSession: async () => client.startSession(),
       }),
     }) as RuntimeOrm,
+    db,
     close: async () => {
       await closeLocalClient(client, databaseName);
     },
@@ -78,6 +79,21 @@ async function withLocalOrm<TResult>(run: (orm: RuntimeOrm) => Promise<TResult>)
 }
 
 describe("mongo local integration", () => {
+  it(
+    "exposes the live Mongo database on orm.$driver",
+    async () => {
+      const { orm, db, close } = await createLocalMongoOrm();
+
+      try {
+        expect(orm.$driver.kind).toBe("mongo");
+        expect((orm.$driver.client as { db?: unknown }).db).toBe(db);
+      } finally {
+        await close();
+      }
+    },
+    LOCAL_TIMEOUT_MS,
+  );
+
   it(
     "supports one-to-one and one-to-many reads against a real local MongoDB instance",
     async () => {
