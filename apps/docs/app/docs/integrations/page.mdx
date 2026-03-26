@@ -52,6 +52,35 @@ Use this command to run the whole local matrix:
 pnpm test:local
 ```
 
+## Native relation loading
+
+The current runtime uses 2 strategies:
+
+- native relation loading where the backend can translate the query shape directly
+- fallback relation resolution for shapes that still need the shared runtime layer
+
+Today that means:
+
+| Runtime / stack    | Native path today                                                                                                               | Fallback today                                                           |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Prisma runtime     | direct nested Prisma `select` for supported relation branches, including simple explicit join-table `manyToMany(...)` traversal | relation branches with extra relation-level filters, ordering, or paging |
+| Drizzle runtime    | inherited SQL single-query loading for singular chains and simple collection branches without relation-level modifiers          | relation branches with extra relation-level filters, ordering, or paging |
+| Kysely runtime     | inherited SQL single-query loading for singular chains and simple collection branches without relation-level modifiers          | relation branches with extra relation-level filters, ordering, or paging |
+| Direct SQL runtime | single SQL statement for singular chains and simple collection branches without relation-level modifiers                        | relation branches with extra relation-level filters, ordering, or paging |
+| Mongo / Mongoose   | not yet                                                                                                                         | shared relation resolver                                                 |
+
+The important nuance is that the fallback column does **not** mean the backend
+is fundamentally missing relation support.
+
+- SQL-backed runtimes can support much richer native joins than the first
+  singular path implemented here
+- Prisma can support more native nested relation shapes than the current direct
+  branch translation
+- MongoDB and Mongoose can grow a native aggregation / `$lookup` path later
+
+So the current matrix is best read as: **what this repo natively translates
+today**, not **the theoretical limit of the backend**.
+
 ## How to choose
 
 - Use **Prisma generation** if your app already owns `schema.prisma`

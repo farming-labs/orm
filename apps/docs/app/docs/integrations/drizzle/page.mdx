@@ -57,6 +57,16 @@ orm.user.update(...)
 orm.user.upsert(...)
 ```
 
+That also means Drizzle inherits the SQL runtime's native relation-loading
+path. Reads such as `session.user`, `session.user.profile`, `user.sessions`, and
+simple explicit join-table `manyToMany(...)` branches can now load through one
+SQL statement. Relation branches still fall back when they add extra
+relation-level filtering, ordering, or paging.
+
+That split is about the current Farming ORM planner, not a hard limit in
+Drizzle-backed SQL apps. As the SQL runtime grows richer native plans, Drizzle
+inherits them automatically.
+
 That live Drizzle matrix now also verifies:
 
 - `integer()` fields with comparison filters

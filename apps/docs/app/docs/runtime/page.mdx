@@ -64,6 +64,25 @@ All live runtime drivers support:
 That means nested queries like `user.profile`, `user.sessions`, and
 `session.user` work across the supported runtimes.
 
+For loading strategy, the current runtime behaves like this:
+
+- direct SQL, Drizzle, and Kysely use a native single-query path for:
+  - singular relation chains built from `belongsTo(...)` and `hasOne(...)`
+  - simple `hasMany(...)` and explicit join-table `manyToMany(...)` branches
+    when the relation branch does not add its own `where`, `orderBy`, `take`, or `skip`
+- Prisma translates supported nested relation branches directly into Prisma
+  delegate `select` trees, including simple explicit join-table
+  `manyToMany(...)` convenience traversal through the generated join model
+- relation branches that add their own filtering, ordering, paging, or other
+  unsupported planner requirements still fall back to the shared relation resolver
+- MongoDB and Mongoose keep using the relation resolver today
+
+That fallback behavior is mostly a **current implementation boundary**, not a
+statement that the backend cannot do more. PostgreSQL, MySQL, SQLite, Prisma,
+and MongoDB all have richer native relation-loading options available. This repo
+currently uses the native path for the safest direct branches first and keeps
+the shared resolver for the more complex shapes until those planners are added.
+
 It also means unique lookups can be:
 
 - a generated `id`

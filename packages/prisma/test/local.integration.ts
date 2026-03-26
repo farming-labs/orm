@@ -15,6 +15,7 @@ import {
   assertModelLevelConstraints,
   assertMutationQueries,
   assertOneToOneAndHasManyQueries,
+  seedAuthData,
   schema,
   type RuntimeOrm,
 } from "./support/auth";
@@ -50,6 +51,12 @@ type RealGeneratedPrismaClient = {
 };
 
 type RealGeneratedPrismaClientCtor = new (...args: any[]) => RealGeneratedPrismaClient;
+
+type InstrumentedPrismaClient = {
+  client: RealGeneratedPrismaClient;
+  counts: Map<string, number>;
+  reset(): void;
+};
 
 type RuntimeFactory = () => Promise<{
   orm: RuntimeOrm;
@@ -137,6 +144,45 @@ async function createPrismaOrm(target: PrismaTarget, url: string) {
   return {
     orm,
     prisma,
+  };
+}
+
+function instrumentPrismaClient(prisma: RealGeneratedPrismaClient): InstrumentedPrismaClient {
+  const counts = new Map<string, number>();
+
+  const instrumented = new Proxy(prisma as Record<string, unknown>, {
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver);
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        if (typeof value === "function") {
+          return value.bind(target);
+        }
+        return value;
+      }
+
+      return new Proxy(value as Record<string, unknown>, {
+        get(delegateTarget, delegateProp, delegateReceiver) {
+          const delegateValue = Reflect.get(delegateTarget, delegateProp, delegateReceiver);
+          if (typeof delegateValue !== "function") {
+            return delegateValue;
+          }
+
+          return (...args: unknown[]) => {
+            const key = `${String(prop)}.${String(delegateProp)}`;
+            counts.set(key, (counts.get(key) ?? 0) + 1);
+            return delegateValue.apply(delegateTarget, args);
+          };
+        },
+      });
+    },
+  }) as unknown as RealGeneratedPrismaClient;
+
+  return {
+    client: instrumented,
+    counts,
+    reset() {
+      counts.clear();
+    },
   };
 }
 
@@ -362,6 +408,127 @@ for (const [target, factory] of [
         const { orm, close } = await factory();
         try {
           await assertBelongsToAndManyToManyQueries(orm, expect);
+        } finally {
+          await close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
+
+    it(
+      "translates singular nested relation reads through the base Prisma delegate",
+      async () => {
+        const { prisma, close } = await factory();
+        const instrumented = instrumentPrismaClient(prisma);
+        const orm = createOrm({
+          schema,
+          driver: createPrismaDriver({
+            client: instrumented.client as any,
+          }),
+        }) as RuntimeOrm;
+
+        try {
+          await seedAuthData(orm);
+          instrumented.reset();
+
+          const session = await orm.session.findUnique({
+            where: {
+              token: "session-2",
+            },
+            select: {
+              token: true,
+              user: {
+                select: {
+                  email: true,
+                  profile: {
+                    select: {
+                      bio: true,
+                    },
+                  },
+                },
+              },
+            },
+          });
+
+          const totalDelegateCalls = [...instrumented.counts.values()].reduce(
+            (sum, value) => sum + value,
+            0,
+          );
+
+          expect(session).toEqual({
+            token: "session-2",
+            user: {
+              email: "ada@farminglabs.dev",
+              profile: {
+                bio: "Writes one storage layer for every stack.",
+              },
+            },
+          });
+          expect(totalDelegateCalls).toBe(1);
+          expect(
+            instrumented.counts.get("session.findFirst") ??
+              instrumented.counts.get("session.findMany"),
+          ).toBe(1);
+          expect(instrumented.counts.get("user.findFirst") ?? 0).toBe(0);
+          expect(instrumented.counts.get("profile.findFirst") ?? 0).toBe(0);
+        } finally {
+          await close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
+
+    it(
+      "translates simple many-to-many relation reads through the base Prisma delegate",
+      async () => {
+        const { prisma, close } = await factory();
+        const instrumented = instrumentPrismaClient(prisma);
+        const orm = createOrm({
+          schema,
+          driver: createPrismaDriver({
+            client: instrumented.client as any,
+          }),
+        }) as RuntimeOrm;
+
+        try {
+          await seedAuthData(orm);
+          instrumented.reset();
+
+          const user = await orm.user.findUnique({
+            where: {
+              email: "ada@farminglabs.dev",
+            },
+            select: {
+              email: true,
+              organizations: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          });
+
+          const totalDelegateCalls = [...instrumented.counts.values()].reduce(
+            (sum, value) => sum + value,
+            0,
+          );
+          const organizations = [...((user?.organizations ?? []) as Array<{ name: string }>)].sort(
+            (left, right) => left.name.localeCompare(right.name),
+          );
+
+          expect({
+            ...user,
+            organizations,
+          }).toEqual({
+            email: "ada@farminglabs.dev",
+            organizations: [{ name: "Acme" }, { name: "Farming Labs" }],
+          });
+          expect(totalDelegateCalls).toBe(1);
+          expect(
+            instrumented.counts.get("user.findFirst") ?? instrumented.counts.get("user.findMany"),
+          ).toBe(1);
+          expect(instrumented.counts.get("member.findMany") ?? 0).toBe(0);
+          expect(instrumented.counts.get("organization.findMany") ?? 0).toBe(0);
         } finally {
           await close();
         }

@@ -33,15 +33,21 @@ type PrismaWhere = Where<Record<string, unknown>>;
 
 type PrismaWhereInput = Record<string, unknown>;
 
+const pluralize = (value: string) => (value.endsWith("s") ? value : `${value}s`);
+
 type PrismaDelegateLike = {
   findMany(args?: Record<string, unknown>): Promise<PrismaRow[]>;
   findFirst?(args?: Record<string, unknown>): Promise<PrismaRow | null>;
   count(args?: Record<string, unknown>): Promise<number>;
-  create(args: { data: PrismaRow }): Promise<PrismaRow>;
-  update?(args: { where: PrismaRow; data: PrismaRow }): Promise<PrismaRow>;
+  create(args: { data: PrismaRow } & Record<string, unknown>): Promise<PrismaRow>;
+  update?(
+    args: { where: PrismaRow; data: PrismaRow } & Record<string, unknown>,
+  ): Promise<PrismaRow>;
   updateMany(args: { where?: PrismaWhereInput; data: PrismaRow }): Promise<{ count?: number }>;
-  upsert?(args: { where: PrismaRow; create: PrismaRow; update: PrismaRow }): Promise<PrismaRow>;
-  delete?(args: { where: PrismaRow }): Promise<PrismaRow>;
+  upsert?(
+    args: { where: PrismaRow; create: PrismaRow; update: PrismaRow } & Record<string, unknown>,
+  ): Promise<PrismaRow>;
+  delete?(args: { where: PrismaRow } & Record<string, unknown>): Promise<PrismaRow>;
   deleteMany(args: { where?: PrismaWhereInput }): Promise<{ count?: number }>;
 };
 
@@ -180,6 +186,102 @@ function compileOrderBy(orderBy?: Partial<Record<string, "asc" | "desc">>) {
   }));
 }
 
+function supportsNativePrismaManyToManyArgs(args: Partial<FindManyArgs<any, any, any>>) {
+  return (
+    args.where === undefined &&
+    args.orderBy === undefined &&
+    args.take === undefined &&
+    args.skip === undefined
+  );
+}
+
+function prismaManyToManyJoinKeys(relation: { through: string; target: string }) {
+  return {
+    throughRelationName: pluralize(relation.through),
+    targetRelationName: relation.target,
+  };
+}
+
+function compilePrismaSelect<
+  TSchema extends SchemaDefinition<any>,
+  TModelName extends ModelName<TSchema>,
+>(schema: TSchema, modelName: TModelName, select: SelectShape<TSchema, TModelName>) {
+  const manifest = getManifest(schema);
+  const model = manifest.models[modelName];
+  const output: Record<string, unknown> = {};
+  const hiddenScalarKeys = new Set<string>();
+
+  for (const [key, value] of Object.entries(select)) {
+    if (value === undefined) continue;
+
+    if (key in model.fields && value === true) {
+      output[key] = true;
+      continue;
+    }
+
+    if (!(key in schema.models[modelName].relations)) continue;
+
+    const relation = schema.models[modelName].relations[key as RelationName<TSchema, TModelName>];
+    const relationArgs = (value === true ? {} : value) as Partial<FindManyArgs<TSchema, any, any>>;
+    if (relation.kind === "manyToMany") {
+      if (supportsNativePrismaManyToManyArgs(relationArgs)) {
+        const targetModel = relation.target as ModelName<TSchema>;
+        const { throughRelationName, targetRelationName } = prismaManyToManyJoinKeys(relation);
+        output[throughRelationName] = {
+          select: {
+            [targetRelationName]: relationArgs.select
+              ? {
+                  select: compilePrismaSelect(schema, targetModel, relationArgs.select as any),
+                }
+              : true,
+          },
+        };
+        continue;
+      }
+
+      const throughModel = manifest.models[relation.through];
+      const throughFromReference = parseReference(throughModel.fields[relation.from]?.references);
+      hiddenScalarKeys.add(
+        throughFromReference?.field ?? identityField(manifest.models[modelName]).name,
+      );
+      continue;
+    }
+
+    if (value === true) {
+      output[key] = true;
+      continue;
+    }
+    const targetModel = relation.target as ModelName<TSchema>;
+    const next: Record<string, unknown> = {};
+    if (relationArgs.where) {
+      next.where = compileWhere(
+        manifest.models[targetModel],
+        relationArgs.where as PrismaWhere | undefined,
+      );
+    }
+    if (relationArgs.orderBy) {
+      next.orderBy = compileOrderBy(
+        relationArgs.orderBy as Partial<Record<string, "asc" | "desc">> | undefined,
+      );
+    }
+    if (relationArgs.take !== undefined) next.take = relationArgs.take;
+    if (relationArgs.skip !== undefined) next.skip = relationArgs.skip;
+    if (relationArgs.select) {
+      next.select = compilePrismaSelect(schema, targetModel, relationArgs.select as any);
+    }
+
+    output[key] = Object.keys(next).length ? next : true;
+  }
+
+  for (const fieldName of hiddenScalarKeys) {
+    if (!(fieldName in output)) {
+      output[fieldName] = true;
+    }
+  }
+
+  return output;
+}
+
 function buildPrismaUniqueWhere(lookup: ManifestUniqueLookup) {
   if (lookup.fields.length === 1) {
     const field = lookup.fields[0]!;
@@ -227,6 +329,7 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
       orderBy: compileOrderBy(args.orderBy as Partial<Record<string, "asc" | "desc">> | undefined),
       take: args.take,
       skip: args.skip,
+      select: args.select ? compilePrismaSelect(schema, modelName, args.select) : undefined,
     });
 
     return Promise.all(rows.map((row) => projectRow(schema, modelName, row, args.select)));
@@ -238,6 +341,7 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
     args: {
       where?: PrismaWhere;
       orderBy?: Partial<Record<string, "asc" | "desc">>;
+      select?: SelectShape<TSchema, TModelName>;
     },
   ) {
     const manifest = getManifest(schema);
@@ -248,6 +352,7 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
       return delegate.findFirst({
         where: compileWhere(model, args.where),
         orderBy: compileOrderBy(args.orderBy),
+        select: args.select ? compilePrismaSelect(schema, modelName, args.select) : undefined,
       });
     }
 
@@ -255,6 +360,7 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
       where: compileWhere(model, args.where),
       orderBy: compileOrderBy(args.orderBy),
       take: 1,
+      select: args.select ? compilePrismaSelect(schema, modelName, args.select) : undefined,
     });
     return rows[0] ?? null;
   }
@@ -304,6 +410,50 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
       }
 
       if (key in schema.models[modelName].relations) {
+        const relation =
+          schema.models[modelName].relations[key as RelationName<TSchema, TModelName>];
+        const loadedValue = row[key];
+        if (loadedValue !== undefined) {
+          const targetModel = relation.target as ModelName<TSchema>;
+          const childSelect = value === true ? undefined : value.select;
+          output[key] = Array.isArray(loadedValue)
+            ? await Promise.all(
+                loadedValue.map((item) =>
+                  projectRow(schema, targetModel, item as PrismaRow, childSelect as any),
+                ),
+              )
+            : loadedValue === null
+              ? relation.kind === "hasMany" || relation.kind === "manyToMany"
+                ? []
+                : null
+              : await projectRow(schema, targetModel, loadedValue as PrismaRow, childSelect as any);
+          continue;
+        }
+
+        if (relation.kind === "manyToMany") {
+          const targetModel = relation.target as ModelName<TSchema>;
+          const childSelect = value === true ? undefined : value.select;
+          const { throughRelationName, targetRelationName } = prismaManyToManyJoinKeys(relation);
+          const throughRows = row[throughRelationName];
+
+          if (Array.isArray(throughRows)) {
+            output[key] = await Promise.all(
+              throughRows
+                .map((entry) =>
+                  entry &&
+                  typeof entry === "object" &&
+                  (entry as PrismaRow)[targetRelationName] &&
+                  typeof (entry as PrismaRow)[targetRelationName] === "object"
+                    ? ((entry as PrismaRow)[targetRelationName] as PrismaRow)
+                    : null,
+                )
+                .filter((entry): entry is PrismaRow => entry !== null)
+                .map((entry) => projectRow(schema, targetModel, entry, childSelect as any)),
+            );
+            continue;
+          }
+        }
+
         output[key] = await resolveRelation(
           schema,
           modelName,
@@ -484,6 +634,7 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
           manifest.models[model],
           args.data as Partial<Record<string, unknown>>,
         ),
+        select: args.select ? compilePrismaSelect(schema, model, args.select) : undefined,
       });
       return projectRow(schema, model, row, args.select) as Promise<any>;
     },
@@ -514,6 +665,7 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
         delegate.update?.({
           where: identityWhere,
           data: updateData,
+          select: args.select ? compilePrismaSelect(schema, model, args.select) : undefined,
         }) ??
         (async () => {
           await delegate.updateMany({
@@ -528,6 +680,7 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
         row ??
         (await loadRawOneRow(schema, model, {
           where: identityWhere as PrismaWhere,
+          select: args.select,
         }));
       if (!nextRow) return null;
 
@@ -570,6 +723,7 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
         where: buildPrismaUniqueWhere(lookup),
         create: createData,
         update: updateData,
+        select: args.select ? compilePrismaSelect(schema, model, args.select) : undefined,
       }) ??
         runTransaction(async (txDriver) => {
           const existing = await txDriver.findUnique(schema, model, {

@@ -84,6 +84,17 @@ Instead it:
 2. executes through the app’s real `Kysely` database
 3. reuses the shared SQL runtime behavior for relation loading, filtering, sorting, paging, and mutation semantics
 
+That shared SQL runtime now includes a native relation-loading path, so queries
+like `session.user`, `session.user.profile`, `user.sessions`, and simple
+explicit join-table `manyToMany(...)` traversal can load through one SQL
+statement. Relation branches with relation-level filters, paging, or ordering
+still fall back to the shared resolver.
+
+That does not mean Kysely or the underlying database is missing join support.
+It only means the shared SQL runtime currently translates the direct singular
+subset natively and leaves the more complex branches on the fallback path for
+now.
+
 That keeps the runtime behavior aligned with:
 
 - `@farming-labs/orm-sql`
