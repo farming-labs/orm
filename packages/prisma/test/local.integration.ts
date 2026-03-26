@@ -11,6 +11,7 @@ import { createPrismaDriver } from "../src";
 import {
   assertBelongsToAndManyToManyQueries,
   assertCompoundUniqueQueries,
+  assertIntegerAndJsonQueries,
   assertModelLevelConstraints,
   assertMutationQueries,
   assertOneToOneAndHasManyQueries,
@@ -387,6 +388,19 @@ for (const [target, factory] of [
         const { orm, close } = await factory();
         try {
           await assertCompoundUniqueQueries(orm, expect);
+        } finally {
+          await close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
+
+    it(
+      "supports integer and json fields against a real local database",
+      async () => {
+        const { orm, close } = await factory();
+        try {
+          await assertIntegerAndJsonQueries(orm, expect);
         } finally {
           await close();
         }

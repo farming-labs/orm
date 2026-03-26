@@ -9,7 +9,8 @@ import type {
 
 type Direction = "asc" | "desc";
 
-type Primitive = string | number | boolean | Date | null;
+type JsonPrimitive = null | string | number | boolean;
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
 type Comparable = string | number | Date;
 
@@ -19,7 +20,7 @@ type ValueFilter<T> = T extends string
     ? T | { eq?: T; gt?: T; gte?: T; lt?: T; lte?: T; in?: T[]; not?: T }
     : T | { eq?: T; in?: T[]; not?: T };
 
-export type Where<TRecord extends Record<string, Primitive>> = {
+export type Where<TRecord extends Record<string, unknown>> = {
   [K in keyof TRecord]?: ValueFilter<TRecord[K]>;
 } & {
   AND?: Array<Where<TRecord>>;

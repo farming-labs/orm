@@ -1,4 +1,12 @@
-export type ScalarKind = "id" | "string" | "boolean" | "datetime";
+export type ScalarKind = "id" | "string" | "boolean" | "datetime" | "integer" | "json";
+
+export type JsonValue =
+  | null
+  | string
+  | number
+  | boolean
+  | { [key: string]: JsonValue }
+  | JsonValue[];
 
 export type FieldReference = `${string}.${string}`;
 
@@ -16,14 +24,37 @@ export type FieldConfig<
   description?: string;
 };
 
-export type AnyFieldBuilder = FieldBuilder<ScalarKind, boolean>;
+export type ScalarValue<Kind extends ScalarKind> = Kind extends "id"
+  ? string
+  : Kind extends "string"
+    ? string
+    : Kind extends "boolean"
+      ? boolean
+      : Kind extends "datetime"
+        ? Date
+        : Kind extends "integer"
+          ? number
+          : JsonValue;
 
-const cloneField = <Kind extends ScalarKind, Nullable extends boolean = false>(
+export type AnyFieldBuilder = FieldBuilder<ScalarKind, boolean, ScalarValue<ScalarKind>>;
+
+const cloneField = <
+  Kind extends ScalarKind,
+  Nullable extends boolean = false,
+  Value = ScalarValue<Kind>,
+>(
   config: FieldConfig<Kind, Nullable>,
-) => new FieldBuilder(config);
+) => new FieldBuilder<Kind, Nullable, Value>(config);
 
-export class FieldBuilder<Kind extends ScalarKind, Nullable extends boolean = false> {
+export class FieldBuilder<
+  Kind extends ScalarKind,
+  Nullable extends boolean = false,
+  Value = ScalarValue<Kind>,
+> {
   readonly _tag = "field";
+  readonly __kind?: Kind;
+  readonly __nullable?: Nullable;
+  readonly __value?: Value;
 
   constructor(readonly config: FieldConfig<Kind, Nullable>) {}
 
@@ -35,7 +66,7 @@ export class FieldBuilder<Kind extends ScalarKind, Nullable extends boolean = fa
   }
 
   nullable() {
-    return cloneField<Kind, true>({
+    return cloneField<Kind, true, Value>({
       ...this.config,
       nullable: true,
     });
@@ -77,20 +108,14 @@ export class FieldBuilder<Kind extends ScalarKind, Nullable extends boolean = fa
   }
 }
 
-export type ScalarValue<Kind extends ScalarKind> = Kind extends "id"
-  ? string
-  : Kind extends "string"
-    ? string
-    : Kind extends "boolean"
-      ? boolean
-      : Date;
-
-export type FieldOutput<TField> =
-  TField extends FieldBuilder<infer Kind, infer Nullable>
-    ? Nullable extends true
-      ? ScalarValue<Kind> | null
-      : ScalarValue<Kind>
-    : never;
+export type FieldOutput<TField> = TField extends {
+  __nullable?: infer Nullable;
+  __value?: infer Value;
+}
+  ? Nullable extends true
+    ? Value | null
+    : Value
+  : never;
 
 export function id() {
   return new FieldBuilder({
@@ -120,6 +145,22 @@ export function boolean() {
 export function datetime() {
   return new FieldBuilder({
     kind: "datetime",
+    nullable: false,
+    unique: false,
+  });
+}
+
+export function integer() {
+  return new FieldBuilder({
+    kind: "integer",
+    nullable: false,
+    unique: false,
+  });
+}
+
+export function json<TValue extends JsonValue = JsonValue>() {
+  return new FieldBuilder<"json", false, TValue>({
+    kind: "json",
     nullable: false,
     unique: false,
   });

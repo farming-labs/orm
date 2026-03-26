@@ -11,6 +11,7 @@ import {
   type ManifestModel,
   mergeUniqueLookupCreateData,
   type OrmDriver,
+  isOperatorFilterObject,
   requireUniqueLookup,
   type SchemaManifest,
   type SchemaDefinition,
@@ -25,8 +26,7 @@ import {
 import type { ModelName, RelationName } from "@farming-labs/orm";
 
 type MongoRow = Record<string, unknown>;
-type MongoFilterRecord = Record<string, string | number | boolean | Date | null>;
-type MongoWhere = Where<MongoFilterRecord>;
+type MongoWhere = Where<Record<string, unknown>>;
 
 type MongooseWriteResult = {
   modifiedCount?: number;
@@ -135,10 +135,6 @@ function applyDefault(value: unknown, field: ManifestField) {
   return field.defaultValue;
 }
 
-function isFilterObject(value: unknown): value is Record<string, unknown> {
-  return !!value && typeof value === "object" && !(value instanceof Date) && !Array.isArray(value);
-}
-
 function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -216,6 +212,8 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
     let next = value;
     if (field.kind === "boolean") {
       next = Boolean(next);
+    } else if (field.kind === "integer") {
+      next = Number(next);
     } else if (field.kind === "datetime") {
       next = next instanceof Date ? next : new Date(String(next));
     }
@@ -233,6 +231,9 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
 
     if (field.kind === "boolean") {
       return Boolean(next);
+    }
+    if (field.kind === "integer") {
+      return typeof next === "number" ? next : Number(next);
     }
     if (field.kind === "datetime") {
       return next instanceof Date ? next : new Date(String(next));
@@ -291,7 +292,7 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
       throw new Error(`Unknown field "${fieldName}" on model "${model.name}".`);
     }
 
-    if (!isFilterObject(filter)) {
+    if (!isOperatorFilterObject(filter)) {
       return {
         [field.column]: encodeValue(model.name, field, filter),
       };

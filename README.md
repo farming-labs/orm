@@ -31,7 +31,18 @@ layer while the app keeps its own database stack.
 
 ## What works today
 
-- schema definition with fields, defaults, unique fields, mapped column names, and relations
+- schema definition with:
+  - `id()`
+  - `string()`
+  - `boolean()`
+  - `datetime()`
+  - `integer()`
+  - `json()`
+  - defaults
+  - field-level uniques
+  - model-level compound uniques and indexes
+  - mapped column names
+  - relations
 - generated Prisma output
 - generated Drizzle output
 - generated safe SQL output
@@ -50,6 +61,8 @@ layer while the app keeps its own database stack.
   - `hasOne`
   - `hasMany`
   - explicit join-table `manyToMany`
+- compound-unique runtime lookups and upserts
+- integer comparison filters and raw JSON equality filters across the live runtimes
 
 ## Quick example
 

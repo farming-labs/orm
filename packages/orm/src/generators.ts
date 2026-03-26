@@ -75,6 +75,10 @@ function prismaType(field: ManifestField) {
       return "Boolean";
     case "datetime":
       return "DateTime";
+    case "integer":
+      return "Int";
+    case "json":
+      return "Json";
   }
 }
 
@@ -98,6 +102,12 @@ function drizzleImports(dialect: DrizzleGenerationOptions["dialect"], manifest: 
   const needsDate = models.some((model) =>
     Object.values(model.fields).some((field) => field.kind === "datetime"),
   );
+  const needsInteger = models.some((model) =>
+    Object.values(model.fields).some((field) => field.kind === "integer"),
+  );
+  const needsJson = models.some((model) =>
+    Object.values(model.fields).some((field) => field.kind === "json"),
+  );
   const needsIndexes = models.some(
     (model) => model.constraints.indexes.length || model.constraints.unique.length,
   );
@@ -107,7 +117,9 @@ function drizzleImports(dialect: DrizzleGenerationOptions["dialect"], manifest: 
       "pgTable",
       "text",
       needsBoolean ? "boolean" : null,
+      needsInteger ? "integer" : null,
       needsDate ? "timestamp" : null,
+      needsJson ? "jsonb" : null,
       needsIndexes ? "index" : null,
       needsIndexes ? "uniqueIndex" : null,
     ].filter(Boolean);
@@ -119,7 +131,9 @@ function drizzleImports(dialect: DrizzleGenerationOptions["dialect"], manifest: 
       "varchar",
       "text",
       needsBoolean ? "boolean" : null,
+      needsInteger ? "int" : null,
       needsDate ? "datetime" : null,
+      needsJson ? "json" : null,
       needsIndexes ? "index" : null,
       needsIndexes ? "uniqueIndex" : null,
     ].filter(Boolean);
@@ -139,6 +153,11 @@ function drizzleColumn(
   dialect: DrizzleGenerationOptions["dialect"],
   options: { indexed?: boolean } = {},
 ) {
+  const renderDefault = () => {
+    if (field.defaultValue === undefined || field.kind === "json") return "";
+    return `.default(${JSON.stringify(field.defaultValue)})`;
+  };
+
   if (field.kind === "id") {
     if (dialect === "mysql") {
       return `varchar("${field.column}", { length: 191 }).primaryKey()`;
@@ -152,24 +171,33 @@ function drizzleColumn(
         field.unique || field.references || options.indexed
           ? `varchar("${field.column}", { length: 191 })`
           : `text("${field.column}")`;
-      return `${base}${field.nullable ? "" : ".notNull()"}${field.unique ? ".unique()" : ""}${
-        field.defaultValue !== undefined ? `.default(${JSON.stringify(field.defaultValue)})` : ""
-      }`;
+      return `${base}${field.nullable ? "" : ".notNull()"}${field.unique ? ".unique()" : ""}${renderDefault()}`;
     }
-    return `text("${field.column}")${field.nullable ? "" : ".notNull()"}${field.unique ? ".unique()" : ""}${
-      field.defaultValue !== undefined ? `.default(${JSON.stringify(field.defaultValue)})` : ""
-    }`;
+    return `text("${field.column}")${field.nullable ? "" : ".notNull()"}${field.unique ? ".unique()" : ""}${renderDefault()}`;
   }
 
   if (field.kind === "boolean") {
     if (dialect === "sqlite") {
-      return `integer("${field.column}", { mode: "boolean" })${field.nullable ? "" : ".notNull()"}${
-        field.defaultValue !== undefined ? `.default(${String(field.defaultValue)})` : ""
-      }`;
+      return `integer("${field.column}", { mode: "boolean" })${field.nullable ? "" : ".notNull()"}${renderDefault()}`;
     }
-    return `boolean("${field.column}")${field.nullable ? "" : ".notNull()"}${
-      field.defaultValue !== undefined ? `.default(${String(field.defaultValue)})` : ""
-    }`;
+    return `boolean("${field.column}")${field.nullable ? "" : ".notNull()"}${renderDefault()}`;
+  }
+
+  if (field.kind === "integer") {
+    if (dialect === "mysql") {
+      return `int("${field.column}")${field.nullable ? "" : ".notNull()"}${renderDefault()}`;
+    }
+    return `integer("${field.column}")${field.nullable ? "" : ".notNull()"}${renderDefault()}`;
+  }
+
+  if (field.kind === "json") {
+    if (dialect === "pg") {
+      return `jsonb("${field.column}")${field.nullable ? "" : ".notNull()"}`;
+    }
+    if (dialect === "mysql") {
+      return `json("${field.column}")${field.nullable ? "" : ".notNull()"}`;
+    }
+    return `text("${field.column}", { mode: "json" })${field.nullable ? "" : ".notNull()"}`;
   }
 
   if (dialect === "mysql") {
@@ -196,6 +224,14 @@ function sqlType(
   }
   if (field.kind === "boolean") {
     return dialect === "sqlite" ? "integer" : "boolean";
+  }
+  if (field.kind === "integer") {
+    return "integer";
+  }
+  if (field.kind === "json") {
+    if (dialect === "postgres") return "jsonb";
+    if (dialect === "mysql") return "json";
+    return "text";
   }
   if (dialect === "mysql") {
     return "datetime";
@@ -267,7 +303,11 @@ export function renderPrismaSchema(
       if (field.kind === "id") modifiers.push("@id");
       if (field.generated === "id") modifiers.push("@default(cuid())");
       if (field.generated === "now") modifiers.push("@default(now())");
-      if (field.defaultValue !== undefined && field.generated === undefined) {
+      if (
+        field.defaultValue !== undefined &&
+        field.generated === undefined &&
+        field.kind !== "json"
+      ) {
         modifiers.push(
           typeof field.defaultValue === "string"
             ? `@default("${field.defaultValue}")`
@@ -465,7 +505,7 @@ export function renderSafeSql(schema: SchemaDefinition<any>, options: SqlGenerat
       if (field.kind === "id") parts.push("primary key");
       if (!field.nullable) parts.push("not null");
       if (field.unique && field.kind !== "id") parts.push("unique");
-      if (field.defaultValue !== undefined) {
+      if (field.defaultValue !== undefined && field.kind !== "json") {
         parts.push(
           `default ${
             typeof field.defaultValue === "string"

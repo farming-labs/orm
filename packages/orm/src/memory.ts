@@ -18,6 +18,8 @@ import type {
 } from "./client";
 import {
   createManifest,
+  equalValues,
+  isOperatorFilterObject,
   mergeUniqueLookupCreateData,
   requireUniqueLookup,
   validateUniqueLookupUpdateData,
@@ -27,8 +29,6 @@ import type { ModelName, RelationName, SchemaDefinition } from "./schema";
 type MemoryStore<TSchema extends SchemaDefinition<any>> = Partial<
   Record<ModelName<TSchema>, Array<Record<string, unknown>>>
 >;
-
-const isDate = (value: unknown): value is Date => value instanceof Date;
 
 const manifestCache = new WeakMap<object, ReturnType<typeof createManifest>>();
 
@@ -41,23 +41,17 @@ function getManifest(schema: SchemaDefinition<any>) {
 }
 
 function evaluateFilter(value: unknown, filter: unknown) {
-  if (
-    filter === undefined ||
-    filter === null ||
-    typeof filter !== "object" ||
-    isDate(filter) ||
-    Array.isArray(filter)
-  ) {
-    return value === filter;
+  if (!isOperatorFilterObject(filter)) {
+    return equalValues(value, filter);
   }
 
-  const record = filter as Record<string, unknown>;
+  const record = filter;
 
-  if ("eq" in record && value !== record.eq) return false;
-  if ("not" in record && value === record.not) return false;
+  if ("eq" in record && !equalValues(value, record.eq)) return false;
+  if ("not" in record && equalValues(value, record.not)) return false;
   if ("in" in record) {
     const values = Array.isArray(record.in) ? record.in : [];
-    if (!values.includes(value)) return false;
+    if (!values.some((candidate) => equalValues(candidate, value))) return false;
   }
   if ("contains" in record) {
     if (typeof value !== "string" || typeof record.contains !== "string") return false;

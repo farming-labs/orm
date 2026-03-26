@@ -13,6 +13,7 @@ import { createDrizzleDriver } from "../src";
 import {
   assertBelongsToAndManyToManyQueries,
   assertCompoundUniqueQueries,
+  assertIntegerAndJsonQueries,
   assertModelLevelConstraints,
   assertMutationQueries,
   assertOneToOneAndHasManyQueries,
@@ -382,6 +383,20 @@ describe("local Drizzle integration", () => {
 
         try {
           await assertCompoundUniqueQueries(runtime.orm, expect);
+        } finally {
+          await runtime.close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
+
+    it(
+      `${target} local Drizzle integration > supports integer and json fields against a real local database`,
+      async () => {
+        const runtime = await runtimeFactories[target]();
+
+        try {
+          await assertIntegerAndJsonQueries(runtime.orm, expect);
         } finally {
           await runtime.close();
         }

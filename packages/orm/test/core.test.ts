@@ -9,6 +9,8 @@ import {
   hasMany,
   hasOne,
   id,
+  integer,
+  json,
   mergeUniqueLookupCreateData,
   manyToMany,
   model,
@@ -26,6 +28,7 @@ const schema = defineSchema({
     fields: {
       id: id().map("user_id"),
       email: string().unique().map("email_address"),
+      loginCount: integer().default(0).map("login_count"),
       createdAt: datetime().defaultNow(),
     },
     relations: {
@@ -55,6 +58,7 @@ const schema = defineSchema({
       id: id(),
       userId: string().references("user.id"),
       token: string().unique(),
+      metadata: json<{ scope: string[] } | null>().nullable(),
     },
     constraints: {
       indexes: [["userId", "token"]],
@@ -102,6 +106,8 @@ describe("@farming-labs/orm core", () => {
     const manifest = createManifest(schema);
     expect(manifest.models.user.table).toBe("users");
     expect(manifest.models.user.fields.email.column).toBe("email_address");
+    expect(manifest.models.user.fields.loginCount.kind).toBe("integer");
+    expect(manifest.models.session.fields.metadata.kind).toBe("json");
     expect(manifest.models.session.fields.userId.references).toBe("user.id");
     expect(manifest.models.user.relations.profile.kind).toBe("hasOne");
     expect(manifest.models.user.relations.organizations.kind).toBe("manyToMany");
@@ -122,6 +128,8 @@ describe("@farming-labs/orm core", () => {
     const mysqlSql = renderSafeSql(schema, { dialect: "mysql" });
 
     expect(prisma).toContain("model User");
+    expect(prisma).toContain('loginCount Int @default(0) @map("login_count")');
+    expect(prisma).toContain("metadata Json?");
     expect(prisma).toContain('@map("email_address")');
     expect(prisma).toContain("profile Profile?");
     expect(prisma).toContain("sessions Session[]");
@@ -130,6 +138,8 @@ describe("@farming-labs/orm core", () => {
     expect(prisma).toContain("@@unique([userId, organizationId])");
     expect(prisma).toContain("@@index([organizationId, role])");
     expect(drizzle).toContain('export const user = pgTable("users"');
+    expect(drizzle).toContain('loginCount: integer("login_count").notNull().default(0)');
+    expect(drizzle).toContain('metadata: jsonb("metadata")');
     expect(drizzle).toContain('import { relations } from "drizzle-orm";');
     expect(drizzle).toContain('uniqueIndex("members_userid_organizationid_unique")');
     expect(drizzle).toContain('index("members_organizationid_role_idx")');
@@ -140,6 +150,8 @@ describe("@farming-labs/orm core", () => {
       "user: one(user, { fields: [session.userId], references: [user.id] })",
     );
     expect(sql).toContain('create table if not exists "users"');
+    expect(sql).toContain('"login_count" integer not null default 0');
+    expect(sql).toContain('"metadata" jsonb');
     expect(sql).toContain('references "users"("user_id")');
     expect(sql).toContain('create table if not exists "members"');
     expect(sql).toContain(
@@ -149,6 +161,8 @@ describe("@farming-labs/orm core", () => {
       'create index if not exists "members_organizationid_role_idx" on "members"("organizationId", "role");',
     );
     expect(mysqlSql).toContain("`userId` varchar(191) not null references `users`(`user_id`)");
+    expect(mysqlSql).toContain("`login_count` integer not null default 0");
+    expect(mysqlSql).toContain("`metadata` json");
     expect(mysqlSql).toContain(
       "create unique index `members_userid_organizationid_unique` on `members`(`userId`, `organizationId`);",
     );

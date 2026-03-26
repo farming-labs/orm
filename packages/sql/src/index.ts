@@ -13,6 +13,7 @@ import {
   type ManifestModel,
   mergeUniqueLookupCreateData,
   type OrmDriver,
+  isOperatorFilterObject,
   requireUniqueLookup,
   resolveRowIdentityLookup,
   type SchemaManifest,
@@ -25,13 +26,13 @@ import {
   type UpsertArgs,
   validateUniqueLookupUpdateData,
   type Where,
+  type JsonValue,
 } from "@farming-labs/orm";
 import type { ModelName, RelationName } from "@farming-labs/orm";
 
 type SqlDialect = "sqlite" | "mysql" | "postgres";
 type SqlRow = Record<string, unknown>;
-type SqlFilterRecord = Record<string, string | number | boolean | Date | null>;
-type SqlWhere = Where<SqlFilterRecord>;
+type SqlWhere = Where<Record<string, unknown>>;
 
 type SqlQueryResult = {
   rows: SqlRow[];
@@ -151,6 +152,10 @@ function encodeValue(field: ManifestField, dialect: SqlDialect, value: unknown) 
     return value ? 1 : 0;
   }
 
+  if (field.kind === "integer") {
+    return Number(value);
+  }
+
   if (field.kind === "datetime") {
     if (value instanceof Date) {
       if (dialect === "mysql") {
@@ -159,6 +164,13 @@ function encodeValue(field: ManifestField, dialect: SqlDialect, value: unknown) 
       return value.toISOString();
     }
     return value;
+  }
+
+  if (field.kind === "json") {
+    if (dialect === "postgres") {
+      return value;
+    }
+    return JSON.stringify(value);
   }
 
   return value;
@@ -212,6 +224,21 @@ function decodeValue(field: ManifestField, dialect: SqlDialect, value: unknown) 
     return new Date(String(value));
   }
 
+  if (field.kind === "integer") {
+    return typeof value === "number" ? value : Number(value);
+  }
+
+  if (field.kind === "json") {
+    if (typeof value === "string") {
+      try {
+        return JSON.parse(value) as JsonValue;
+      } catch {
+        return value;
+      }
+    }
+    return value;
+  }
+
   return value;
 }
 
@@ -234,10 +261,6 @@ function mergeWhere(...clauses: Array<SqlWhere | undefined>) {
   } as SqlWhere;
 }
 
-function isFilterObject(value: unknown): value is Record<string, unknown> {
-  return !!value && typeof value === "object" && !(value instanceof Date) && !Array.isArray(value);
-}
-
 function compileFieldFilter(
   model: ManifestModel,
   fieldName: string,
@@ -251,11 +274,17 @@ function compileFieldFilter(
   }
 
   const column = `${quoteIdentifier(model.table, dialect)}.${quoteIdentifier(field.column, dialect)}`;
+  const createValueExpression = (value: unknown) => {
+    const placeholder = createPlaceholder(dialect, state, encodeValue(field, dialect, value));
+    if (field.kind === "json" && dialect === "mysql") {
+      return `cast(${placeholder} as json)`;
+    }
+    return placeholder;
+  };
 
-  if (!isFilterObject(filter)) {
+  if (!isOperatorFilterObject(filter)) {
     if (filter === null) return `${column} is null`;
-    const placeholder = createPlaceholder(dialect, state, encodeValue(field, dialect, filter));
-    return `${column} = ${placeholder}`;
+    return `${column} = ${createValueExpression(filter)}`;
   }
 
   const clauses: string[] = [];
@@ -264,8 +293,7 @@ function compileFieldFilter(
     if (filter.eq === null) {
       clauses.push(`${column} is null`);
     } else {
-      const placeholder = createPlaceholder(dialect, state, encodeValue(field, dialect, filter.eq));
-      clauses.push(`${column} = ${placeholder}`);
+      clauses.push(`${column} = ${createValueExpression(filter.eq)}`);
     }
   }
 
@@ -273,12 +301,7 @@ function compileFieldFilter(
     if (filter.not === null) {
       clauses.push(`${column} is not null`);
     } else {
-      const placeholder = createPlaceholder(
-        dialect,
-        state,
-        encodeValue(field, dialect, filter.not),
-      );
-      clauses.push(`${column} <> ${placeholder}`);
+      clauses.push(`${column} <> ${createValueExpression(filter.not)}`);
     }
   }
 
@@ -287,9 +310,7 @@ function compileFieldFilter(
     if (!values.length) {
       clauses.push("1 = 0");
     } else {
-      const placeholders = values.map((value) =>
-        createPlaceholder(dialect, state, encodeValue(field, dialect, value)),
-      );
+      const placeholders = values.map((value) => createValueExpression(value));
       clauses.push(`${column} in (${placeholders.join(", ")})`);
     }
   }

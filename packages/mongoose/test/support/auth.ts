@@ -7,6 +7,8 @@ import {
   hasMany,
   hasOne,
   id,
+  integer,
+  json,
   manyToMany,
   model,
   string,
@@ -20,6 +22,7 @@ export const schema = defineSchema({
       email: string().unique(),
       name: string(),
       emailVerified: boolean().default(false).map("email_verified"),
+      loginCount: integer().default(0).map("login_count"),
       createdAt: datetime().defaultNow().map("created_at"),
       updatedAt: datetime().defaultNow().map("updated_at"),
     },
@@ -67,6 +70,11 @@ export const schema = defineSchema({
       userId: string().references("user.id").map("user_id"),
       provider: string(),
       accountId: string().map("account_id"),
+      metadata: json<{
+        plan: string;
+        scopes: string[];
+        flags: { sync: boolean };
+      } | null>().nullable(),
     },
     constraints: {
       unique: [["provider", "accountId"]],
@@ -122,10 +130,12 @@ export async function seedAuthData(orm: RuntimeOrm) {
       {
         email: "ada@farminglabs.dev",
         name: "Ada",
+        loginCount: 3,
       },
       {
         email: "grace@farminglabs.dev",
         name: "Grace",
+        loginCount: 1,
       },
     ],
     select: {
@@ -147,6 +157,13 @@ export async function seedAuthData(orm: RuntimeOrm) {
       userId: ada.id,
       provider: "github",
       accountId: "gh_ada",
+      metadata: {
+        plan: "oss",
+        scopes: ["repo:read", "repo:write"],
+        flags: {
+          sync: true,
+        },
+      },
     },
   });
 
@@ -568,6 +585,148 @@ export async function assertCompoundUniqueQueries(
   });
   expect(updatedLookup).toEqual({
     userId: grace.id,
+  });
+}
+
+export async function assertIntegerAndJsonQueries(
+  orm: RuntimeOrm,
+  expect: typeof import("vitest").expect,
+) {
+  const { ada } = await seedAuthData(orm);
+
+  const activeUsers = await orm.user.findMany({
+    where: {
+      loginCount: {
+        gte: 2,
+      },
+    },
+    orderBy: {
+      email: "asc",
+    },
+    select: {
+      email: true,
+      loginCount: true,
+    },
+  });
+
+  const account = await orm.account.findUnique({
+    where: {
+      provider: "github",
+      accountId: "gh_ada",
+    },
+    select: {
+      metadata: true,
+    },
+  });
+
+  const matchingAccounts = await orm.account.findMany({
+    where: {
+      metadata: {
+        plan: "oss",
+        scopes: ["repo:read", "repo:write"],
+        flags: {
+          sync: true,
+        },
+      },
+    },
+    select: {
+      provider: true,
+      metadata: true,
+    },
+  });
+
+  const updatedUser = await orm.user.update({
+    where: {
+      email: "ada@farminglabs.dev",
+    },
+    data: {
+      loginCount: 5,
+    },
+    select: {
+      id: true,
+      loginCount: true,
+    },
+  });
+
+  const updatedAccount = await orm.account.update({
+    where: {
+      provider: "github",
+      accountId: "gh_ada",
+    },
+    data: {
+      metadata: {
+        plan: "pro",
+        scopes: ["repo:read", "repo:write", "admin"],
+        flags: {
+          sync: false,
+        },
+      },
+    },
+    select: {
+      metadata: true,
+    },
+  });
+
+  const reloadedAccount = await orm.account.findUnique({
+    where: {
+      provider: "github",
+      accountId: "gh_ada",
+    },
+    select: {
+      userId: true,
+      metadata: true,
+    },
+  });
+
+  expect(activeUsers).toEqual([
+    {
+      email: "ada@farminglabs.dev",
+      loginCount: 3,
+    },
+  ]);
+  expect(account).toEqual({
+    metadata: {
+      plan: "oss",
+      scopes: ["repo:read", "repo:write"],
+      flags: {
+        sync: true,
+      },
+    },
+  });
+  expect(matchingAccounts).toEqual([
+    {
+      provider: "github",
+      metadata: {
+        plan: "oss",
+        scopes: ["repo:read", "repo:write"],
+        flags: {
+          sync: true,
+        },
+      },
+    },
+  ]);
+  expect(updatedUser).toEqual({
+    id: ada.id,
+    loginCount: 5,
+  });
+  expect(updatedAccount).toEqual({
+    metadata: {
+      plan: "pro",
+      scopes: ["repo:read", "repo:write", "admin"],
+      flags: {
+        sync: false,
+      },
+    },
+  });
+  expect(reloadedAccount).toEqual({
+    userId: ada.id,
+    metadata: {
+      plan: "pro",
+      scopes: ["repo:read", "repo:write", "admin"],
+      flags: {
+        sync: false,
+      },
+    },
   });
 }
 
