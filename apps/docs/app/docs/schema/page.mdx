@@ -1,6 +1,6 @@
 ---
 title: "Unified Schema"
-description: "One source of truth for fields, defaults, references, and relationships."
+description: "One source of truth for fields, constraints, defaults, references, and relationships."
 order: 3
 icon: database
 ---
@@ -16,6 +16,7 @@ the schema directly or consumes its normalized manifest form.
 - `model(...)` defines one model
 - field builders such as `id()`, `string()`, `boolean()`, and `datetime()`
 - relation helpers such as `belongsTo(...)`, `hasOne(...)`, `hasMany(...)`, and `manyToMany(...)`
+- model-level constraints such as compound `unique` keys and `indexes`
 
 ## Full schema example
 
@@ -80,6 +81,23 @@ export const appSchema = defineSchema({
     },
   }),
 
+  account: model({
+    table: "accounts",
+    fields: {
+      id: id(),
+      userId: string().references("user.id"),
+      provider: string(),
+      accountId: string(),
+    },
+    constraints: {
+      unique: [["provider", "accountId"]],
+      indexes: [["userId", "provider"]],
+    },
+    relations: {
+      user: belongsTo("user", { foreignKey: "userId" }),
+    },
+  }),
+
   organization: model({
     table: "organizations",
     fields: {
@@ -123,6 +141,68 @@ export const appSchema = defineSchema({
 | `.references("model.field")` | Declares a foreign-key style reference                  |
 | `.map("column_name")`        | Maps a field name to a different physical column name   |
 | `.describe("...")`           | Adds documentation metadata for the manifest/docs layer |
+
+## Model-level constraints
+
+Use model constraints when uniqueness or indexing belongs to a combination of
+fields instead of a single field.
+
+```ts
+account: model({
+  table: "accounts",
+  fields: {
+    id: id(),
+    userId: string().references("user.id"),
+    provider: string(),
+    accountId: string(),
+  },
+  constraints: {
+    unique: [["provider", "accountId"]],
+    indexes: [["userId", "provider"]],
+  },
+});
+```
+
+### Constraint keys
+
+| Key       | Purpose                                 |
+| --------- | --------------------------------------- |
+| `unique`  | Declares one or more unique field sets  |
+| `indexes` | Declares one or more non-unique indexes |
+
+### Why this matters
+
+- generators emit real compound uniques and indexes
+- the runtime now understands declared compound unique keys
+- `findUnique(...)` and `upsert(...)` can use those same field sets directly
+
+Example:
+
+```ts
+await orm.account.findUnique({
+  where: {
+    provider: "github",
+    accountId: "gh_ada",
+  },
+});
+```
+
+```ts
+await orm.account.upsert({
+  where: {
+    provider: "github",
+    accountId: "gh_ada",
+  },
+  create: {
+    userId: "user_1",
+    provider: "github",
+    accountId: "gh_ada",
+  },
+  update: {
+    userId: "user_2",
+  },
+});
+```
 
 ## Relation helpers
 
@@ -223,6 +303,8 @@ Internally, the schema is normalized into a manifest that contains:
 - scalar kinds
 - nullability
 - uniqueness
+- compound unique constraints
+- indexes
 - generated/default values
 - references
 - descriptions

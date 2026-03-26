@@ -61,6 +61,10 @@ const authSchema = defineSchema({
       provider: string(),
       accountId: string(),
     },
+    constraints: {
+      unique: [["provider", "accountId"]],
+      indexes: [["userId", "provider"]],
+    },
     relations: {
       user: belongsTo("user", { foreignKey: "userId" }),
     },
@@ -222,14 +226,35 @@ describe("runtime contract", () => {
     const updatedAccount = await orm.account.upsert({
       where: {
         provider: "github",
+        accountId: "gh_ada",
       },
       create: {
         userId: "user_2",
         provider: "github",
-        accountId: "gh_grace",
+        accountId: "gh_ada",
       },
       update: {
-        accountId: "gh_ada_updated",
+        userId: "user_2",
+      },
+      select: {
+        provider: true,
+        accountId: true,
+        userId: true,
+      },
+    });
+
+    const createdAccount = await orm.account.upsert({
+      where: {
+        provider: "google",
+        accountId: "google_grace",
+      },
+      create: {
+        userId: "user_2",
+        provider: "google",
+        accountId: "google_grace",
+      },
+      update: {
+        userId: "user_2",
       },
       select: {
         provider: true,
@@ -253,7 +278,12 @@ describe("runtime contract", () => {
     expect(updatedCount).toBe(4);
     expect(updatedAccount).toEqual({
       provider: "github",
-      accountId: "gh_ada_updated",
+      accountId: "gh_ada",
+      userId: "user_2",
+    });
+    expect(createdAccount).toEqual({
+      provider: "google",
+      accountId: "google_grace",
     });
     expect(deletedSingle).toBe(1);
     expect(deletedMany).toBe(3);
@@ -368,5 +398,27 @@ describe("runtime contract", () => {
       2,
       [{ provider: "github" }],
     ]);
+  });
+
+  it("supports compound-unique findUnique lookups", async () => {
+    const orm = createAuthOrm();
+
+    const account = await orm.account.findUnique({
+      where: {
+        provider: "github",
+        accountId: "gh_ada",
+      },
+      select: {
+        userId: true,
+        provider: true,
+        accountId: true,
+      },
+    });
+
+    expect(account).toEqual({
+      userId: "user_1",
+      provider: "github",
+      accountId: "gh_ada",
+    });
   });
 });

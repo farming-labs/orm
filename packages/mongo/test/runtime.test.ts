@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   assertBelongsToAndManyToManyQueries,
+  assertCompoundUniqueQueries,
   assertMutationQueries,
   assertOneToOneAndHasManyQueries,
   schema,
@@ -31,6 +32,12 @@ describe("mongo runtime", () => {
     await assertMutationQueries(orm, expect, {
       expectTransactionRollback: true,
     });
+  });
+
+  it("supports compound-unique lookups and upserts in the fast unit runtime", async () => {
+    const { orm } = createTestRuntime();
+
+    await assertCompoundUniqueQueries(orm, expect);
   });
 
   it("falls back to non-transactional execution when no session source is configured", async () => {

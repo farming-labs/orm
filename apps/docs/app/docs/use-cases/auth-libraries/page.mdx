@@ -64,6 +64,9 @@ export const authSchema = defineSchema({
       provider: string(),
       accountId: string(),
     },
+    constraints: {
+      unique: [["provider", "accountId"]],
+    },
     relations: {
       user: belongsTo("user", { foreignKey: "userId" }),
     },
@@ -145,6 +148,20 @@ export function createAuthStore(orm: typeof authOrm) {
       });
     },
 
+    findAccount(provider: string, accountId: string) {
+      return orm.account.findUnique({
+        where: {
+          provider,
+          accountId,
+        },
+        select: {
+          userId: true,
+          provider: true,
+          accountId: true,
+        },
+      });
+    },
+
     rotateSession(input: { userId: string; token: string; expiresAt: Date }) {
       return orm.session.upsert({
         where: {
@@ -183,6 +200,7 @@ different case.
 That gives an auth library one place to implement:
 
 - load a user by email, id, or token
+- load a linked account by `provider + accountId`
 - rotate sessions
 - invalidate sessions
 - link or sync provider accounts
@@ -198,6 +216,11 @@ That can now mean:
 - MongoDB through `@farming-labs/orm-mongo`
 - MongoDB through `@farming-labs/orm-mongoose`
 - memory for tests and fixtures
+
+The important recent addition is that auth-style compound keys are now first
+class in the runtime too, not only in generated schema output. A library can
+declare `constraints.unique: [["provider", "accountId"]]` once and then use the
+same pair in `findUnique(...)` and `upsert(...)` across supported drivers.
 
 ## What this removes
 

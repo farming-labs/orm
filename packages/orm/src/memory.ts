@@ -16,6 +16,12 @@ import type {
   UpsertArgs,
   Where,
 } from "./client";
+import {
+  createManifest,
+  mergeUniqueLookupCreateData,
+  requireUniqueLookup,
+  validateUniqueLookupUpdateData,
+} from "./manifest";
 import type { ModelName, RelationName, SchemaDefinition } from "./schema";
 
 type MemoryStore<TSchema extends SchemaDefinition<any>> = Partial<
@@ -23,6 +29,16 @@ type MemoryStore<TSchema extends SchemaDefinition<any>> = Partial<
 >;
 
 const isDate = (value: unknown): value is Date => value instanceof Date;
+
+const manifestCache = new WeakMap<object, ReturnType<typeof createManifest>>();
+
+function getManifest(schema: SchemaDefinition<any>) {
+  const cached = manifestCache.get(schema);
+  if (cached) return cached;
+  const next = createManifest(schema);
+  manifestCache.set(schema, next);
+  return next;
+}
 
 function evaluateFilter(value: unknown, filter: unknown) {
   if (
@@ -308,6 +324,11 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
       model: ModelName<TSchema>,
       args: FindUniqueArgs<TSchema, ModelName<TSchema>, any>,
     ) {
+      requireUniqueLookup(
+        getManifest(schema).models[model],
+        args.where as Record<string, unknown>,
+        "FindUnique",
+      );
       const row = applyQuery(getRows(model), args)[0];
       if (!row) return null;
       return projectRow(schema, model, row, args.select);
@@ -363,13 +384,33 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
       model: ModelName<TSchema>,
       args: UpsertArgs<TSchema, ModelName<TSchema>, any>,
     ) {
+      const lookup = requireUniqueLookup(
+        getManifest(schema).models[model],
+        args.where as Record<string, unknown>,
+        "Upsert",
+      );
+      validateUniqueLookupUpdateData(
+        getManifest(schema).models[model],
+        args.update as Partial<Record<string, unknown>>,
+        lookup,
+        "Upsert",
+      );
       const row = getRows(model).find((item) => matchesWhere(item, args.where));
       if (row) {
         Object.assign(row, args.update);
         return projectRow(schema, model, row, args.select);
       }
 
-      const created = buildRow(schema, model, args.create);
+      const created = buildRow(
+        schema,
+        model,
+        mergeUniqueLookupCreateData(
+          getManifest(schema).models[model],
+          args.create as Partial<Record<string, unknown>>,
+          lookup,
+          "Upsert",
+        ),
+      );
       getRows(model).push(created);
       return projectRow(schema, model, created, args.select);
     },

@@ -9,7 +9,9 @@ import {
   type FindManyArgs,
   type ManifestField,
   type ManifestModel,
+  mergeUniqueLookupCreateData,
   type OrmDriver,
+  requireUniqueLookup,
   type SchemaManifest,
   type SchemaDefinition,
   type SelectShape,
@@ -17,6 +19,7 @@ import {
   type UpdateArgs,
   type UpdateManyArgs,
   type UpsertArgs,
+  validateUniqueLookupUpdateData,
   type Where,
 } from "@farming-labs/orm";
 import type { ModelName, RelationName } from "@farming-labs/orm";
@@ -154,93 +157,6 @@ function parseReference(reference?: string) {
   const [model, field] = reference.split(".");
   if (!model || !field) return null;
   return { model, field };
-}
-
-function extractEqualityValue(filter: unknown) {
-  if (!isFilterObject(filter)) {
-    return {
-      supported: true,
-      value: filter,
-    };
-  }
-
-  const keys = Object.keys(filter);
-  if (keys.length === 1 && "eq" in filter) {
-    return {
-      supported: true,
-      value: filter.eq,
-    };
-  }
-
-  return {
-    supported: false,
-    value: undefined,
-  };
-}
-
-function extractUpsertConflict(model: ManifestModel, where: MongoWhere) {
-  const keys = Object.keys(where).filter((key) => key !== "AND" && key !== "OR" && key !== "NOT");
-
-  if ("AND" in where || "OR" in where || "NOT" in where || keys.length !== 1) {
-    throw new Error(
-      `Upsert on model "${model.name}" requires a single unique equality filter in "where".`,
-    );
-  }
-
-  const fieldName = keys[0]!;
-  const field = model.fields[fieldName];
-  if (!field) {
-    throw new Error(`Unknown field "${fieldName}" on model "${model.name}".`);
-  }
-
-  if (!(field.kind === "id" || field.unique)) {
-    throw new Error(
-      `Upsert on model "${model.name}" requires the "where" field "${fieldName}" to be unique or an id field.`,
-    );
-  }
-
-  const { supported, value } = extractEqualityValue(where[fieldName]);
-  if (!supported || value === undefined || value === null) {
-    throw new Error(
-      `Upsert on model "${model.name}" requires the "where" field "${fieldName}" to use a single non-null equality value.`,
-    );
-  }
-
-  return {
-    field,
-    value,
-  };
-}
-
-function mergeUpsertCreateData(
-  model: ManifestModel,
-  createData: Partial<Record<string, unknown>>,
-  conflict: { field: ManifestField; value: unknown },
-) {
-  const currentValue = createData[conflict.field.name];
-  if (currentValue !== undefined && currentValue !== conflict.value) {
-    throw new Error(
-      `Upsert on model "${model.name}" requires create.${conflict.field.name} to match where.${conflict.field.name}.`,
-    );
-  }
-
-  return {
-    ...createData,
-    [conflict.field.name]: currentValue ?? conflict.value,
-  };
-}
-
-function validateUpsertUpdateData(
-  model: ManifestModel,
-  updateData: Partial<Record<string, unknown>>,
-  conflict: { field: ManifestField; value: unknown },
-) {
-  const nextValue = updateData[conflict.field.name];
-  if (nextValue !== undefined && nextValue !== conflict.value) {
-    throw new Error(
-      `Upsert on model "${model.name}" cannot change the conflict field "${conflict.field.name}".`,
-    );
-  }
 }
 
 function removeOverlappingInsertFields(insertData: MongoRow, updateData: MongoRow) {
@@ -784,6 +700,12 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
       return loadOneRow(schema, model, args);
     },
     async findUnique(schema, model, args) {
+      const manifest = getManifest(schema);
+      requireUniqueLookup(
+        manifest.models[model],
+        args.where as Record<string, unknown>,
+        "FindUnique",
+      );
       return loadOneRow(schema, model, args);
     },
     async count(schema, model, args?: CountArgs<TSchema, ModelName<TSchema>>) {
@@ -876,18 +798,24 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
     async upsert(schema, model, args) {
       const manifest = getManifest(schema);
       const modelManifest = manifest.models[model];
-      const conflict = extractUpsertConflict(modelManifest, args.where as MongoWhere);
-      validateUpsertUpdateData(
+      const lookup = requireUniqueLookup(
+        modelManifest,
+        args.where as Record<string, unknown>,
+        "Upsert",
+      );
+      validateUniqueLookupUpdateData(
         modelManifest,
         args.update as Partial<Record<string, unknown>>,
-        conflict,
+        lookup,
+        "Upsert",
       );
       const created = buildDocument(
         modelManifest,
-        mergeUpsertCreateData(
+        mergeUniqueLookupCreateData(
           modelManifest,
           args.create as Partial<Record<string, unknown>>,
-          conflict,
+          lookup,
+          "Upsert",
         ),
       );
       const update = buildUpdate(modelManifest, args.update as Partial<Record<string, unknown>>);

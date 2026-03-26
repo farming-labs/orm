@@ -5,6 +5,7 @@ import { createMongooseDriver } from "../src";
 import type { MongooseModelLike } from "../src";
 import {
   assertBelongsToAndManyToManyQueries,
+  assertCompoundUniqueQueries,
   assertModelLevelConstraints,
   assertMutationQueries,
   assertOneToOneAndHasManyQueries,
@@ -81,6 +82,18 @@ async function createLocalMongooseOrm() {
   );
   sessionSchema.index({ user_id: 1, expires_at: 1 });
 
+  const accountSchema = new mongoose.Schema(
+    {
+      _id: { type: String, required: true },
+      user_id: { type: String, required: true },
+      provider: { type: String, required: true },
+      account_id: { type: String, required: true },
+    },
+    { versionKey: false },
+  );
+  accountSchema.index({ provider: 1, account_id: 1 }, { unique: true });
+  accountSchema.index({ user_id: 1, provider: 1 });
+
   const organizationSchema = new mongoose.Schema(
     {
       _id: { type: String, required: true },
@@ -105,12 +118,14 @@ async function createLocalMongooseOrm() {
   const UserModel = connection.model("User", userSchema, "users");
   const ProfileModel = connection.model("Profile", profileSchema, "profiles");
   const SessionModel = connection.model("Session", sessionSchema, "sessions");
+  const AccountModel = connection.model("Account", accountSchema, "accounts");
   const OrganizationModel = connection.model("Organization", organizationSchema, "organizations");
   const MemberModel = connection.model("Member", memberSchema, "members");
   await Promise.all([
     UserModel.init(),
     ProfileModel.init(),
     SessionModel.init(),
+    AccountModel.init(),
     OrganizationModel.init(),
     MemberModel.init(),
   ]);
@@ -123,6 +138,7 @@ async function createLocalMongooseOrm() {
           user: asModelLike(UserModel),
           profile: asModelLike(ProfileModel),
           session: asModelLike(SessionModel),
+          account: asModelLike(AccountModel),
           organization: asModelLike(OrganizationModel),
           member: asModelLike(MemberModel),
         },
@@ -173,6 +189,14 @@ describe("mongoose local integration", () => {
           expectTransactionRollback: process.env.FARM_ORM_LOCAL_MONGODB_TRANSACTIONS === "1",
         }),
       );
+    },
+    LOCAL_TIMEOUT_MS,
+  );
+
+  it(
+    "supports compound-unique lookups and upserts against a real local MongoDB instance",
+    async () => {
+      await withLocalOrm((orm) => assertCompoundUniqueQueries(orm, expect));
     },
     LOCAL_TIMEOUT_MS,
   );

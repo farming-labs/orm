@@ -59,6 +59,26 @@ const user = await orm.user.findUnique({
 Use `findUnique` when the query should resolve to at most one record, such as
 email, id, token, or another unique lookup.
 
+That includes declared compound unique keys.
+
+```ts
+const account = await orm.account.findUnique({
+  where: {
+    provider: "github",
+    accountId: "gh_ada",
+  },
+  select: {
+    userId: true,
+  },
+});
+```
+
+For `findUnique(...)`, the `where` object should match exactly one unique key:
+
+- an `id` field
+- a single `.unique()` field
+- or a declared model-level compound unique constraint
+
 ## `findOne`
 
 ```ts
@@ -234,6 +254,36 @@ const session = await orm.session.upsert({
 
 This is especially useful for auth-style operations such as rotating sessions,
 refreshing tokens, or syncing provider accounts.
+
+It also supports compound unique keys:
+
+```ts
+const account = await orm.account.upsert({
+  where: {
+    provider: "github",
+    accountId: "gh_ada",
+  },
+  create: {
+    userId: "user_1",
+    provider: "github",
+    accountId: "gh_ada",
+  },
+  update: {
+    userId: "user_2",
+  },
+  select: {
+    provider: true,
+    accountId: true,
+    userId: true,
+  },
+});
+```
+
+For compound upserts:
+
+- every field in `where` must belong to one declared unique key
+- `create` must agree with the `where` values for those fields
+- `update` cannot change the conflict fields themselves
 
 ## `delete`
 

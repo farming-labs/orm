@@ -77,6 +77,10 @@ export const authSchema = defineSchema({
       provider: string(),
       accountId: string(),
     },
+    constraints: {
+      unique: [["provider", "accountId"]],
+      indexes: [["userId", "provider"]],
+    },
     relations: {
       user: belongsTo("user", { foreignKey: "userId" }),
     },
@@ -125,6 +129,12 @@ Generated Prisma and Drizzle output already includes direct relation metadata fo
 - `hasMany`
 
 Join-table `manyToMany` stays explicit through the join model.
+
+The same schema can also declare compound uniques and indexes. In the example
+above, `account(provider, accountId)` becomes:
+
+- a generated unique constraint in Prisma / Drizzle / SQL
+- a runtime-safe `findUnique(...)` and `upsert(...)` key across supported drivers
 
 ## 4. Pick a runtime
 

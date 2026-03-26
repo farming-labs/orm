@@ -29,6 +29,10 @@ const orm = createOrm({
 That gives you typed model clients such as `orm.user`, `orm.session`, and
 `orm.account`.
 
+The runtime also understands declared model-level compound unique keys. If a
+schema says `account(provider, accountId)` is unique, live drivers can use that
+same shape in `findUnique(...)` and `upsert(...)`.
+
 ## Query surface
 
 The runtime client supports:
@@ -59,6 +63,12 @@ All live runtime drivers support:
 
 That means nested queries like `user.profile`, `user.sessions`, and
 `session.user` work across the supported runtimes.
+
+It also means unique lookups can be:
+
+- a generated `id`
+- a single `.unique()` field such as `email` or `token`
+- a declared compound unique constraint such as `provider + accountId`
 
 ## Available drivers
 
@@ -94,6 +104,19 @@ async function findUserByEmail(orm: typeof authOrm, email: string) {
 
 That helper stays the same whether the app uses Prisma, Drizzle, direct SQL,
 MongoDB, or Mongoose.
+
+The same is true for compound auth lookups:
+
+```ts title="find-account.ts"
+async function findAccount(orm: typeof authOrm, provider: string, accountId: string) {
+  return orm.account.findUnique({
+    where: {
+      provider,
+      accountId,
+    },
+  });
+}
+```
 
 ## Local verification
 

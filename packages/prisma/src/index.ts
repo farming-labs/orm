@@ -10,14 +10,19 @@ import {
   type FindUniqueArgs,
   type ManifestField,
   type ManifestModel,
+  mergeUniqueLookupCreateData,
   type OrmDriver,
+  requireUniqueLookup,
+  resolveRowIdentityLookup,
   type SchemaManifest,
   type SchemaDefinition,
   type SelectShape,
   type SelectedRecord,
+  type ManifestUniqueLookup,
   type UpdateArgs,
   type UpdateManyArgs,
   type UpsertArgs,
+  validateUniqueLookupUpdateData,
   type Where,
 } from "@farming-labs/orm";
 import type { ModelName, RelationName } from "@farming-labs/orm";
@@ -98,93 +103,6 @@ function mergeWhere(...clauses: Array<PrismaWhere | undefined>) {
   } as PrismaWhere;
 }
 
-function extractEqualityValue(filter: unknown) {
-  if (!isFilterObject(filter)) {
-    return {
-      supported: true,
-      value: filter,
-    };
-  }
-
-  const keys = Object.keys(filter);
-  if (keys.length === 1 && "eq" in filter) {
-    return {
-      supported: true,
-      value: filter.eq,
-    };
-  }
-
-  return {
-    supported: false,
-    value: undefined,
-  };
-}
-
-function extractUpsertConflict(model: ManifestModel, where: PrismaWhere) {
-  const keys = Object.keys(where).filter((key) => key !== "AND" && key !== "OR" && key !== "NOT");
-
-  if ("AND" in where || "OR" in where || "NOT" in where || keys.length !== 1) {
-    throw new Error(
-      `Upsert on model "${model.name}" requires a single unique equality filter in "where".`,
-    );
-  }
-
-  const fieldName = keys[0]!;
-  const field = model.fields[fieldName];
-  if (!field) {
-    throw new Error(`Unknown field "${fieldName}" on model "${model.name}".`);
-  }
-
-  if (!(field.kind === "id" || field.unique)) {
-    throw new Error(
-      `Upsert on model "${model.name}" requires the "where" field "${fieldName}" to be unique or an id field.`,
-    );
-  }
-
-  const { supported, value } = extractEqualityValue(where[fieldName]);
-  if (!supported || value === undefined || value === null) {
-    throw new Error(
-      `Upsert on model "${model.name}" requires the "where" field "${fieldName}" to use a single non-null equality value.`,
-    );
-  }
-
-  return {
-    field,
-    value,
-  };
-}
-
-function mergeUpsertCreateData(
-  model: ManifestModel,
-  createData: Partial<Record<string, unknown>>,
-  conflict: { field: ManifestField; value: unknown },
-) {
-  const currentValue = createData[conflict.field.name];
-  if (currentValue !== undefined && currentValue !== conflict.value) {
-    throw new Error(
-      `Upsert on model "${model.name}" requires create.${conflict.field.name} to match where.${conflict.field.name}.`,
-    );
-  }
-
-  return {
-    ...createData,
-    [conflict.field.name]: currentValue ?? conflict.value,
-  };
-}
-
-function validateUpsertUpdateData(
-  model: ManifestModel,
-  updateData: Partial<Record<string, unknown>>,
-  conflict: { field: ManifestField; value: unknown },
-) {
-  const nextValue = updateData[conflict.field.name];
-  if (nextValue !== undefined && nextValue !== conflict.value) {
-    throw new Error(
-      `Upsert on model "${model.name}" cannot change the conflict field "${conflict.field.name}".`,
-    );
-  }
-}
-
 function buildCreateData(model: ManifestModel, input: Partial<Record<string, unknown>>) {
   const output: PrismaRow = {};
 
@@ -259,17 +177,23 @@ function compileOrderBy(orderBy?: Partial<Record<string, "asc" | "desc">>) {
   }));
 }
 
-function buildIdentityWhere(model: ManifestModel, row: PrismaRow) {
-  const field = identityField(model);
-  const value = row[field.name];
-  if (value == null) {
-    throw new Error(
-      `Model "${model.name}" requires a non-null identity value for field "${field.name}".`,
-    );
+function buildPrismaUniqueWhere(lookup: ManifestUniqueLookup) {
+  if (lookup.fields.length === 1) {
+    const field = lookup.fields[0]!;
+    return {
+      [field.name]: lookup.values[field.name],
+    };
   }
+
   return {
-    [field.name]: value,
+    [lookup.fields.map((field) => field.name).join("_")]: Object.fromEntries(
+      lookup.fields.map((field) => [field.name, lookup.values[field.name]]),
+    ),
   };
+}
+
+function buildIdentityWhere(model: ManifestModel, row: PrismaRow) {
+  return buildPrismaUniqueWhere(resolveRowIdentityLookup(model, row));
 }
 
 function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
@@ -535,6 +459,12 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
       return loadOneRow(schema, model, args);
     },
     async findUnique(schema, model, args: FindUniqueArgs<TSchema, ModelName<TSchema>, any>) {
+      const manifest = getManifest(schema);
+      requireUniqueLookup(
+        manifest.models[model],
+        args.where as Record<string, unknown>,
+        "FindUnique",
+      );
       return loadOneRow(schema, model, args);
     },
     async count(schema, model, args?: CountArgs<TSchema, ModelName<TSchema>>) {
@@ -610,27 +540,31 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
     },
     async upsert(schema, model, args) {
       const manifest = getManifest(schema);
-      const conflict = extractUpsertConflict(manifest.models[model], args.where as PrismaWhere);
+      const lookup = requireUniqueLookup(
+        manifest.models[model],
+        args.where as Record<string, unknown>,
+        "Upsert",
+      );
       const delegate = getDelegate(model);
       const createData = buildCreateData(
         manifest.models[model],
-        mergeUpsertCreateData(
+        mergeUniqueLookupCreateData(
           manifest.models[model],
           args.create as Partial<Record<string, unknown>>,
-          conflict,
+          lookup,
+          "Upsert",
         ),
       );
       const updateData = buildUpdateData(args.update as Partial<Record<string, unknown>>);
-      validateUpsertUpdateData(
+      validateUniqueLookupUpdateData(
         manifest.models[model],
         args.update as Partial<Record<string, unknown>>,
-        conflict,
+        lookup,
+        "Upsert",
       );
 
       const row = await (delegate.upsert?.({
-        where: {
-          [conflict.field.name]: conflict.value,
-        },
+        where: buildPrismaUniqueWhere(lookup),
         create: createData,
         update: updateData,
       }) ??

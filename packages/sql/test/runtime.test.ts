@@ -33,6 +33,7 @@ const schema = defineSchema({
     relations: {
       profile: hasOne("profile", { foreignKey: "userId" }),
       sessions: hasMany("session", { foreignKey: "userId" }),
+      accounts: hasMany("account", { foreignKey: "userId" }),
       organizations: manyToMany("organization", {
         through: "member",
         from: "userId",
@@ -58,6 +59,22 @@ const schema = defineSchema({
       userId: string().references("user.id").map("user_id"),
       token: string().unique(),
       expiresAt: datetime().map("expires_at"),
+    },
+    relations: {
+      user: belongsTo("user", { foreignKey: "userId" }),
+    },
+  }),
+  account: model({
+    table: "accounts",
+    fields: {
+      id: id(),
+      userId: string().references("user.id").map("user_id"),
+      provider: string(),
+      accountId: string().map("account_id"),
+    },
+    constraints: {
+      unique: [["provider", "accountId"]],
+      indexes: [["userId", "provider"]],
     },
     relations: {
       user: belongsTo("user", { foreignKey: "userId" }),
@@ -127,6 +144,14 @@ async function seedAuthData(orm: RuntimeOrm) {
     data: {
       userId: ada.id,
       bio: "Writes one storage layer for every stack.",
+    },
+  });
+
+  await orm.account.create({
+    data: {
+      userId: ada.id,
+      provider: "github",
+      accountId: "gh_ada",
     },
   });
 
@@ -510,6 +535,84 @@ for (const [label, factory] of [
 
         expect(percentMatches).toEqual([{ email: "percent@farminglabs.dev" }]);
         expect(underscoreMatches).toEqual([{ email: "underscore@farminglabs.dev" }]);
+      } finally {
+        await close();
+      }
+    });
+
+    it("supports compound-unique findUnique lookups and upserts", async () => {
+      const { orm, close } = await factory();
+
+      try {
+        const { ada, grace } = await seedAuthData(orm);
+
+        const existingAccount = await orm.account.findUnique({
+          where: {
+            provider: "github",
+            accountId: "gh_ada",
+          },
+          select: {
+            provider: true,
+            accountId: true,
+            userId: true,
+          },
+        });
+
+        const updatedAccount = await orm.account.upsert({
+          where: {
+            provider: "github",
+            accountId: "gh_ada",
+          },
+          create: {
+            userId: ada.id,
+            provider: "github",
+            accountId: "gh_ada",
+          },
+          update: {
+            userId: grace.id,
+          },
+          select: {
+            provider: true,
+            accountId: true,
+            userId: true,
+          },
+        });
+
+        const createdAccount = await orm.account.upsert({
+          where: {
+            provider: "google",
+            accountId: "google_grace",
+          },
+          create: {
+            userId: grace.id,
+            provider: "google",
+            accountId: "google_grace",
+          },
+          update: {
+            userId: grace.id,
+          },
+          select: {
+            provider: true,
+            accountId: true,
+            userId: true,
+          },
+        });
+
+        expect(existingAccount).toEqual({
+          provider: "github",
+          accountId: "gh_ada",
+          userId: ada.id,
+        });
+        expect(updatedAccount).toEqual({
+          provider: "github",
+          accountId: "gh_ada",
+          userId: grace.id,
+        });
+        expect(createdAccount).toEqual({
+          provider: "google",
+          accountId: "google_grace",
+          userId: grace.id,
+        });
       } finally {
         await close();
       }
