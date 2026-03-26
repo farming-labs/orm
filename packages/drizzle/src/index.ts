@@ -1,4 +1,4 @@
-import type { OrmDriver, SchemaDefinition } from "@farming-labs/orm";
+import type { OrmDriver, OrmDriverHandle, SchemaDefinition } from "@farming-labs/orm";
 import {
   createMysqlDriver,
   createPgClientDriver,
@@ -23,6 +23,12 @@ export type DrizzleDriverConfig<TSchema extends SchemaDefinition<any>> = {
   dialect: DrizzleDialect;
 };
 
+export type DrizzleDriverHandle<TClient = unknown> = OrmDriverHandle<
+  "drizzle",
+  TClient,
+  DrizzleDialect
+>;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object";
 }
@@ -34,7 +40,7 @@ function hasFunction<TName extends string>(
   return isRecord(value) && typeof value[name] === "function";
 }
 
-function resolveClient(config: DrizzleDriverConfig<any>) {
+function resolveRuntimeClient(config: DrizzleDriverConfig<any>) {
   const client = config.client ?? config.db?.$client;
 
   if (!client) {
@@ -46,13 +52,63 @@ function resolveClient(config: DrizzleDriverConfig<any>) {
   return client;
 }
 
-function createPostgresDrizzleDriver<TSchema extends SchemaDefinition<any>>(client: unknown) {
-  if (hasFunction(client, "connect") && hasFunction(client, "query")) {
-    return createPgPoolDriver<TSchema>(client as PgPoolLike);
+function wrapDrizzleDriver<TSchema extends SchemaDefinition<any>, TClient>(
+  driver: OrmDriver<TSchema, any>,
+  handle: DrizzleDriverHandle<TClient>,
+): OrmDriver<TSchema, DrizzleDriverHandle<TClient>> {
+  return {
+    handle,
+    findMany(schema, model, args) {
+      return driver.findMany(schema, model, args);
+    },
+    findFirst(schema, model, args) {
+      return driver.findFirst(schema, model, args);
+    },
+    findUnique(schema, model, args) {
+      return driver.findUnique(schema, model, args);
+    },
+    count(schema, model, args) {
+      return driver.count(schema, model, args);
+    },
+    create(schema, model, args) {
+      return driver.create(schema, model, args);
+    },
+    createMany(schema, model, args) {
+      return driver.createMany(schema, model, args);
+    },
+    update(schema, model, args) {
+      return driver.update(schema, model, args);
+    },
+    updateMany(schema, model, args) {
+      return driver.updateMany(schema, model, args);
+    },
+    upsert(schema, model, args) {
+      return driver.upsert(schema, model, args);
+    },
+    delete(schema, model, args) {
+      return driver.delete(schema, model, args);
+    },
+    deleteMany(schema, model, args) {
+      return driver.deleteMany(schema, model, args);
+    },
+    transaction(schema, run) {
+      return driver.transaction(schema, async (txDriver) =>
+        run(wrapDrizzleDriver(txDriver, handle)),
+      );
+    },
+  };
+}
+
+function createPostgresDrizzleDriver<TSchema extends SchemaDefinition<any>, TClient>(
+  runtimeClient: unknown,
+  handle: DrizzleDriverHandle<TClient>,
+) {
+  if (hasFunction(runtimeClient, "connect") && hasFunction(runtimeClient, "query")) {
+    return wrapDrizzleDriver(createPgPoolDriver<TSchema>(runtimeClient as PgPoolLike), handle);
   }
 
-  if (hasFunction(client, "query")) {
-    return createPgClientDriver<TSchema>(client as PgClientLike);
+  if (hasFunction(runtimeClient, "query")) {
+    return wrapDrizzleDriver(createPgClientDriver<TSchema>(runtimeClient as PgClientLike), handle);
   }
 
   throw new Error(
@@ -60,18 +116,24 @@ function createPostgresDrizzleDriver<TSchema extends SchemaDefinition<any>>(clie
   );
 }
 
-function createMysqlDrizzleDriver<TSchema extends SchemaDefinition<any>>(client: unknown) {
-  if (hasFunction(client, "getConnection") && hasFunction(client, "execute")) {
-    return createMysqlDriver<TSchema>(client as MysqlPoolLike);
+function createMysqlDrizzleDriver<TSchema extends SchemaDefinition<any>, TClient>(
+  runtimeClient: unknown,
+  handle: DrizzleDriverHandle<TClient>,
+) {
+  if (hasFunction(runtimeClient, "getConnection") && hasFunction(runtimeClient, "execute")) {
+    return wrapDrizzleDriver(createMysqlDriver<TSchema>(runtimeClient as MysqlPoolLike), handle);
   }
 
   if (
-    hasFunction(client, "execute") &&
-    hasFunction(client, "beginTransaction") &&
-    hasFunction(client, "commit") &&
-    hasFunction(client, "rollback")
+    hasFunction(runtimeClient, "execute") &&
+    hasFunction(runtimeClient, "beginTransaction") &&
+    hasFunction(runtimeClient, "commit") &&
+    hasFunction(runtimeClient, "rollback")
   ) {
-    return createMysqlDriver<TSchema>(client as MysqlConnectionLike);
+    return wrapDrizzleDriver(
+      createMysqlDriver<TSchema>(runtimeClient as MysqlConnectionLike),
+      handle,
+    );
   }
 
   throw new Error(
@@ -79,9 +141,15 @@ function createMysqlDrizzleDriver<TSchema extends SchemaDefinition<any>>(client:
   );
 }
 
-function createSqliteDrizzleDriver<TSchema extends SchemaDefinition<any>>(client: unknown) {
-  if (hasFunction(client, "prepare") && hasFunction(client, "exec")) {
-    return createSqliteDriver<TSchema>(client as SqliteDatabaseLike);
+function createSqliteDrizzleDriver<TSchema extends SchemaDefinition<any>, TClient>(
+  runtimeClient: unknown,
+  handle: DrizzleDriverHandle<TClient>,
+) {
+  if (hasFunction(runtimeClient, "prepare") && hasFunction(runtimeClient, "exec")) {
+    return wrapDrizzleDriver(
+      createSqliteDriver<TSchema>(runtimeClient as SqliteDatabaseLike),
+      handle,
+    );
   }
 
   throw new Error(
@@ -91,15 +159,29 @@ function createSqliteDrizzleDriver<TSchema extends SchemaDefinition<any>>(client
 
 export function createDrizzleDriver<TSchema extends SchemaDefinition<any>>(
   config: DrizzleDriverConfig<TSchema>,
-): OrmDriver<TSchema> {
-  const client = resolveClient(config);
+): OrmDriver<TSchema, DrizzleDriverHandle<DrizzleDatabaseLike | unknown>> {
+  const runtimeClient = resolveRuntimeClient(config);
+  const handle: DrizzleDriverHandle<DrizzleDatabaseLike | unknown> = {
+    kind: "drizzle",
+    client: config.db ?? config.client ?? runtimeClient,
+    dialect: config.dialect,
+  };
 
   switch (config.dialect) {
     case "postgres":
-      return createPostgresDrizzleDriver<TSchema>(client);
+      return createPostgresDrizzleDriver<TSchema, DrizzleDatabaseLike | unknown>(
+        runtimeClient,
+        handle,
+      );
     case "mysql":
-      return createMysqlDrizzleDriver<TSchema>(client);
+      return createMysqlDrizzleDriver<TSchema, DrizzleDatabaseLike | unknown>(
+        runtimeClient,
+        handle,
+      );
     case "sqlite":
-      return createSqliteDrizzleDriver<TSchema>(client);
+      return createSqliteDrizzleDriver<TSchema, DrizzleDatabaseLike | unknown>(
+        runtimeClient,
+        handle,
+      );
   }
 }

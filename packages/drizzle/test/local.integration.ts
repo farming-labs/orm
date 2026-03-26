@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 import mysql from "mysql2/promise";
 import { Pool } from "pg";
 import { createOrm, renderSafeSql } from "@farming-labs/orm";
-import { createDrizzleDriver } from "../src";
+import { createDrizzleDriver, type DrizzleDialect } from "../src";
 import {
   assertBelongsToAndManyToManyQueries,
   assertCompoundUniqueQueries,
@@ -23,6 +23,8 @@ import {
 
 type RuntimeFactory = () => Promise<{
   orm: RuntimeOrm;
+  driverClient: unknown;
+  dialect: DrizzleDialect;
   close: () => Promise<void>;
 }>;
 
@@ -168,6 +170,8 @@ async function createLocalSqliteOrm() {
 
   return {
     orm,
+    driverClient: db,
+    dialect: "sqlite",
     close: async () => {
       client.close();
       await rm(directory, { recursive: true, force: true });
@@ -220,6 +224,8 @@ async function createLocalPostgresOrm() {
 
   return {
     orm,
+    driverClient: db,
+    dialect: "postgres",
     close: async () => {
       await pool.end();
       const cleanupAdmin = new Pool({ connectionString: adminUrl });
@@ -278,6 +284,8 @@ async function createLocalMysqlOrm() {
 
   return {
     orm,
+    driverClient: db,
+    dialect: "mysql",
     close: async () => {
       await pool.end();
       const cleanupAdmin = mysql.createPool(adminUrl);
@@ -296,6 +304,22 @@ const runtimeFactories: Record<DrizzleTarget, RuntimeFactory> = {
 describe("local Drizzle integration", () => {
   for (const target of drizzleTargets) {
     if (!shouldRunTarget(target)) continue;
+
+    it(
+      `${target} local Drizzle integration > exposes the live Drizzle instance on orm.$driver`,
+      async () => {
+        const runtime = await runtimeFactories[target]();
+
+        try {
+          expect(runtime.orm.$driver.kind).toBe("drizzle");
+          expect(runtime.orm.$driver.dialect).toBe(runtime.dialect);
+          expect(runtime.orm.$driver.client).toBe(runtime.driverClient);
+        } finally {
+          await runtime.close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
 
     it(
       `${target} local Drizzle integration > creates and uses a real Drizzle database against a real local database`,

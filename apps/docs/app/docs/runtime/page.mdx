@@ -29,6 +29,19 @@ const orm = createOrm({
 That gives you typed model clients such as `orm.user`, `orm.session`, and
 `orm.account`.
 
+It also exposes the attached runtime handle on `orm.$driver`. That gives app
+code access to the underlying instance that was passed into the driver:
+
+```ts title="driver-handle.ts"
+const orm = createOrm({
+  schema: authSchema,
+  driver: createPrismaDriver({ client: prisma }),
+});
+
+orm.$driver.kind; // "prisma"
+orm.$driver.client; // the same PrismaClient instance
+```
+
 The runtime also understands declared model-level compound unique keys. If a
 schema says `account(provider, accountId)` is unique, live drivers can use that
 same shape in `findUnique(...)` and `upsert(...)`.

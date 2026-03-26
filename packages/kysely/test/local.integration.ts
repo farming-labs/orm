@@ -15,7 +15,7 @@ import {
   type SqliteStatement,
 } from "kysely";
 import { createOrm, renderSafeSql } from "@farming-labs/orm";
-import { createKyselyDriver } from "../src";
+import { createKyselyDriver, type KyselyDatabaseLike, type KyselyDialect } from "../src";
 import {
   assertBelongsToAndManyToManyQueries,
   assertCompoundUniqueQueries,
@@ -29,6 +29,8 @@ import {
 
 type RuntimeFactory = () => Promise<{
   orm: RuntimeOrm;
+  driverClient: KyselyDatabaseLike;
+  dialect: KyselyDialect;
   close: () => Promise<void>;
 }>;
 
@@ -219,6 +221,8 @@ async function createLocalSqliteOrm() {
 
   return {
     orm,
+    driverClient: db,
+    dialect: "sqlite",
     close: async () => {
       await db.destroy();
       await rm(directory, { recursive: true, force: true });
@@ -246,6 +250,7 @@ async function createLocalPostgresOrm() {
 
   const databaseUrl = assignDatabase(adminUrl, databaseName);
   const pool = new Pool({ connectionString: databaseUrl });
+  pool.on("error", () => undefined);
 
   try {
     await applyStatements(
@@ -275,6 +280,8 @@ async function createLocalPostgresOrm() {
 
   return {
     orm,
+    driverClient: db,
+    dialect: "postgres",
     close: async () => {
       await db.destroy();
       const cleanupAdmin = new Pool({ connectionString: adminUrl });
@@ -340,6 +347,8 @@ async function createLocalMysqlOrm() {
 
   return {
     orm,
+    driverClient: db,
+    dialect: "mysql",
     close: async () => {
       await db.destroy();
       const cleanupAdmin = mysql.createPool(adminUrl);
@@ -358,6 +367,22 @@ const runtimeFactories: Record<KyselyTarget, RuntimeFactory> = {
 describe("local Kysely integration", () => {
   for (const target of kyselyTargets) {
     if (!shouldRunTarget(target)) continue;
+
+    it(
+      `${target} local Kysely integration > exposes the live Kysely instance on orm.$driver`,
+      async () => {
+        const runtime = await runtimeFactories[target]();
+
+        try {
+          expect(runtime.orm.$driver.kind).toBe("kysely");
+          expect(runtime.orm.$driver.dialect).toBe(runtime.dialect);
+          expect(runtime.orm.$driver.client).toBe(runtime.driverClient);
+        } finally {
+          await runtime.close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
 
     it(
       `${target} local Kysely integration > creates and uses a real Kysely database against a real local database`,

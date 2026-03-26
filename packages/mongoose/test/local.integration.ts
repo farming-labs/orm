@@ -148,11 +148,13 @@ async function createLocalMongooseOrm() {
         connection,
       }),
     }),
+    connection,
     close: async () => {
       await closeLocalConnection(connection);
     },
   } satisfies {
     orm: RuntimeOrm;
+    connection: typeof connection;
     close: () => Promise<void>;
   };
 }
@@ -168,6 +170,21 @@ async function withLocalOrm<TResult>(run: (orm: RuntimeOrm) => Promise<TResult>)
 }
 
 describe("mongoose local integration", () => {
+  it(
+    "exposes the live Mongoose connection on orm.$driver",
+    async () => {
+      const { orm, connection, close } = await createLocalMongooseOrm();
+
+      try {
+        expect(orm.$driver.kind).toBe("mongoose");
+        expect((orm.$driver.client as { connection?: unknown }).connection).toBe(connection);
+      } finally {
+        await close();
+      }
+    },
+    LOCAL_TIMEOUT_MS,
+  );
+
   it(
     "supports one-to-one and one-to-many reads against a real local MongoDB instance",
     async () => {

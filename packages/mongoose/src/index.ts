@@ -11,6 +11,7 @@ import {
   type ManifestModel,
   mergeUniqueLookupCreateData,
   type OrmDriver,
+  type OrmDriverHandle,
   isOperatorFilterObject,
   requireUniqueLookup,
   type SchemaManifest,
@@ -106,6 +107,17 @@ export type MongooseDriverConfig<TSchema extends SchemaDefinition<any>> = {
   transforms?: Partial<Record<string, Partial<Record<string, MongooseFieldTransform>>>>;
 };
 
+export type MongooseDriverClient<TSchema extends SchemaDefinition<any>> = {
+  models: Record<ModelName<TSchema>, MongooseModelLike>;
+  connection?: MongooseSessionSourceLike;
+  startSession?: () => Promise<MongooseSessionLike>;
+};
+
+export type MongooseDriverHandle<TSchema extends SchemaDefinition<any>> = OrmDriverHandle<
+  "mongoose",
+  MongooseDriverClient<TSchema>
+>;
+
 const manifestCache = new WeakMap<object, SchemaManifest>();
 
 function getManifest(schema: SchemaDefinition<any>) {
@@ -192,7 +204,7 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
   state: {
     session?: MongooseSessionLike;
   } = {},
-): OrmDriver<TSchema> {
+): OrmDriver<TSchema, MongooseDriverHandle<TSchema>> {
   function getModel(modelName: ModelName<TSchema>) {
     const model = config.models[modelName];
     if (!model) {
@@ -644,7 +656,9 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
     });
   }
 
-  async function runTransaction<TResult>(run: (driver: OrmDriver<TSchema>) => Promise<TResult>) {
+  async function runTransaction<TResult>(
+    run: (driver: OrmDriver<TSchema, MongooseDriverHandle<TSchema>>) => Promise<TResult>,
+  ) {
     if (state.session) {
       return run(createMongooseDriverInternal(config, state));
     }
@@ -693,7 +707,15 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
     }
   }
 
-  const driver: OrmDriver<TSchema> = {
+  const driver: OrmDriver<TSchema, MongooseDriverHandle<TSchema>> = {
+    handle: {
+      kind: "mongoose",
+      client: {
+        models: config.models,
+        connection: config.connection,
+        startSession: config.startSession,
+      },
+    },
     async findMany(schema, model, args) {
       return loadRows(schema, model, args);
     },

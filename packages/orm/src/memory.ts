@@ -9,6 +9,7 @@ import type {
   FindManyArgs,
   FindUniqueArgs,
   OrmDriver,
+  OrmDriverHandle,
   SelectShape,
   SelectedRecord,
   UpdateArgs,
@@ -166,7 +167,7 @@ function applyQuery(rows: Array<Record<string, unknown>>, args: QueryArgs = {}) 
 
 export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
   seed?: MemoryStore<TSchema>,
-): OrmDriver<TSchema> {
+): OrmDriver<TSchema, OrmDriverHandle<"memory", MemoryStore<TSchema>>> {
   const state: MemoryStore<TSchema> = structuredClone(seed ?? {});
 
   function getRows<TModelName extends ModelName<TSchema>>(model: TModelName) {
@@ -295,7 +296,13 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
     );
   }
 
-  const driver = {
+  let driver!: OrmDriver<TSchema, OrmDriverHandle<"memory", MemoryStore<TSchema>>>;
+
+  driver = {
+    handle: {
+      kind: "memory",
+      client: state,
+    },
     async findMany(
       schema: TSchema,
       model: ModelName<TSchema>,
@@ -431,7 +438,9 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
     },
     async transaction<TResult>(
       _schema: TSchema,
-      run: (driver: OrmDriver<TSchema>) => Promise<TResult>,
+      run: (
+        driver: OrmDriver<TSchema, OrmDriverHandle<"memory", MemoryStore<TSchema>>>,
+      ) => Promise<TResult>,
     ) {
       const snapshot = structuredClone(state);
       try {
@@ -444,7 +453,7 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
         throw error;
       }
     },
-  } as OrmDriver<TSchema>;
+  } as OrmDriver<TSchema, OrmDriverHandle<"memory", MemoryStore<TSchema>>>;
 
   return driver;
 }

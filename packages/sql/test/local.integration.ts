@@ -137,6 +137,8 @@ type RuntimeOrm = ReturnType<typeof createOrm<typeof schema>>;
 
 type RuntimeFactory = () => Promise<{
   orm: RuntimeOrm;
+  driverClient: unknown;
+  dialect: "sqlite" | "postgres" | "mysql";
   close: () => Promise<void>;
 }>;
 
@@ -758,6 +760,8 @@ async function createLocalSqliteOrm() {
       schema,
       driver: createSqliteDriver(database),
     }),
+    driverClient: database,
+    dialect: "sqlite",
     close: async () => {
       database.close();
       await rm(directory, { recursive: true, force: true });
@@ -829,6 +833,8 @@ async function createLocalPostgresPoolOrm() {
       schema,
       driver: createPgPoolDriver(pool),
     }),
+    driverClient: pool,
+    dialect: "postgres",
     close: async () => {
       await pool.end();
       const cleanupAdmin = new Pool({ connectionString: adminUrl });
@@ -908,6 +914,8 @@ async function createLocalPostgresClientOrm() {
       schema,
       driver: createPgClientDriver(client),
     }),
+    driverClient: client,
+    dialect: "postgres",
     close: async () => {
       client.release();
       await pool.end();
@@ -956,11 +964,15 @@ async function createLocalMysqlPoolOrm() {
     throw error;
   }
 
+  const driverClient = asMysqlPoolLike(pool);
+
   return {
     orm: createOrm({
       schema,
-      driver: createMysqlDriver(asMysqlPoolLike(pool)),
+      driver: createMysqlDriver(driverClient),
     }),
+    driverClient,
+    dialect: "mysql",
     close: async () => {
       await pool.end();
       const cleanupAdmin = mysql.createPool(adminUrl);
@@ -1006,11 +1018,15 @@ async function createLocalMysqlConnectionOrm() {
     throw error;
   }
 
+  const driverClient = asMysqlConnectionLike(connection);
+
   return {
     orm: createOrm({
       schema,
-      driver: createMysqlDriver(asMysqlConnectionLike(connection)),
+      driver: createMysqlDriver(driverClient),
     }),
+    driverClient,
+    dialect: "mysql",
     close: async () => {
       connection.release();
       await pool.end();
@@ -1029,6 +1045,18 @@ for (const [target, factory] of [
   ["mysql-connection", createLocalMysqlConnectionOrm],
 ] as const satisfies ReadonlyArray<readonly [SqlTarget, RuntimeFactory]>) {
   describe.runIf(shouldRunTarget(target))(`${target} local integration`, () => {
+    it("exposes the live SQL client on orm.$driver", async () => {
+      const { orm, driverClient, dialect, close } = await factory();
+
+      try {
+        expect(orm.$driver.kind).toBe("sql");
+        expect(orm.$driver.dialect).toBe(dialect);
+        expect(orm.$driver.client).toBe(driverClient);
+      } finally {
+        await close();
+      }
+    });
+
     it("runs the auth-style runtime flow against a real local database", async () => {
       const { orm, close } = await factory();
 

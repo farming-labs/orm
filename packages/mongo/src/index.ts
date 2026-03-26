@@ -1,4 +1,9 @@
-import { createManifest, type OrmDriver, type SchemaDefinition } from "@farming-labs/orm";
+import {
+  createManifest,
+  type OrmDriver,
+  type OrmDriverHandle,
+  type SchemaDefinition,
+} from "@farming-labs/orm";
 import type { ModelName } from "@farming-labs/orm";
 import {
   createMongooseDriver,
@@ -81,6 +86,18 @@ export type MongoDriverConfig<TSchema extends SchemaDefinition<any>> = {
   startSession?: () => Promise<MongoSessionLike>;
   transforms?: MongooseDriverConfig<TSchema>["transforms"];
 };
+
+export type MongoDriverClient<TSchema extends SchemaDefinition<any>> = {
+  collections?: MongoCollectionMap<TSchema>;
+  db?: MongoDbLike;
+  client?: MongoSessionSourceLike;
+  startSession?: () => Promise<MongoSessionLike>;
+};
+
+export type MongoDriverHandle<TSchema extends SchemaDefinition<any>> = OrmDriverHandle<
+  "mongo",
+  MongoDriverClient<TSchema>
+>;
 
 class MongoExec<TResult> implements MongooseExecLike<TResult> {
   private currentSession?: MongoSessionLike;
@@ -312,8 +329,61 @@ function adaptCollection(collection: MongoCollectionLike): MongooseModelLike {
 
 export function createMongoDriver<TSchema extends SchemaDefinition<any>>(
   config: MongoDriverConfig<TSchema>,
-): OrmDriver<TSchema> {
-  const delegateCache = new WeakMap<object, OrmDriver<TSchema>>();
+): OrmDriver<TSchema, MongoDriverHandle<TSchema>> {
+  const handle: MongoDriverHandle<TSchema> = {
+    kind: "mongo",
+    client: {
+      collections: config.collections,
+      db: config.db,
+      client: config.client,
+      startSession: config.startSession,
+    },
+  };
+  const delegateCache = new WeakMap<object, OrmDriver<TSchema, any>>();
+
+  function wrapDelegate(
+    delegate: OrmDriver<TSchema, any>,
+  ): OrmDriver<TSchema, MongoDriverHandle<TSchema>> {
+    return {
+      handle,
+      findMany(schema, model, args) {
+        return delegate.findMany(schema, model, args);
+      },
+      findFirst(schema, model, args) {
+        return delegate.findFirst(schema, model, args);
+      },
+      findUnique(schema, model, args) {
+        return delegate.findUnique(schema, model, args);
+      },
+      count(schema, model, args) {
+        return delegate.count(schema, model, args);
+      },
+      create(schema, model, args) {
+        return delegate.create(schema, model, args);
+      },
+      createMany(schema, model, args) {
+        return delegate.createMany(schema, model, args);
+      },
+      update(schema, model, args) {
+        return delegate.update(schema, model, args);
+      },
+      updateMany(schema, model, args) {
+        return delegate.updateMany(schema, model, args);
+      },
+      upsert(schema, model, args) {
+        return delegate.upsert(schema, model, args);
+      },
+      delete(schema, model, args) {
+        return delegate.delete(schema, model, args);
+      },
+      deleteMany(schema, model, args) {
+        return delegate.deleteMany(schema, model, args);
+      },
+      transaction(schema, run) {
+        return delegate.transaction(schema, async (txDriver) => run(wrapDelegate(txDriver)));
+      },
+    };
+  }
 
   function getDelegate(schema: TSchema) {
     const cached = delegateCache.get(schema);
@@ -338,6 +408,7 @@ export function createMongoDriver<TSchema extends SchemaDefinition<any>>(
   }
 
   return {
+    handle,
     findMany(schema, model, args) {
       return getDelegate(schema).findMany(schema, model, args);
     },
@@ -372,7 +443,9 @@ export function createMongoDriver<TSchema extends SchemaDefinition<any>>(
       return getDelegate(schema).deleteMany(schema, model, args);
     },
     transaction(schema, run) {
-      return getDelegate(schema).transaction(schema, run);
+      return getDelegate(schema).transaction(schema, async (txDriver) =>
+        run(wrapDelegate(txDriver)),
+      );
     },
   };
 }

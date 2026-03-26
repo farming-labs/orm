@@ -12,6 +12,7 @@ import {
   type ManifestModel,
   mergeUniqueLookupCreateData,
   type OrmDriver,
+  type OrmDriverHandle,
   isOperatorFilterObject,
   requireUniqueLookup,
   resolveRowIdentityLookup,
@@ -59,6 +60,8 @@ export type PrismaDriverConfig<TSchema extends SchemaDefinition<any>> = {
   client: PrismaClientLike;
   models?: Partial<Record<ModelName<TSchema>, string>>;
 };
+
+export type PrismaDriverHandle = OrmDriverHandle<"prisma", PrismaClientLike>;
 
 const manifestCache = new WeakMap<object, SchemaManifest>();
 
@@ -306,7 +309,7 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
   state: {
     inTransaction?: boolean;
   } = {},
-) {
+): OrmDriver<TSchema, PrismaDriverHandle> {
   function getDelegate(modelName: ModelName<TSchema>) {
     const key = config.models?.[modelName] ?? modelName;
     const delegate = config.client[key];
@@ -584,7 +587,9 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
     });
   }
 
-  async function runTransaction<TResult>(run: (driver: OrmDriver<TSchema>) => Promise<TResult>) {
+  async function runTransaction<TResult>(
+    run: (driver: OrmDriver<TSchema, PrismaDriverHandle>) => Promise<TResult>,
+  ) {
     if (state.inTransaction || !config.client.$transaction) {
       return run(createPrismaDriverInternal(config, { inTransaction: true }));
     }
@@ -604,7 +609,11 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
     );
   }
 
-  const driver: OrmDriver<TSchema> = {
+  const driver: OrmDriver<TSchema, PrismaDriverHandle> = {
+    handle: {
+      kind: "prisma",
+      client: config.client,
+    },
     async findMany(schema, model, args) {
       return loadRows(schema, model, args);
     },

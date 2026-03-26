@@ -223,7 +223,21 @@ export type UpsertArgs<
   select?: TSelect;
 };
 
-export interface OrmDriver<TSchema extends SchemaDefinition<any>> {
+export type OrmDriverHandle<
+  TKind extends string = string,
+  TClient = unknown,
+  TDialect extends string | undefined = string | undefined,
+> = {
+  kind: TKind;
+  client: TClient;
+  dialect?: TDialect;
+};
+
+export interface OrmDriver<
+  TSchema extends SchemaDefinition<any>,
+  THandle extends OrmDriverHandle = OrmDriverHandle,
+> {
+  readonly handle: THandle;
   findMany<
     TModelName extends ModelName<TSchema>,
     TSelect extends SelectShape<TSchema, TModelName> | undefined = undefined,
@@ -302,7 +316,7 @@ export interface OrmDriver<TSchema extends SchemaDefinition<any>> {
   ): Promise<number>;
   transaction<TResult>(
     schema: TSchema,
-    run: (driver: OrmDriver<TSchema>) => Promise<TResult>,
+    run: (driver: OrmDriver<TSchema, THandle>) => Promise<TResult>,
   ): Promise<TResult>;
 }
 
@@ -340,16 +354,24 @@ export type ModelClient<
   deleteMany(args: DeleteManyArgs<TSchema, TModelName>): Promise<number>;
 };
 
-export type BatchTask<TSchema extends SchemaDefinition<any>, TResult> = (
-  tx: OrmClient<TSchema>,
-) => Promise<TResult>;
+export type BatchTask<
+  TSchema extends SchemaDefinition<any>,
+  TResult,
+  THandle extends OrmDriverHandle = OrmDriverHandle,
+> = (tx: OrmClient<TSchema, THandle>) => Promise<TResult>;
 
-export type OrmClient<TSchema extends SchemaDefinition<any>> = {
+export type OrmClient<
+  TSchema extends SchemaDefinition<any>,
+  THandle extends OrmDriverHandle = OrmDriverHandle,
+> = {
   [K in ModelName<TSchema>]: ModelClient<TSchema, K>;
 } & {
-  transaction<TResult>(run: (tx: OrmClient<TSchema>) => Promise<TResult>): Promise<TResult>;
+  $driver: THandle;
+  transaction<TResult>(
+    run: (tx: OrmClient<TSchema, THandle>) => Promise<TResult>,
+  ): Promise<TResult>;
   batch<const TResult extends readonly unknown[]>(tasks: {
-    [K in keyof TResult]: BatchTask<TSchema, TResult[K]>;
+    [K in keyof TResult]: BatchTask<TSchema, TResult[K], THandle>;
   }): Promise<TResult>;
 };
 
@@ -358,7 +380,7 @@ function createModelClient<
   TModelName extends ModelName<TSchema>,
 >(
   schema: TSchema,
-  driver: OrmDriver<TSchema>,
+  driver: OrmDriver<TSchema, any>,
   model: TModelName,
 ): ModelClient<TSchema, TModelName> {
   return {
@@ -401,10 +423,10 @@ function createModelClient<
   };
 }
 
-export function createOrm<TSchema extends SchemaDefinition<any>>(options: {
-  schema: TSchema;
-  driver: OrmDriver<TSchema>;
-}): OrmClient<TSchema> {
+export function createOrm<
+  TSchema extends SchemaDefinition<any>,
+  THandle extends OrmDriverHandle = OrmDriverHandle,
+>(options: { schema: TSchema; driver: OrmDriver<TSchema, THandle> }): OrmClient<TSchema, THandle> {
   const { schema, driver } = options;
   const models: Record<string, unknown> = {};
 
@@ -412,7 +434,8 @@ export function createOrm<TSchema extends SchemaDefinition<any>>(options: {
     models[model] = createModelClient(schema, driver, model as ModelName<TSchema>);
   }
 
-  const orm = models as OrmClient<TSchema>;
+  const orm = models as OrmClient<TSchema, THandle>;
+  orm.$driver = driver.handle;
   orm.transaction = (run) =>
     driver.transaction(schema, async (txDriver) => {
       const tx = createOrm({

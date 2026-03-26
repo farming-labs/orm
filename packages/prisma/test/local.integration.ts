@@ -373,6 +373,20 @@ for (const [target, factory] of [
 ] as const satisfies ReadonlyArray<readonly [PrismaTarget, RuntimeFactory]>) {
   describe.runIf(shouldRunTarget(target))(`${target} local Prisma integration`, () => {
     it(
+      "exposes the live Prisma client on orm.$driver",
+      async () => {
+        const { orm, prisma, close } = await factory();
+        try {
+          expect(orm.$driver.kind).toBe("prisma");
+          expect(orm.$driver.client).toBe(prisma);
+        } finally {
+          await close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
+
+    it(
       "creates and uses a real generated PrismaClient against a real local database",
       async () => {
         const PrismaClient = getGeneratedPrismaClient(target);
