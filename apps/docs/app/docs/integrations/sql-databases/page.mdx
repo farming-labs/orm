@@ -108,12 +108,17 @@ joinable singular branches such as:
 - `session.user.profile`
 - `profile.user`
 
+It also covers simple collection branches when the relation branch does not add
+its own `where`, `orderBy`, `take`, or `skip`, including:
+
+- direct `hasMany(...)` reads such as `user.sessions`
+- explicit join-table `manyToMany(...)` reads such as `user.organizations`
+
 That same native path is what the Drizzle and Kysely runtimes inherit, because
 both packages route through `@farming-labs/orm-sql` under the hood.
 
 Plural branches still work too, but they currently fall back to the shared
-relation resolver when they need explicit join-table traversal, relation-level
-filters, paging, or ordering.
+relation resolver when they need relation-level filters, paging, or ordering.
 
 That fallback list should be read as the current implementation scope, not as a
 limitation of SQL itself. PostgreSQL, MySQL, and SQLite can all support richer

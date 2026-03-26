@@ -94,6 +94,8 @@ type QueryState = {
   params: unknown[];
 };
 
+const nativeNodeIdentity = Symbol("nativeNodeIdentity");
+
 const manifestCache = new WeakMap<object, SchemaManifest>();
 
 function getManifest(schema: SchemaDefinition<any>) {
@@ -919,10 +921,18 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
     includeAllScalars: boolean;
     selectedScalarKeys: string[];
     relationName?: string;
-    relationKind?: "belongsTo" | "hasOne";
+    relationKind?: "belongsTo" | "hasOne" | "hasMany" | "manyToMany";
     sourceField?: ManifestField;
     targetField?: ManifestField;
+    throughModel?: ManifestModel;
+    throughAlias?: string;
+    throughFromField?: ManifestField;
+    throughToField?: ManifestField;
     children: NativeJoinPlanNode[];
+  };
+
+  type NativeProjectedRow = SqlRow & {
+    [nativeNodeIdentity]?: unknown;
   };
 
   function buildNativeJoinPlan<
@@ -955,10 +965,6 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
       if (value === undefined || !(key in schema.models[modelName].relations)) continue;
 
       const relation = schema.models[modelName].relations[key as RelationName<TSchema, TModelName>];
-      if (relation.kind === "hasMany" || relation.kind === "manyToMany") {
-        return null;
-      }
-
       const relationArgs = (value === true ? {} : value) as Partial<
         FindManyArgs<TSchema, any, any>
       >;
@@ -992,7 +998,7 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
         if (!targetField) return null;
         child.sourceField = sourceField;
         child.targetField = targetField;
-      } else {
+      } else if (relation.kind === "hasOne" || relation.kind === "hasMany") {
         const targetForeignField = child.model.fields[relation.foreignKey];
         if (!targetForeignField) return null;
         const sourceReference = parseReference(targetForeignField.references);
@@ -1002,6 +1008,25 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
         if (!sourceField) return null;
         child.sourceField = sourceField;
         child.targetField = targetForeignField;
+      } else {
+        const throughModel = manifest.models[relation.through];
+        const throughFromField = throughModel.fields[relation.from];
+        const throughToField = throughModel.fields[relation.to];
+        if (!throughFromField || !throughToField) return null;
+        const throughFromReference = parseReference(throughFromField.references);
+        const throughToReference = parseReference(throughToField.references);
+        const sourceFieldName =
+          throughFromReference?.field ?? identityField(manifest.models[modelName]).name;
+        const targetFieldName = throughToReference?.field ?? identityField(child.model).name;
+        const sourceField = model.fields[sourceFieldName];
+        const targetField = child.model.fields[targetFieldName];
+        if (!sourceField || !targetField) return null;
+        child.sourceField = sourceField;
+        child.targetField = targetField;
+        child.throughModel = throughModel;
+        child.throughAlias = `t${aliasState.next++}`;
+        child.throughFromField = throughFromField;
+        child.throughToField = throughToField;
       }
 
       node.children.push(child);
@@ -1044,19 +1069,58 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
 
   function collectNativeJoinClauses(node: NativeJoinPlanNode, joins: string[]) {
     for (const child of node.children) {
-      const leftColumn =
-        child.relationKind === "belongsTo"
-          ? `${quoteIdentifier(node.alias, adapter.dialect)}.${quoteIdentifier(child.sourceField!.column, adapter.dialect)}`
-          : `${quoteIdentifier(child.alias, adapter.dialect)}.${quoteIdentifier(child.targetField!.column, adapter.dialect)}`;
-      const rightColumn =
-        child.relationKind === "belongsTo"
-          ? `${quoteIdentifier(child.alias, adapter.dialect)}.${quoteIdentifier(child.targetField!.column, adapter.dialect)}`
-          : `${quoteIdentifier(node.alias, adapter.dialect)}.${quoteIdentifier(child.sourceField!.column, adapter.dialect)}`;
-      joins.push(
-        ` left join ${quoteIdentifier(child.model.table, adapter.dialect)} as ${quoteIdentifier(child.alias, adapter.dialect)} on ${leftColumn} = ${rightColumn}`,
-      );
+      if (child.relationKind === "manyToMany") {
+        joins.push(
+          ` left join ${quoteIdentifier(child.throughModel!.table, adapter.dialect)} as ${quoteIdentifier(child.throughAlias!, adapter.dialect)} on ${quoteIdentifier(node.alias, adapter.dialect)}.${quoteIdentifier(child.sourceField!.column, adapter.dialect)} = ${quoteIdentifier(child.throughAlias!, adapter.dialect)}.${quoteIdentifier(child.throughFromField!.column, adapter.dialect)}`,
+        );
+        joins.push(
+          ` left join ${quoteIdentifier(child.model.table, adapter.dialect)} as ${quoteIdentifier(child.alias, adapter.dialect)} on ${quoteIdentifier(child.throughAlias!, adapter.dialect)}.${quoteIdentifier(child.throughToField!.column, adapter.dialect)} = ${quoteIdentifier(child.alias, adapter.dialect)}.${quoteIdentifier(child.targetField!.column, adapter.dialect)}`,
+        );
+      } else {
+        const leftColumn =
+          child.relationKind === "belongsTo"
+            ? `${quoteIdentifier(node.alias, adapter.dialect)}.${quoteIdentifier(child.sourceField!.column, adapter.dialect)}`
+            : `${quoteIdentifier(child.alias, adapter.dialect)}.${quoteIdentifier(child.targetField!.column, adapter.dialect)}`;
+        const rightColumn =
+          child.relationKind === "belongsTo"
+            ? `${quoteIdentifier(child.alias, adapter.dialect)}.${quoteIdentifier(child.targetField!.column, adapter.dialect)}`
+            : `${quoteIdentifier(node.alias, adapter.dialect)}.${quoteIdentifier(child.sourceField!.column, adapter.dialect)}`;
+        joins.push(
+          ` left join ${quoteIdentifier(child.model.table, adapter.dialect)} as ${quoteIdentifier(child.alias, adapter.dialect)} on ${leftColumn} = ${rightColumn}`,
+        );
+      }
       collectNativeJoinClauses(child, joins);
     }
+  }
+
+  function buildNativeJoinRootSource(
+    root: NativeJoinPlanNode,
+    args: {
+      where?: SqlWhere;
+      orderBy?: Partial<Record<string, "asc" | "desc">>;
+      take?: number;
+      skip?: number;
+    },
+  ) {
+    const state: QueryState = { params: [] };
+    const sourceAlias = `${root.alias}__src`;
+    const selectList = Object.values(root.model.fields).map(
+      (field) =>
+        `${quoteIdentifier(sourceAlias, adapter.dialect)}.${quoteIdentifier(field.column, adapter.dialect)} as ${quoteIdentifier(field.column, adapter.dialect)}`,
+    );
+
+    let sql =
+      `select ${selectList.join(", ")}` +
+      ` from ${quoteIdentifier(root.model.table, adapter.dialect)} as ${quoteIdentifier(sourceAlias, adapter.dialect)}`;
+    const where = compileWhere(root.model, args.where, adapter.dialect, state, sourceAlias);
+    if (where) sql += ` where ${where}`;
+    sql += compileOrderBy(root.model, args.orderBy, adapter.dialect, sourceAlias);
+    sql += compilePagination(adapter.dialect, args.take, args.skip);
+
+    return {
+      sql: `(${sql})`,
+      params: state.params,
+    };
   }
 
   function buildNativeJoinStatement(
@@ -1073,15 +1137,14 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
     const joins: string[] = [];
     collectNativeJoinSelects(root, selectList);
     collectNativeJoinClauses(root, joins);
+    const rootSource = buildNativeJoinRootSource(root, args);
+    state.params.push(...rootSource.params);
 
     let sql =
       `select ${selectList.join(", ")}` +
-      ` from ${quoteIdentifier(root.model.table, adapter.dialect)} as ${quoteIdentifier(root.alias, adapter.dialect)}`;
+      ` from ${rootSource.sql} as ${quoteIdentifier(root.alias, adapter.dialect)}`;
     if (joins.length) sql += joins.join("");
-    const where = compileWhere(root.model, args.where, adapter.dialect, state, root.alias);
-    if (where) sql += ` where ${where}`;
     sql += compileOrderBy(root.model, args.orderBy, adapter.dialect, root.alias);
-    sql += compilePagination(adapter.dialect, args.take, args.skip);
 
     return { sql, params: state.params };
   }
@@ -1090,12 +1153,20 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
     return rawRow[node.presenceAlias];
   }
 
-  function projectNativeJoinNode(node: NativeJoinPlanNode, rawRow: SqlRow): SqlRow | null {
+  function projectNativeJoinNode(
+    node: NativeJoinPlanNode,
+    rawRow: SqlRow,
+  ): NativeProjectedRow | null {
     if (nodePresenceValue(node, rawRow) == null) {
       return null;
     }
 
-    const output: SqlRow = {};
+    const output: NativeProjectedRow = {};
+    Object.defineProperty(output, nativeNodeIdentity, {
+      value: rawRow[node.presenceAlias],
+      enumerable: false,
+      configurable: true,
+    });
     const scalarKeys = node.includeAllScalars
       ? Object.keys(node.model.fields)
       : node.selectedScalarKeys;
@@ -1111,10 +1182,65 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
     }
 
     for (const child of node.children) {
-      output[child.relationName!] = projectNativeJoinNode(child, rawRow);
+      const childValue = projectNativeJoinNode(child, rawRow);
+      output[child.relationName!] =
+        child.relationKind === "hasMany" || child.relationKind === "manyToMany"
+          ? childValue
+            ? [childValue]
+            : []
+          : childValue;
     }
 
     return output;
+  }
+
+  function mergeNativeJoinNode(
+    node: NativeJoinPlanNode,
+    target: NativeProjectedRow,
+    next: NativeProjectedRow,
+  ) {
+    for (const child of node.children) {
+      const relationName = child.relationName!;
+      if (child.relationKind === "hasMany" || child.relationKind === "manyToMany") {
+        const targetRows = Array.isArray(target[relationName])
+          ? (target[relationName] as NativeProjectedRow[])
+          : [];
+        const nextRows = Array.isArray(next[relationName])
+          ? (next[relationName] as NativeProjectedRow[])
+          : [];
+        if (!Array.isArray(target[relationName])) {
+          target[relationName] = targetRows;
+        }
+
+        for (const nextRow of nextRows) {
+          const identity = nextRow[nativeNodeIdentity];
+          const existing = targetRows.find((entry) => entry[nativeNodeIdentity] === identity);
+          if (existing) {
+            mergeNativeJoinNode(child, existing, nextRow);
+          } else {
+            targetRows.push(nextRow);
+          }
+        }
+        continue;
+      }
+
+      const nextValue = next[relationName];
+      if (nextValue === undefined) continue;
+      if (nextValue === null) {
+        if (!(relationName in target)) {
+          target[relationName] = null;
+        }
+        continue;
+      }
+
+      const existing = target[relationName];
+      if (!existing || typeof existing !== "object") {
+        target[relationName] = nextValue;
+        continue;
+      }
+
+      mergeNativeJoinNode(child, existing as NativeProjectedRow, nextValue as NativeProjectedRow);
+    }
   }
 
   async function loadRowsWithNativeJoins<
@@ -1142,9 +1268,23 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
 
     const statement = buildNativeJoinStatement(plan, args);
     const result = await adapter.query(statement.sql, statement.params);
-    return result.rows.map((row) => projectNativeJoinNode(plan, row)).filter(Boolean) as Array<
-      SelectedRecord<TSchema, TModelName, TSelect>
-    >;
+    const groupedRows: NativeProjectedRow[] = [];
+    const groupedByIdentity = new Map<unknown, NativeProjectedRow>();
+
+    for (const row of result.rows) {
+      const projected = projectNativeJoinNode(plan, row);
+      if (!projected) continue;
+      const identity = projected[nativeNodeIdentity];
+      const existing = groupedByIdentity.get(identity);
+      if (existing) {
+        mergeNativeJoinNode(plan, existing, projected);
+        continue;
+      }
+      groupedByIdentity.set(identity, projected);
+      groupedRows.push(projected);
+    }
+
+    return groupedRows as Array<SelectedRecord<TSchema, TModelName, TSelect>>;
   }
 
   async function projectRow<

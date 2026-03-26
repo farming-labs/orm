@@ -33,6 +33,8 @@ type PrismaWhere = Where<Record<string, unknown>>;
 
 type PrismaWhereInput = Record<string, unknown>;
 
+const pluralize = (value: string) => (value.endsWith("s") ? value : `${value}s`);
+
 type PrismaDelegateLike = {
   findMany(args?: Record<string, unknown>): Promise<PrismaRow[]>;
   findFirst?(args?: Record<string, unknown>): Promise<PrismaRow | null>;
@@ -184,6 +186,22 @@ function compileOrderBy(orderBy?: Partial<Record<string, "asc" | "desc">>) {
   }));
 }
 
+function supportsNativePrismaManyToManyArgs(args: Partial<FindManyArgs<any, any, any>>) {
+  return (
+    args.where === undefined &&
+    args.orderBy === undefined &&
+    args.take === undefined &&
+    args.skip === undefined
+  );
+}
+
+function prismaManyToManyJoinKeys(relation: { through: string; target: string }) {
+  return {
+    throughRelationName: pluralize(relation.through),
+    targetRelationName: relation.target,
+  };
+}
+
 function compilePrismaSelect<
   TSchema extends SchemaDefinition<any>,
   TModelName extends ModelName<TSchema>,
@@ -204,7 +222,23 @@ function compilePrismaSelect<
     if (!(key in schema.models[modelName].relations)) continue;
 
     const relation = schema.models[modelName].relations[key as RelationName<TSchema, TModelName>];
+    const relationArgs = (value === true ? {} : value) as Partial<FindManyArgs<TSchema, any, any>>;
     if (relation.kind === "manyToMany") {
+      if (supportsNativePrismaManyToManyArgs(relationArgs)) {
+        const targetModel = relation.target as ModelName<TSchema>;
+        const { throughRelationName, targetRelationName } = prismaManyToManyJoinKeys(relation);
+        output[throughRelationName] = {
+          select: {
+            [targetRelationName]: relationArgs.select
+              ? {
+                  select: compilePrismaSelect(schema, targetModel, relationArgs.select as any),
+                }
+              : true,
+          },
+        };
+        continue;
+      }
+
       const throughModel = manifest.models[relation.through];
       const throughFromReference = parseReference(throughModel.fields[relation.from]?.references);
       hiddenScalarKeys.add(
@@ -219,21 +253,21 @@ function compilePrismaSelect<
     }
     const targetModel = relation.target as ModelName<TSchema>;
     const next: Record<string, unknown> = {};
-    if (value.where) {
+    if (relationArgs.where) {
       next.where = compileWhere(
         manifest.models[targetModel],
-        value.where as PrismaWhere | undefined,
+        relationArgs.where as PrismaWhere | undefined,
       );
     }
-    if (value.orderBy) {
+    if (relationArgs.orderBy) {
       next.orderBy = compileOrderBy(
-        value.orderBy as Partial<Record<string, "asc" | "desc">> | undefined,
+        relationArgs.orderBy as Partial<Record<string, "asc" | "desc">> | undefined,
       );
     }
-    if (value.take !== undefined) next.take = value.take;
-    if (value.skip !== undefined) next.skip = value.skip;
-    if (value.select) {
-      next.select = compilePrismaSelect(schema, targetModel, value.select as any);
+    if (relationArgs.take !== undefined) next.take = relationArgs.take;
+    if (relationArgs.skip !== undefined) next.skip = relationArgs.skip;
+    if (relationArgs.select) {
+      next.select = compilePrismaSelect(schema, targetModel, relationArgs.select as any);
     }
 
     output[key] = Object.keys(next).length ? next : true;
@@ -394,6 +428,30 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
                 : null
               : await projectRow(schema, targetModel, loadedValue as PrismaRow, childSelect as any);
           continue;
+        }
+
+        if (relation.kind === "manyToMany") {
+          const targetModel = relation.target as ModelName<TSchema>;
+          const childSelect = value === true ? undefined : value.select;
+          const { throughRelationName, targetRelationName } = prismaManyToManyJoinKeys(relation);
+          const throughRows = row[throughRelationName];
+
+          if (Array.isArray(throughRows)) {
+            output[key] = await Promise.all(
+              throughRows
+                .map((entry) =>
+                  entry &&
+                  typeof entry === "object" &&
+                  (entry as PrismaRow)[targetRelationName] &&
+                  typeof (entry as PrismaRow)[targetRelationName] === "object"
+                    ? ((entry as PrismaRow)[targetRelationName] as PrismaRow)
+                    : null,
+                )
+                .filter((entry): entry is PrismaRow => entry !== null)
+                .map((entry) => projectRow(schema, targetModel, entry, childSelect as any)),
+            );
+            continue;
+          }
         }
 
         output[key] = await resolveRelation(

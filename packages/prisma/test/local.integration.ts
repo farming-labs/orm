@@ -479,6 +479,64 @@ for (const [target, factory] of [
     );
 
     it(
+      "translates simple many-to-many relation reads through the base Prisma delegate",
+      async () => {
+        const { prisma, close } = await factory();
+        const instrumented = instrumentPrismaClient(prisma);
+        const orm = createOrm({
+          schema,
+          driver: createPrismaDriver({
+            client: instrumented.client as any,
+          }),
+        }) as RuntimeOrm;
+
+        try {
+          await seedAuthData(orm);
+          instrumented.reset();
+
+          const user = await orm.user.findUnique({
+            where: {
+              email: "ada@farminglabs.dev",
+            },
+            select: {
+              email: true,
+              organizations: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          });
+
+          const totalDelegateCalls = [...instrumented.counts.values()].reduce(
+            (sum, value) => sum + value,
+            0,
+          );
+          const organizations = [...(user?.organizations ?? [])].sort((left, right) =>
+            left.name.localeCompare(right.name),
+          );
+
+          expect({
+            ...user,
+            organizations,
+          }).toEqual({
+            email: "ada@farminglabs.dev",
+            organizations: [{ name: "Acme" }, { name: "Farming Labs" }],
+          });
+          expect(totalDelegateCalls).toBe(1);
+          expect(
+            instrumented.counts.get("user.findFirst") ?? instrumented.counts.get("user.findMany"),
+          ).toBe(1);
+          expect(instrumented.counts.get("member.findMany") ?? 0).toBe(0);
+          expect(instrumented.counts.get("organization.findMany") ?? 0).toBe(0);
+        } finally {
+          await close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
+
+    it(
       "supports updates, upserts, deletes, and transaction rollback against a real local database",
       async () => {
         const { orm, close } = await factory();

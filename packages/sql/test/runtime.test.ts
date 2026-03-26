@@ -666,6 +666,51 @@ for (const [label, factory] of [
       }
     });
 
+    it("uses one native SQL query for simple collection relation reads", async () => {
+      const { orm, close, queryCount, resetQueryCount } = await factory();
+
+      try {
+        await seedAuthData(orm);
+        resetQueryCount();
+
+        const user = await orm.user.findUnique({
+          where: {
+            email: "ada@farminglabs.dev",
+          },
+          select: {
+            email: true,
+            profile: {
+              select: {
+                bio: true,
+              },
+            },
+            sessions: {
+              select: {
+                token: true,
+              },
+            },
+            organizations: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        });
+
+        expect(user).toEqual({
+          email: "ada@farminglabs.dev",
+          profile: {
+            bio: "Writes one storage layer for every stack.",
+          },
+          sessions: [{ token: "session-1" }, { token: "session-2" }],
+          organizations: [{ name: "Acme" }, { name: "Farming Labs" }],
+        });
+        expect(queryCount()).toBe(1);
+      } finally {
+        await close();
+      }
+    });
+
     it("treats contains filters as literal substring matches", async () => {
       const { orm, close } = await factory();
 

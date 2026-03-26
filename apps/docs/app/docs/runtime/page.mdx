@@ -66,12 +66,15 @@ That means nested queries like `user.profile`, `user.sessions`, and
 
 For loading strategy, the current runtime behaves like this:
 
-- direct SQL, Drizzle, and Kysely use a native single-query path for singular
-  relation chains built from `belongsTo(...)` and `hasOne(...)`
+- direct SQL, Drizzle, and Kysely use a native single-query path for:
+  - singular relation chains built from `belongsTo(...)` and `hasOne(...)`
+  - simple `hasMany(...)` and explicit join-table `manyToMany(...)` branches
+    when the relation branch does not add its own `where`, `orderBy`, `take`, or `skip`
 - Prisma translates supported nested relation branches directly into Prisma
-  delegate `select` trees
-- plural branches such as filtered or paged `hasMany(...)` and explicit
-  join-table `manyToMany(...)` still fall back to the shared relation resolver
+  delegate `select` trees, including simple explicit join-table
+  `manyToMany(...)` convenience traversal through the generated join model
+- relation branches that add their own filtering, ordering, paging, or other
+  unsupported planner requirements still fall back to the shared relation resolver
 - MongoDB and Mongoose keep using the relation resolver today
 
 That fallback behavior is mostly a **current implementation boundary**, not a

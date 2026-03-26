@@ -50,11 +50,15 @@ Supported direct relation branches now translate into Prisma's native nested
 That means reads like `session.user` and `session.user.profile` stay on the
 base Prisma delegate call.
 
+Simple explicit join-table `manyToMany(...)` convenience traversal now also
+stays on the base Prisma delegate call. The driver rewrites that logical branch
+through the generated join model instead of issuing follow-up runtime queries.
+
 When a query still falls back, that does not mean Prisma itself lacks relation
 loading support. It means the Farming ORM Prisma driver has not yet translated
-that logical relation shape natively. The clearest example today is explicit
-join-table `manyToMany(...)` convenience traversal, which still stays on the
-portable fallback path.
+that logical relation shape natively. The remaining fallback cases are mostly
+relation branches that add their own filtering, ordering, paging, or other
+planner requirements beyond the currently translated subset.
 
 ## Runtime setup
 
@@ -111,8 +115,9 @@ The Prisma runtime package already covers:
 - explicit join-table `manyToMany(...)`
 
 The important detail is that explicit join-table `manyToMany(...)` traversal is
-still handled by the Farming ORM runtime layer itself. It does not rely on
-Prisma implicit many-to-many shortcuts.
+still modeled through the Farming ORM join table contract. The native Prisma
+path does not rely on Prisma implicit many-to-many shortcuts. It rewrites the
+logical convenience branch through the generated join model instead.
 
 That keeps the runtime behavior aligned with the same schema contract used by
 the SQL and Mongoose drivers.
@@ -251,8 +256,8 @@ prisma: {
 
 The repo currently verifies Prisma support through a real local integration test
 that generates a real `PrismaClient` and runs one-to-one, one-to-many,
-belongs-to, many-to-many, mutations, and transaction rollback against local
-SQLite, PostgreSQL, and MySQL.
+belongs-to, native simple many-to-many delegate translation, mutations, and
+transaction rollback against local SQLite, PostgreSQL, and MySQL.
 
 The same suite also exercises the new scalar support through:
 

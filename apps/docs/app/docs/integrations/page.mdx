@@ -61,13 +61,13 @@ The current runtime uses 2 strategies:
 
 Today that means:
 
-| Runtime / stack    | Native path today                                                                       | Fallback today                                                       |
-| ------------------ | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Prisma runtime     | direct nested Prisma `select` for supported relation branches                           | explicit join-table `manyToMany(...)` convenience traversal          |
-| Drizzle runtime    | inherited SQL single-query loading for singular `belongsTo(...)` / `hasOne(...)` chains | plural relation branches with extra relation-level filters or paging |
-| Kysely runtime     | inherited SQL single-query loading for singular `belongsTo(...)` / `hasOne(...)` chains | plural relation branches with extra relation-level filters or paging |
-| Direct SQL runtime | single SQL statement for singular `belongsTo(...)` / `hasOne(...)` chains               | plural relation branches with extra relation-level filters or paging |
-| Mongo / Mongoose   | not yet                                                                                 | shared relation resolver                                             |
+| Runtime / stack    | Native path today                                                                                                               | Fallback today                                                           |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Prisma runtime     | direct nested Prisma `select` for supported relation branches, including simple explicit join-table `manyToMany(...)` traversal | relation branches with extra relation-level filters, ordering, or paging |
+| Drizzle runtime    | inherited SQL single-query loading for singular chains and simple collection branches without relation-level modifiers          | relation branches with extra relation-level filters, ordering, or paging |
+| Kysely runtime     | inherited SQL single-query loading for singular chains and simple collection branches without relation-level modifiers          | relation branches with extra relation-level filters, ordering, or paging |
+| Direct SQL runtime | single SQL statement for singular chains and simple collection branches without relation-level modifiers                        | relation branches with extra relation-level filters, ordering, or paging |
+| Mongo / Mongoose   | not yet                                                                                                                         | shared relation resolver                                                 |
 
 The important nuance is that the fallback column does **not** mean the backend
 is fundamentally missing relation support.
