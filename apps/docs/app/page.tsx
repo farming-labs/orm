@@ -4,7 +4,7 @@ import BeamBackground from "@/components/ui/beam-background";
 import { PatternText } from "@/components/ui/pattern-text";
 import { cn } from "@/lib/utils";
 
-const GITHUB_URL = "https://github.com/farming-labs/orms";
+const GITHUB_URL = "https://github.com/farming-labs/orm";
 
 const footerNavTransition =
   "duration-300 ease-out motion-reduce:transition-none motion-reduce:duration-0";
