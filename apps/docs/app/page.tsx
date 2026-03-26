@@ -317,19 +317,19 @@ export default function HomePage() {
             aria-label="Site links"
           >
             <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-            <Link href="/docs" className={footerLinkClass}>
+              <Link href="/docs" className={footerLinkClass}>
                 <IconDocs className={iconClass} />
                 <FooterNavLabel text="DOCS" />
-              </Link> 
-              
+              </Link>
+
               <Link href="/docs/getting-started" className={footerLinkClass}>
                 <IconInstall className={iconClass} />
                 <FooterNavLabel text="INSTALL" />
               </Link>
-             <Link href="/docs/use-cases" className={footerLinkClass}>
+              <Link href="/docs/use-cases" className={footerLinkClass}>
                 <IconUseCases className={iconClass} />
                 <FooterNavLabel text="USE CASES" />
-              </Link> 
+              </Link>
             </div>
             <a
               href={GITHUB_URL}
