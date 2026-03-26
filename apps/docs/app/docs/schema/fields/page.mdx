@@ -45,6 +45,26 @@ createdAt: datetime();
 
 - runtime output type: `Date`
 
+### `integer()`
+
+```ts
+loginCount: integer();
+```
+
+- runtime output type: `number`
+
+### `json()`
+
+```ts
+metadata: json<{
+  plan: string;
+  scopes: string[];
+}>();
+```
+
+- runtime output type: the JSON shape you pass to `json<T>()`
+- useful for provider metadata, settings blobs, and structured plugin state
+
 ## Field modifiers
 
 ### `.unique()`
@@ -74,6 +94,10 @@ role: string().default("member");
 ```
 
 Stores a literal default value.
+
+This works well for string, boolean, and integer fields today. JSON defaults can
+still be applied by runtime drivers, but generated schema support is more
+limited and should be treated as backend-specific for now.
 
 ### `.defaultNow()`
 
@@ -118,6 +142,7 @@ user: model({
     email: string().unique().map("email_address"),
     name: string(),
     emailVerified: boolean().default(false),
+    loginCount: integer().default(0).map("login_count"),
     createdAt: datetime().defaultNow(),
     bio: string().nullable(),
   },
@@ -135,6 +160,11 @@ Field data is especially important because it drives:
 - unique constraints
 - references
 - generated/default behavior
+
+The current generators and live runtimes support:
+
+- `integer()` across Prisma, Drizzle, safe SQL, memory, Prisma runtime, SQL, Kysely, Drizzle, MongoDB, and Mongoose
+- `json()` across Prisma, Drizzle, safe SQL, memory, Prisma runtime, SQL, MongoDB, and Mongoose
 
 ## Mapping example
 

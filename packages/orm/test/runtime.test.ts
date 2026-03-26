@@ -9,6 +9,8 @@ import {
   hasMany,
   hasOne,
   id,
+  integer,
+  json,
   model,
   string,
 } from "../src";
@@ -21,6 +23,7 @@ const authSchema = defineSchema({
       email: string().unique(),
       name: string(),
       emailVerified: boolean().default(false),
+      loginCount: integer().default(0),
       createdAt: datetime().defaultNow(),
       updatedAt: datetime().defaultNow(),
     },
@@ -60,6 +63,10 @@ const authSchema = defineSchema({
       userId: string().references("user.id"),
       provider: string(),
       accountId: string(),
+      metadata: json<{
+        plan: string;
+        scopes: string[];
+      } | null>().nullable(),
     },
     constraints: {
       unique: [["provider", "accountId"]],
@@ -81,6 +88,7 @@ function createAuthOrm() {
           email: "ada@farminglabs.dev",
           name: "Ada",
           emailVerified: true,
+          loginCount: 3,
           createdAt: new Date("2025-01-01T00:00:00.000Z"),
           updatedAt: new Date("2025-01-01T00:00:00.000Z"),
         },
@@ -89,6 +97,7 @@ function createAuthOrm() {
           email: "grace@farminglabs.dev",
           name: "Grace",
           emailVerified: false,
+          loginCount: 1,
           createdAt: new Date("2025-01-02T00:00:00.000Z"),
           updatedAt: new Date("2025-01-02T00:00:00.000Z"),
         },
@@ -126,6 +135,10 @@ function createAuthOrm() {
           userId: "user_1",
           provider: "github",
           accountId: "gh_ada",
+          metadata: {
+            plan: "oss",
+            scopes: ["repo:read", "repo:write"],
+          },
         },
       ],
     }),
@@ -420,5 +433,50 @@ describe("runtime contract", () => {
       provider: "github",
       accountId: "gh_ada",
     });
+  });
+
+  it("supports integer comparisons and raw json equality filters", async () => {
+    const orm = createAuthOrm();
+
+    const activeUsers = await orm.user.findMany({
+      where: {
+        loginCount: {
+          gte: 2,
+        },
+      },
+      select: {
+        email: true,
+        loginCount: true,
+      },
+    });
+
+    const accounts = await orm.account.findMany({
+      where: {
+        metadata: {
+          plan: "oss",
+          scopes: ["repo:read", "repo:write"],
+        },
+      },
+      select: {
+        provider: true,
+        metadata: true,
+      },
+    });
+
+    expect(activeUsers).toEqual([
+      {
+        email: "ada@farminglabs.dev",
+        loginCount: 3,
+      },
+    ]);
+    expect(accounts).toEqual([
+      {
+        provider: "github",
+        metadata: {
+          plan: "oss",
+          scopes: ["repo:read", "repo:write"],
+        },
+      },
+    ]);
   });
 });

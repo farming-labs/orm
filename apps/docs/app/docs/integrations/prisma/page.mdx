@@ -155,6 +155,13 @@ The runtime driver talks to `PrismaClient`, so it follows Prisma’s provider
 surface for relational apps. In this repo, the real local integration coverage
 is currently exercised against SQLite, PostgreSQL, and MySQL.
 
+That live Prisma matrix now also covers:
+
+- compound-unique lookups and upserts
+- `integer()` comparison filters
+- `json()` equality filters
+- JSON update and reload behavior
+
 ## What gets generated
 
 Given this field:
@@ -235,6 +242,11 @@ The repo currently verifies Prisma support through a real local integration test
 that generates a real `PrismaClient` and runs one-to-one, one-to-many,
 belongs-to, many-to-many, mutations, and transaction rollback against local
 SQLite, PostgreSQL, and MySQL.
+
+The same suite also exercises the new scalar support through:
+
+- `user.loginCount: integer()`
+- `account.metadata: json(...).nullable()`
 
 Run it with:
 

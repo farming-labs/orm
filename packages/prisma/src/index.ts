@@ -12,6 +12,7 @@ import {
   type ManifestModel,
   mergeUniqueLookupCreateData,
   type OrmDriver,
+  isOperatorFilterObject,
   requireUniqueLookup,
   resolveRowIdentityLookup,
   type SchemaManifest,
@@ -28,8 +29,7 @@ import {
 import type { ModelName, RelationName } from "@farming-labs/orm";
 
 type PrismaRow = Record<string, unknown>;
-type PrismaFilterRecord = Record<string, string | number | boolean | Date | null>;
-type PrismaWhere = Where<PrismaFilterRecord>;
+type PrismaWhere = Where<Record<string, unknown>>;
 
 type PrismaWhereInput = Record<string, unknown>;
 
@@ -90,10 +90,6 @@ function parseReference(reference?: string) {
   return { model, field };
 }
 
-function isFilterObject(value: unknown): value is Record<string, unknown> {
-  return !!value && typeof value === "object" && !(value instanceof Date) && !Array.isArray(value);
-}
-
 function mergeWhere(...clauses: Array<PrismaWhere | undefined>) {
   const defined = clauses.filter(Boolean) as PrismaWhere[];
   if (!defined.length) return undefined;
@@ -120,8 +116,15 @@ function buildUpdateData(input: Partial<Record<string, unknown>>) {
   return Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined));
 }
 
-function compileFilter(filter: unknown) {
-  if (!isFilterObject(filter)) return filter;
+function compileFilter(field: ManifestField, filter: unknown) {
+  if (!isOperatorFilterObject(filter)) {
+    if (field.kind === "json" && filter !== null) {
+      return {
+        equals: filter,
+      };
+    }
+    return filter;
+  }
 
   const output: Record<string, unknown> = {};
   if ("eq" in filter) output.equals = filter.eq;
@@ -143,14 +146,14 @@ function compileWhere(model: ManifestModel, where?: PrismaWhere): PrismaWhereInp
   for (const [key, value] of Object.entries(where)) {
     if (key === "AND" && Array.isArray(value)) {
       output.AND = value
-        .map((entry) => compileWhere(model, entry))
+        .map((entry) => compileWhere(model, entry as PrismaWhere))
         .filter(Boolean) as PrismaWhereInput[];
       continue;
     }
 
     if (key === "OR" && Array.isArray(value)) {
       output.OR = value
-        .map((entry) => compileWhere(model, entry))
+        .map((entry) => compileWhere(model, entry as PrismaWhere))
         .filter(Boolean) as PrismaWhereInput[];
       continue;
     }
@@ -162,7 +165,7 @@ function compileWhere(model: ManifestModel, where?: PrismaWhere): PrismaWhereInp
     }
 
     if (!(key in model.fields)) continue;
-    output[key] = compileFilter(value);
+    output[key] = compileFilter(model.fields[key]!, value);
   }
 
   return output;

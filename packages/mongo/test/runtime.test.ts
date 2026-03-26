@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   assertBelongsToAndManyToManyQueries,
   assertCompoundUniqueQueries,
+  assertIntegerAndJsonQueries,
   assertMutationQueries,
   assertOneToOneAndHasManyQueries,
   schema,
@@ -38,6 +39,12 @@ describe("mongo runtime", () => {
     const { orm } = createTestRuntime();
 
     await assertCompoundUniqueQueries(orm, expect);
+  });
+
+  it("supports integer and json fields in the fast unit runtime", async () => {
+    const { orm } = createTestRuntime();
+
+    await assertIntegerAndJsonQueries(orm, expect);
   });
 
   it("falls back to non-transactional execution when no session source is configured", async () => {

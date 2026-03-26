@@ -10,6 +10,8 @@ import {
   hasMany,
   hasOne,
   id,
+  integer,
+  json,
   manyToMany,
   model,
   renderSafeSql,
@@ -27,6 +29,7 @@ const schema = defineSchema({
       email: string().unique(),
       name: string(),
       emailVerified: boolean().default(false).map("email_verified"),
+      loginCount: integer().default(0).map("login_count"),
       createdAt: datetime().defaultNow().map("created_at"),
       updatedAt: datetime().defaultNow().map("updated_at"),
     },
@@ -71,6 +74,10 @@ const schema = defineSchema({
       userId: string().references("user.id").map("user_id"),
       provider: string(),
       accountId: string().map("account_id"),
+      metadata: json<{
+        plan: string;
+        scopes: string[];
+      } | null>().nullable(),
     },
     constraints: {
       unique: [["provider", "accountId"]],
@@ -127,10 +134,12 @@ async function seedAuthData(orm: RuntimeOrm) {
       {
         email: "ada@farminglabs.dev",
         name: "Ada",
+        loginCount: 3,
       },
       {
         email: "grace@farminglabs.dev",
         name: "Grace",
+        loginCount: 1,
       },
     ],
     select: {
@@ -152,6 +161,10 @@ async function seedAuthData(orm: RuntimeOrm) {
       userId: ada.id,
       provider: "github",
       accountId: "gh_ada",
+      metadata: {
+        plan: "oss",
+        scopes: ["repo:read", "repo:write"],
+      },
     },
   });
 
@@ -613,6 +626,97 @@ for (const [label, factory] of [
           accountId: "google_grace",
           userId: grace.id,
         });
+      } finally {
+        await close();
+      }
+    });
+
+    it("supports integer comparisons and raw json equality filters", async () => {
+      const { orm, close } = await factory();
+
+      try {
+        const { ada } = await seedAuthData(orm);
+
+        const activeUsers = await orm.user.findMany({
+          where: {
+            loginCount: {
+              gte: 2,
+            },
+          },
+          select: {
+            email: true,
+            loginCount: true,
+          },
+        });
+
+        const account = await orm.account.findUnique({
+          where: {
+            provider: "github",
+            accountId: "gh_ada",
+          },
+          select: {
+            metadata: true,
+          },
+        });
+
+        const updatedAccount = await orm.account.update({
+          where: {
+            provider: "github",
+            accountId: "gh_ada",
+          },
+          data: {
+            metadata: {
+              plan: "pro",
+              scopes: ["repo:read", "repo:write", "admin"],
+            },
+          },
+          select: {
+            userId: true,
+            metadata: true,
+          },
+        });
+
+        const matchingAccounts = await orm.account.findMany({
+          where: {
+            metadata: {
+              plan: "pro",
+              scopes: ["repo:read", "repo:write", "admin"],
+            },
+          },
+          select: {
+            provider: true,
+            metadata: true,
+          },
+        });
+
+        expect(activeUsers).toEqual([
+          {
+            email: "ada@farminglabs.dev",
+            loginCount: 3,
+          },
+        ]);
+        expect(account).toEqual({
+          metadata: {
+            plan: "oss",
+            scopes: ["repo:read", "repo:write"],
+          },
+        });
+        expect(updatedAccount).toEqual({
+          userId: ada.id,
+          metadata: {
+            plan: "pro",
+            scopes: ["repo:read", "repo:write", "admin"],
+          },
+        });
+        expect(matchingAccounts).toEqual([
+          {
+            provider: "github",
+            metadata: {
+              plan: "pro",
+              scopes: ["repo:read", "repo:write", "admin"],
+            },
+          },
+        ]);
       } finally {
         await close();
       }

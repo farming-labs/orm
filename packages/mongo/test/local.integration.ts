@@ -6,6 +6,7 @@ import type { RuntimeOrm } from "../../mongoose/test/support/auth";
 import {
   assertBelongsToAndManyToManyQueries,
   assertCompoundUniqueQueries,
+  assertIntegerAndJsonQueries,
   assertModelLevelConstraints,
   assertMutationQueries,
   assertOneToOneAndHasManyQueries,
@@ -109,6 +110,14 @@ describe("mongo local integration", () => {
     "supports compound-unique lookups and upserts against a real local MongoDB instance",
     async () => {
       await withLocalOrm((orm) => assertCompoundUniqueQueries(orm, expect));
+    },
+    LOCAL_TIMEOUT_MS,
+  );
+
+  it(
+    "supports integer and json fields against a real local MongoDB instance",
+    async () => {
+      await withLocalOrm((orm) => assertIntegerAndJsonQueries(orm, expect));
     },
     LOCAL_TIMEOUT_MS,
   );

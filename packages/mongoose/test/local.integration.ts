@@ -6,6 +6,7 @@ import type { MongooseModelLike } from "../src";
 import {
   assertBelongsToAndManyToManyQueries,
   assertCompoundUniqueQueries,
+  assertIntegerAndJsonQueries,
   assertModelLevelConstraints,
   assertMutationQueries,
   assertOneToOneAndHasManyQueries,
@@ -56,6 +57,7 @@ async function createLocalMongooseOrm() {
       email: { type: String, required: true, unique: true },
       name: { type: String, required: true },
       email_verified: { type: Boolean, default: false },
+      login_count: { type: Number, default: 0 },
       created_at: { type: Date, default: Date.now },
       updated_at: { type: Date, default: Date.now },
     },
@@ -88,6 +90,7 @@ async function createLocalMongooseOrm() {
       user_id: { type: String, required: true },
       provider: { type: String, required: true },
       account_id: { type: String, required: true },
+      metadata: { type: mongoose.Schema.Types.Mixed, default: null },
     },
     { versionKey: false },
   );
@@ -197,6 +200,14 @@ describe("mongoose local integration", () => {
     "supports compound-unique lookups and upserts against a real local MongoDB instance",
     async () => {
       await withLocalOrm((orm) => assertCompoundUniqueQueries(orm, expect));
+    },
+    LOCAL_TIMEOUT_MS,
+  );
+
+  it(
+    "supports integer and json fields against a real local MongoDB instance",
+    async () => {
+      await withLocalOrm((orm) => assertIntegerAndJsonQueries(orm, expect));
     },
     LOCAL_TIMEOUT_MS,
   );

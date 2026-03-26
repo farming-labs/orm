@@ -164,6 +164,13 @@ await orm.transaction(async (tx) => {
 });
 ```
 
+The same live Kysely matrix also verifies:
+
+- `integer()` fields with numeric comparison filters
+- `json()` fields with raw JSON equality filters
+- compound-unique lookups and upserts
+- JSON mutation round-trips
+
 ## Real integration coverage
 
 The Kysely package is tested against real local databases in:
@@ -171,6 +178,9 @@ The Kysely package is tested against real local databases in:
 - SQLite
 - PostgreSQL
 - MySQL
+
+That suite includes the auth-style `user.loginCount` and `account.metadata`
+fixture used across the other runtimes.
 
 The integration suite lives at:
 

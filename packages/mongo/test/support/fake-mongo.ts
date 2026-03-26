@@ -1,9 +1,20 @@
-import { createOrm } from "@farming-labs/orm";
+import { createOrm, equalValues } from "@farming-labs/orm";
 import type { MongoCollectionLike, MongoCursorLike, MongoSessionLike } from "../../src";
 import { createMongoDriver } from "../../src";
 import { schema, type RuntimeOrm } from "../../../mongoose/test/support/auth";
 
 type StoredState = Record<string, Array<Record<string, unknown>>>;
+
+const mongoOperatorKeys = new Set(["$eq", "$ne", "$in", "$regex", "$gt", "$gte", "$lt", "$lte"]);
+
+function isMongoOperatorObject(value: unknown): value is Record<string, unknown> {
+  if (!value || typeof value !== "object" || value instanceof Date || Array.isArray(value)) {
+    return false;
+  }
+
+  const keys = Object.keys(value);
+  return keys.length > 0 && keys.every((key) => mongoOperatorKeys.has(key));
+}
 
 function compareValues(left: unknown, right: unknown) {
   if (left instanceof Date || right instanceof Date) {
@@ -29,15 +40,15 @@ function matchesFilter(doc: Record<string, unknown>, filter: Record<string, unkn
     }
 
     const current = doc[key];
-    if (!value || typeof value !== "object" || value instanceof Date || Array.isArray(value)) {
-      return Object.is(current, value);
+    if (!isMongoOperatorObject(value)) {
+      return equalValues(current, value);
     }
 
     return Object.entries(value).every(([operator, operand]) => {
-      if (operator === "$eq") return Object.is(current, operand);
-      if (operator === "$ne") return !Object.is(current, operand);
+      if (operator === "$eq") return equalValues(current, operand);
+      if (operator === "$ne") return !equalValues(current, operand);
       if (operator === "$in") {
-        return Array.isArray(operand) && operand.some((item) => Object.is(item, current));
+        return Array.isArray(operand) && operand.some((item) => equalValues(item, current));
       }
       if (operator === "$regex") {
         return current != null && (operand as RegExp).test(String(current));

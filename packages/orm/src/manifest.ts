@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import type { ScalarKind } from "./fields";
 import type { AnyRelation } from "./relations";
 import type { AnyModelDefinition, ModelConstraints, SchemaDefinition } from "./schema";
@@ -44,20 +45,27 @@ export type ManifestUniqueLookup = {
   constraint?: ManifestConstraint;
 };
 
-function equalLookupValues(left: unknown, right: unknown) {
-  if (left instanceof Date && right instanceof Date) {
-    return left.getTime() === right.getTime();
-  }
-
-  return Object.is(left, right);
-}
+const filterOperatorKeys = new Set(["eq", "contains", "in", "not", "gt", "gte", "lt", "lte"]);
 
 function isFilterObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !(value instanceof Date) && !Array.isArray(value);
 }
 
+export function isOperatorFilterObject(value: unknown): value is Record<string, unknown> {
+  if (!isFilterObject(value)) {
+    return false;
+  }
+
+  const keys = Object.keys(value);
+  return keys.length > 0 && keys.every((key) => filterOperatorKeys.has(key));
+}
+
+export function equalValues(left: unknown, right: unknown) {
+  return isDeepStrictEqual(left, right);
+}
+
 function extractEqualityValue(filter: unknown) {
-  if (!isFilterObject(filter)) {
+  if (!isOperatorFilterObject(filter)) {
     return {
       supported: true,
       value: filter,
@@ -230,7 +238,7 @@ export function mergeUniqueLookupCreateData(
   for (const field of lookup.fields) {
     const currentValue = output[field.name];
     const expectedValue = lookup.values[field.name];
-    if (currentValue !== undefined && !equalLookupValues(currentValue, expectedValue)) {
+    if (currentValue !== undefined && !equalValues(currentValue, expectedValue)) {
       throw new Error(
         `${operation} on model "${model.name}" requires create.${field.name} to match where.${field.name}.`,
       );
@@ -249,7 +257,7 @@ export function validateUniqueLookupUpdateData(
 ) {
   for (const field of lookup.fields) {
     const nextValue = updateData[field.name];
-    if (nextValue !== undefined && !equalLookupValues(nextValue, lookup.values[field.name])) {
+    if (nextValue !== undefined && !equalValues(nextValue, lookup.values[field.name])) {
       throw new Error(
         `${operation} on model "${model.name}" cannot change the conflict field "${field.name}".`,
       );

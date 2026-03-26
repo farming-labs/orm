@@ -57,6 +57,13 @@ orm.user.update(...)
 orm.user.upsert(...)
 ```
 
+That live Drizzle matrix now also verifies:
+
+- `integer()` fields with comparison filters
+- `json()` fields with raw JSON equality filters
+- compound-unique lookups and upserts
+- JSON mutation round-trips
+
 ## Runtime example
 
 ```ts
@@ -161,3 +168,20 @@ runtime already covers:
 
 Generated Drizzle output still keeps many-to-many relationships explicit through the
 join model, which matches how Drizzle teams usually model those tables anyway.
+
+## Verification in this repo
+
+The local Drizzle suite runs against real:
+
+- PostgreSQL
+- MySQL
+- SQLite
+
+and includes the same auth-style `integer()` / `json()` coverage used by the
+other live runtimes.
+
+Run it with:
+
+```bash
+pnpm test:local:drizzle
+```

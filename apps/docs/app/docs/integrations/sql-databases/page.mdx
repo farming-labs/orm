@@ -94,6 +94,13 @@ await orm.session.upsert({
 });
 ```
 
+The direct SQL runtime also verifies:
+
+- `integer()` comparison filters
+- `json()` equality filters
+- compound-unique lookups and upserts
+- JSON update and reload behavior
+
 ## Example output
 
 For a simple user model, the SQL generator emits output like:
@@ -168,3 +175,19 @@ full migration system with every advanced schema transform built in.
 
 That is why the docs call it **safe SQL generation** rather than a complete
 migration framework.
+
+## Verification in this repo
+
+The SQL local suite covers:
+
+- SQLite
+- PostgreSQL via `pg.Pool`
+- PostgreSQL via connected `pg` client
+- MySQL via pool
+- MySQL via connection
+
+Run it with:
+
+```bash
+pnpm test:local:sql
+```

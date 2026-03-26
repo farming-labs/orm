@@ -279,6 +279,49 @@ const account = await orm.account.upsert({
 });
 ```
 
+## Integer and JSON filters
+
+Integer fields participate in the normal comparison operators:
+
+```ts
+const activeUsers = await orm.user.findMany({
+  where: {
+    loginCount: {
+      gte: 2,
+    },
+  },
+  select: {
+    email: true,
+    loginCount: true,
+  },
+});
+```
+
+JSON fields can be written and read like any other scalar, and equality filters
+can use the raw JSON value directly:
+
+```ts
+const matchingAccounts = await orm.account.findMany({
+  where: {
+    metadata: {
+      plan: "oss",
+      scopes: ["repo:read", "repo:write"],
+      flags: {
+        sync: true,
+      },
+    },
+  },
+  select: {
+    provider: true,
+    metadata: true,
+  },
+});
+```
+
+This is especially useful for auth and plugin data where you want a stable
+typed contract in library code, but the underlying app may be using Prisma,
+Drizzle, Kysely, direct SQL, MongoDB, or Mongoose.
+
 For compound upserts:
 
 - every field in `where` must belong to one declared unique key

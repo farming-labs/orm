@@ -27,6 +27,31 @@ Farming Labs ORM has two layers:
 | Mongoose runtime    | No         | No    | No     | Yes     | `@farming-labs/orm-mongoose`              |
 | Kysely runtime      | Yes        | Yes   | Yes    | No      | `@farming-labs/orm-kysely`                |
 
+## `integer()` and `json()` coverage
+
+The current repo verifies the new scalar builders across the full live runtime
+matrix:
+
+| Runtime / stack    | PostgreSQL | MySQL | SQLite | MongoDB | `integer()` | `json()` |
+| ------------------ | ---------- | ----- | ------ | ------- | ----------- | -------- |
+| Memory runtime     | N/A        | N/A   | N/A    | N/A     | Yes         | Yes      |
+| Prisma runtime     | Yes        | Yes   | Yes    | No      | Yes         | Yes      |
+| Drizzle runtime    | Yes        | Yes   | Yes    | No      | Yes         | Yes      |
+| Kysely runtime     | Yes        | Yes   | Yes    | No      | Yes         | Yes      |
+| Direct SQL runtime | Yes        | Yes   | Yes    | No      | Yes         | Yes      |
+| MongoDB runtime    | No         | No    | No     | Yes     | Yes         | Yes      |
+| Mongoose runtime   | No         | No    | No     | Yes     | Yes         | Yes      |
+
+Those checks are not generator-only. They run the live runtime query layer
+against real local database instances and real client stacks for each supported
+dialect combination.
+
+Use this command to run the whole local matrix:
+
+```bash
+pnpm test:local
+```
+
 ## How to choose
 
 - Use **Prisma generation** if your app already owns `schema.prisma`
