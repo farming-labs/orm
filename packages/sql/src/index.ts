@@ -935,6 +935,28 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
     [nativeNodeIdentity]?: unknown;
   };
 
+  function createNativePresenceAlias(
+    model: ManifestModel,
+    alias: string,
+    includeAllScalars: boolean,
+    selectedScalarKeys: string[],
+  ) {
+    const occupiedAliases = new Set(
+      (includeAllScalars ? Object.keys(model.fields) : selectedScalarKeys).map(
+        (fieldName) => `${alias}__${fieldName}`,
+      ),
+    );
+    let candidate = `${alias}__orm_presence`;
+    let suffix = 0;
+
+    while (occupiedAliases.has(candidate)) {
+      suffix += 1;
+      candidate = `${alias}__orm_presence_${suffix}`;
+    }
+
+    return candidate;
+  }
+
   function buildNativeJoinPlan<
     TModelName extends ModelName<TSchema>,
     TSelect extends SelectShape<TSchema, TModelName> | undefined,
@@ -955,7 +977,7 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
       modelName,
       model,
       alias,
-      presenceAlias: `${alias}__present`,
+      presenceAlias: createNativePresenceAlias(model, alias, !select, selectedScalarKeys),
       includeAllScalars: !select,
       selectedScalarKeys,
       children: [],

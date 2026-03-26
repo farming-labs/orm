@@ -28,6 +28,7 @@ const schema = defineSchema({
       id: id(),
       email: string().unique(),
       name: string(),
+      present: string().nullable(),
       emailVerified: boolean().default(false).map("email_verified"),
       loginCount: integer().default(0).map("login_count"),
       createdAt: datetime().defaultNow().map("created_at"),
@@ -134,6 +135,7 @@ async function seedAuthData(orm: RuntimeOrm) {
       {
         email: "ada@farminglabs.dev",
         name: "Ada",
+        present: "online",
         loginCount: 3,
       },
       {
@@ -658,6 +660,39 @@ for (const [label, factory] of [
             profile: {
               bio: "Writes one storage layer for every stack.",
             },
+          },
+        });
+        expect(queryCount()).toBe(1);
+      } finally {
+        await close();
+      }
+    });
+
+    it("does not collide with a selected field named present", async () => {
+      const { orm, close, queryCount, resetQueryCount } = await factory();
+
+      try {
+        await seedAuthData(orm);
+        resetQueryCount();
+
+        const user = await orm.user.findUnique({
+          where: {
+            email: "ada@farminglabs.dev",
+          },
+          select: {
+            present: true,
+            profile: {
+              select: {
+                bio: true,
+              },
+            },
+          },
+        });
+
+        expect(user).toEqual({
+          present: "online",
+          profile: {
+            bio: "Writes one storage layer for every stack.",
           },
         });
         expect(queryCount()).toBe(1);
