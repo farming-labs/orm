@@ -89,6 +89,13 @@ Both Mongo runtimes support:
 They load related documents through follow-up queries and return the same typed
 result shape as the other runtimes.
 
+The live MongoDB suites also verify:
+
+- `integer()` fields
+- `json()` fields
+- compound-unique lookups and upserts
+- JSON update and reload behavior
+
 ## Transactions
 
 - `@farming-labs/orm-mongo` uses MongoDB sessions when `client` or `startSession` is provided
@@ -114,3 +121,17 @@ That is why the repo ships:
 
 Both use the same schema contract and typed API, but they plug into different
 MongoDB application stacks.
+
+## Verification in this repo
+
+The repo verifies both Mongo runtime packages through real local integration
+tests:
+
+- native MongoDB runtime: `pnpm --filter @farming-labs/orm-mongo test:local`
+- Mongoose runtime: `pnpm --filter @farming-labs/orm-mongoose test:local`
+
+Or run both with:
+
+```bash
+pnpm test:local:mongodb
+```

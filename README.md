@@ -199,6 +199,15 @@ pnpm test:local:mysql
 pnpm test:local:mongodb
 ```
 
+That local matrix now includes real coverage for:
+
+- `integer()` fields
+- `json()` fields
+- compound-unique lookups and upserts
+- relation traversal and mutation flows
+
+across Prisma, Drizzle, Kysely, direct SQL, MongoDB, and Mongoose.
+
 Demo:
 
 ```bash
