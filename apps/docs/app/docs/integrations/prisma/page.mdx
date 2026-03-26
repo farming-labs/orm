@@ -50,6 +50,12 @@ Supported direct relation branches now translate into Prisma's native nested
 That means reads like `session.user` and `session.user.profile` stay on the
 base Prisma delegate call.
 
+When a query still falls back, that does not mean Prisma itself lacks relation
+loading support. It means the Farming ORM Prisma driver has not yet translated
+that logical relation shape natively. The clearest example today is explicit
+join-table `manyToMany(...)` convenience traversal, which still stays on the
+portable fallback path.
+
 ## Runtime setup
 
 ```ts

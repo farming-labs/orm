@@ -89,6 +89,11 @@ queries like `session.user` and `session.user.profile` can load through one SQL
 statement. Plural branches with relation-level filters, paging, or explicit
 join-table traversal still fall back to the shared resolver.
 
+That does not mean Kysely or the underlying database is missing join support.
+It only means the shared SQL runtime currently translates the direct singular
+subset natively and leaves the more complex branches on the fallback path for
+now.
+
 That keeps the runtime behavior aligned with:
 
 - `@farming-labs/orm-sql`

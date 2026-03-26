@@ -69,6 +69,18 @@ Today that means:
 | Direct SQL runtime | single SQL statement for singular `belongsTo(...)` / `hasOne(...)` chains               | plural relation branches with extra relation-level filters or paging |
 | Mongo / Mongoose   | not yet                                                                                 | shared relation resolver                                             |
 
+The important nuance is that the fallback column does **not** mean the backend
+is fundamentally missing relation support.
+
+- SQL-backed runtimes can support much richer native joins than the first
+  singular path implemented here
+- Prisma can support more native nested relation shapes than the current direct
+  branch translation
+- MongoDB and Mongoose can grow a native aggregation / `$lookup` path later
+
+So the current matrix is best read as: **what this repo natively translates
+today**, not **the theoretical limit of the backend**.
+
 ## How to choose
 
 - Use **Prisma generation** if your app already owns `schema.prisma`

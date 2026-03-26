@@ -62,6 +62,10 @@ loading path. Reads such as `session.user` and `session.user.profile` can now
 load through one SQL statement, while plural relation branches continue to use
 the shared resolver when they need extra relation-level filtering or paging.
 
+That split is about the current Farming ORM planner, not a hard limit in
+Drizzle-backed SQL apps. As the SQL runtime grows richer native plans, Drizzle
+inherits them automatically.
+
 That live Drizzle matrix now also verifies:
 
 - `integer()` fields with comparison filters

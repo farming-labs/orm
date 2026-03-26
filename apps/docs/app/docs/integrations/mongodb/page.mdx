@@ -89,6 +89,11 @@ Both Mongo runtimes support:
 They load related documents through follow-up queries and return the same typed
 result shape as the other runtimes.
 
+That does not mean MongoDB is missing native join-like features forever. A
+future Mongo-native aggregation / `$lookup` path can still be added later. The
+current fallback behavior just means this repo has not translated those richer
+native plans yet.
+
 The live MongoDB suites also verify:
 
 - `integer()` fields

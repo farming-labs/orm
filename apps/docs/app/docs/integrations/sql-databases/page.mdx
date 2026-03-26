@@ -115,6 +115,10 @@ Plural branches still work too, but they currently fall back to the shared
 relation resolver when they need explicit join-table traversal, relation-level
 filters, paging, or ordering.
 
+That fallback list should be read as the current implementation scope, not as a
+limitation of SQL itself. PostgreSQL, MySQL, and SQLite can all support richer
+native relation plans than the first singular path added here.
+
 ## Example output
 
 For a simple user model, the SQL generator emits output like:
