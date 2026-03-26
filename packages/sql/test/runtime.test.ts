@@ -17,7 +17,7 @@ import {
   renderSafeSql,
   string,
 } from "@farming-labs/orm";
-import { createPgPoolDriver, createSqliteDriver } from "../src";
+import { createSqlDriverFromAdapter } from "../src";
 
 type RuntimeOrm = ReturnType<typeof createOrm<typeof schema>>;
 
@@ -234,14 +234,76 @@ async function createSqliteOrm() {
     (statement) => database.exec(statement),
     renderSafeSql(schema, { dialect: "sqlite" }),
   );
+  let queryCount = 0;
+  let transactionDepth = 0;
+  const driver = createSqlDriverFromAdapter<typeof schema>({
+    dialect: "sqlite",
+    async query(sql, params) {
+      queryCount += 1;
+      const statement = database.prepare(sql);
+      if (/^\s*(select|with)\b/i.test(sql)) {
+        const rows = statement.all(...(params as any[])) as Record<string, unknown>[];
+        return {
+          rows,
+          affectedRows: rows.length,
+        };
+      }
+
+      const result = statement.run(...(params as any[])) as { changes?: number | bigint };
+      return {
+        rows: [],
+        affectedRows: Number(result?.changes ?? 0),
+      };
+    },
+    async transaction(run) {
+      const savepoint = `farming_labs_test_${transactionDepth + 1}`;
+
+      if (transactionDepth === 0) {
+        database.exec("begin");
+      } else {
+        database.exec(`savepoint ${savepoint}`);
+      }
+
+      transactionDepth += 1;
+
+      try {
+        const result = await run(this);
+        transactionDepth -= 1;
+        if (transactionDepth === 0) {
+          database.exec("commit");
+        } else {
+          database.exec(`release savepoint ${savepoint}`);
+        }
+        return result;
+      } catch (error) {
+        transactionDepth -= 1;
+        if (transactionDepth === 0) {
+          database.exec("rollback");
+        } else {
+          database.exec(`rollback to savepoint ${savepoint}`);
+          database.exec(`release savepoint ${savepoint}`);
+        }
+        throw error;
+      }
+    },
+  });
 
   return {
     orm: createOrm({
       schema,
-      driver: createSqliteDriver(database),
+      driver,
     }),
     close: () => database.close(),
-  } satisfies { orm: RuntimeOrm; close: () => void };
+    queryCount: () => queryCount,
+    resetQueryCount: () => {
+      queryCount = 0;
+    },
+  } satisfies {
+    orm: RuntimeOrm;
+    close: () => void;
+    queryCount: () => number;
+    resetQueryCount: () => void;
+  };
 }
 
 async function createPgOrm() {
@@ -258,14 +320,84 @@ async function createPgOrm() {
     (statement) => pool.query(statement),
     renderSafeSql(schema, { dialect: "postgres" }),
   );
+  let queryCount = 0;
+  const driver = createSqlDriverFromAdapter<typeof schema>({
+    dialect: "postgres",
+    async query(sql, params) {
+      queryCount += 1;
+      const result = await pool.query(sql, params);
+      return {
+        rows: result.rows ?? [],
+        affectedRows: Number(result.rowCount ?? result.rows?.length ?? 0),
+      };
+    },
+    async transaction(run) {
+      const client = await pool.connect();
+      let transactionDepth = 0;
+      const adapter = {
+        dialect: "postgres" as const,
+        async query(sql: string, params: unknown[]) {
+          queryCount += 1;
+          const result = await client.query(sql, params);
+          return {
+            rows: result.rows ?? [],
+            affectedRows: Number(result.rowCount ?? result.rows?.length ?? 0),
+          };
+        },
+        async transaction<TResult>(nestedRun: (adapter: any) => Promise<TResult>) {
+          const savepoint = `farming_labs_test_${transactionDepth + 1}`;
+          if (transactionDepth === 0) {
+            await client.query("begin");
+          } else {
+            await client.query(`savepoint ${savepoint}`);
+          }
+          transactionDepth += 1;
+          try {
+            const result = await nestedRun(adapter);
+            transactionDepth -= 1;
+            if (transactionDepth === 0) {
+              await client.query("commit");
+            } else {
+              await client.query(`release savepoint ${savepoint}`);
+            }
+            return result;
+          } catch (error) {
+            transactionDepth -= 1;
+            if (transactionDepth === 0) {
+              await client.query("rollback");
+            } else {
+              await client.query(`rollback to savepoint ${savepoint}`);
+              await client.query(`release savepoint ${savepoint}`);
+            }
+            throw error;
+          }
+        },
+      };
+
+      try {
+        return await adapter.transaction(run);
+      } finally {
+        client.release();
+      }
+    },
+  });
 
   return {
     orm: createOrm({
       schema,
-      driver: createPgPoolDriver(pool),
+      driver,
     }),
     close: () => pool.end(),
-  } satisfies { orm: RuntimeOrm; close: () => Promise<void> };
+    queryCount: () => queryCount,
+    resetQueryCount: () => {
+      queryCount = 0;
+    },
+  } satisfies {
+    orm: RuntimeOrm;
+    close: () => Promise<void>;
+    queryCount: () => number;
+    resetQueryCount: () => void;
+  };
 }
 
 for (const [label, factory] of [
@@ -488,6 +620,47 @@ for (const [label, factory] of [
             sessions: [{ token: "session-2" }],
           },
         });
+      } finally {
+        await close();
+      }
+    });
+
+    it("uses one native SQL query for singular nested relation reads", async () => {
+      const { orm, close, queryCount, resetQueryCount } = await factory();
+
+      try {
+        await seedAuthData(orm);
+        resetQueryCount();
+
+        const session = await orm.session.findUnique({
+          where: {
+            token: "session-2",
+          },
+          select: {
+            token: true,
+            user: {
+              select: {
+                email: true,
+                profile: {
+                  select: {
+                    bio: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        expect(session).toEqual({
+          token: "session-2",
+          user: {
+            email: "ada@farminglabs.dev",
+            profile: {
+              bio: "Writes one storage layer for every stack.",
+            },
+          },
+        });
+        expect(queryCount()).toBe(1);
       } finally {
         await close();
       }

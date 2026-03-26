@@ -84,6 +84,11 @@ Instead it:
 2. executes through the app’s real `Kysely` database
 3. reuses the shared SQL runtime behavior for relation loading, filtering, sorting, paging, and mutation semantics
 
+That shared SQL runtime now includes a native singular relation-loading path, so
+queries like `session.user` and `session.user.profile` can load through one SQL
+statement. Plural branches with relation-level filters, paging, or explicit
+join-table traversal still fall back to the shared resolver.
+
 That keeps the runtime behavior aligned with:
 
 - `@farming-labs/orm-sql`

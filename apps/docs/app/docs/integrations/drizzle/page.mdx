@@ -57,6 +57,11 @@ orm.user.update(...)
 orm.user.upsert(...)
 ```
 
+That also means Drizzle inherits the SQL runtime's native singular relation
+loading path. Reads such as `session.user` and `session.user.profile` can now
+load through one SQL statement, while plural relation branches continue to use
+the shared resolver when they need extra relation-level filtering or paging.
+
 That live Drizzle matrix now also verifies:
 
 - `integer()` fields with comparison filters

@@ -45,6 +45,11 @@ await orm.user.findUnique({
 can execute through `PrismaClient` without the library author rewriting the
 same storage helper for Prisma separately.
 
+Supported direct relation branches now translate into Prisma's native nested
+`select` tree instead of always bouncing back through the fallback resolver.
+That means reads like `session.user` and `session.user.profile` stay on the
+base Prisma delegate call.
+
 ## Runtime setup
 
 ```ts

@@ -61,6 +61,11 @@ layer while the app keeps its own database stack.
   - `hasOne`
   - `hasMany`
   - explicit join-table `manyToMany`
+- native singular relation loading for:
+  - direct SQL
+  - Drizzle
+  - Kysely
+  - Prisma delegate translation for supported nested relation branches
 - compound-unique runtime lookups and upserts
 - integer comparison filters and raw JSON equality filters across the live runtimes
 

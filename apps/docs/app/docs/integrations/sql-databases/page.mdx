@@ -101,6 +101,20 @@ The direct SQL runtime also verifies:
 - compound-unique lookups and upserts
 - JSON update and reload behavior
 
+For relation loading, the SQL runtime now has a native single-query path for
+joinable singular branches such as:
+
+- `session.user`
+- `session.user.profile`
+- `profile.user`
+
+That same native path is what the Drizzle and Kysely runtimes inherit, because
+both packages route through `@farming-labs/orm-sql` under the hood.
+
+Plural branches still work too, but they currently fall back to the shared
+relation resolver when they need explicit join-table traversal, relation-level
+filters, paging, or ordering.
+
 ## Example output
 
 For a simple user model, the SQL generator emits output like:

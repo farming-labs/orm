@@ -267,13 +267,14 @@ function compileFieldFilter(
   filter: unknown,
   dialect: SqlDialect,
   state: QueryState,
+  tableAlias = model.table,
 ) {
   const field = model.fields[fieldName];
   if (!field) {
     throw new Error(`Unknown field "${fieldName}" on model "${model.name}".`);
   }
 
-  const column = `${quoteIdentifier(model.table, dialect)}.${quoteIdentifier(field.column, dialect)}`;
+  const column = `${quoteIdentifier(tableAlias, dialect)}.${quoteIdentifier(field.column, dialect)}`;
   const createValueExpression = (value: unknown) => {
     const placeholder = createPlaceholder(dialect, state, encodeValue(field, dialect, value));
     if (field.kind === "json" && dialect === "mysql") {
@@ -354,6 +355,7 @@ function compileWhere(
   where: SqlWhere | undefined,
   dialect: SqlDialect,
   state: QueryState,
+  tableAlias = model.table,
 ): string | undefined {
   if (!where) return undefined;
 
@@ -364,7 +366,7 @@ function compileWhere(
       const items = Array.isArray(value) ? value : [];
       if (!items.length) continue;
       const nested = items
-        .map((item) => compileWhere(model, item as SqlWhere, dialect, state))
+        .map((item) => compileWhere(model, item as SqlWhere, dialect, state, tableAlias))
         .filter(Boolean)
         .map((item) => `(${item})`);
       if (nested.length) clauses.push(nested.join(" and "));
@@ -375,7 +377,7 @@ function compileWhere(
       const items = Array.isArray(value) ? value : [];
       if (!items.length) continue;
       const nested = items
-        .map((item) => compileWhere(model, item as SqlWhere, dialect, state))
+        .map((item) => compileWhere(model, item as SqlWhere, dialect, state, tableAlias))
         .filter(Boolean)
         .map((item) => `(${item})`);
       if (nested.length) clauses.push(`(${nested.join(" or ")})`);
@@ -383,12 +385,12 @@ function compileWhere(
     }
 
     if (key === "NOT") {
-      const nested = compileWhere(model, value as SqlWhere, dialect, state);
+      const nested = compileWhere(model, value as SqlWhere, dialect, state, tableAlias);
       if (nested) clauses.push(`not (${nested})`);
       continue;
     }
 
-    clauses.push(compileFieldFilter(model, key, value, dialect, state));
+    clauses.push(compileFieldFilter(model, key, value, dialect, state, tableAlias));
   }
 
   if (!clauses.length) return undefined;
@@ -399,6 +401,7 @@ function compileOrderBy(
   model: ManifestModel,
   orderBy: Partial<Record<string, "asc" | "desc">> | undefined,
   dialect: SqlDialect,
+  tableAlias = model.table,
 ) {
   if (!orderBy) return "";
 
@@ -406,7 +409,7 @@ function compileOrderBy(
     .filter(([fieldName]) => fieldName in model.fields)
     .map(([fieldName, direction]) => {
       const field = model.fields[fieldName];
-      return `${quoteIdentifier(model.table, dialect)}.${quoteIdentifier(field.column, dialect)} ${
+      return `${quoteIdentifier(tableAlias, dialect)}.${quoteIdentifier(field.column, dialect)} ${
         direction === "desc" ? "desc" : "asc"
       }`;
     });
@@ -449,18 +452,20 @@ function buildSelectStatement(
     orderBy?: Partial<Record<string, "asc" | "desc">>;
     take?: number;
     skip?: number;
+    tableAlias?: string;
   },
 ) {
   const state: QueryState = { params: [] };
+  const tableAlias = args.tableAlias ?? model.table;
   const selectList = Object.values(model.fields).map(
     (field) =>
-      `${quoteIdentifier(model.table, dialect)}.${quoteIdentifier(field.column, dialect)} as ${quoteIdentifier(field.name, dialect)}`,
+      `${quoteIdentifier(tableAlias, dialect)}.${quoteIdentifier(field.column, dialect)} as ${quoteIdentifier(field.name, dialect)}`,
   );
 
-  let sql = `select ${selectList.join(", ")} from ${quoteIdentifier(model.table, dialect)}`;
-  const where = compileWhere(model, args.where, dialect, state);
+  let sql = `select ${selectList.join(", ")} from ${quoteIdentifier(model.table, dialect)} as ${quoteIdentifier(tableAlias, dialect)}`;
+  const where = compileWhere(model, args.where, dialect, state, tableAlias);
   if (where) sql += ` where ${where}`;
-  sql += compileOrderBy(model, args.orderBy, dialect);
+  sql += compileOrderBy(model, args.orderBy, dialect, tableAlias);
   sql += compilePagination(dialect, args.take, args.skip);
 
   return { sql, params: state.params };
@@ -854,6 +859,11 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
       select?: TSelect;
     },
   ): Promise<Array<SelectedRecord<TSchema, TModelName, TSelect>>> {
+    const nativeRows = await loadRowsWithNativeJoins(schema, modelName, args);
+    if (nativeRows) {
+      return nativeRows;
+    }
+
     const manifest = getManifest(schema);
     const model = manifest.models[modelName];
     const statement = buildSelectStatement(model, adapter.dialect, args);
@@ -899,6 +909,242 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
     const result = await adapter.query(statement.sql, statement.params);
     const row = result.rows[0];
     return row ? decodeRow(model, adapter.dialect, row) : null;
+  }
+
+  type NativeJoinPlanNode = {
+    modelName: ModelName<TSchema>;
+    model: ManifestModel;
+    alias: string;
+    presenceAlias: string;
+    includeAllScalars: boolean;
+    selectedScalarKeys: string[];
+    relationName?: string;
+    relationKind?: "belongsTo" | "hasOne";
+    sourceField?: ManifestField;
+    targetField?: ManifestField;
+    children: NativeJoinPlanNode[];
+  };
+
+  function buildNativeJoinPlan<
+    TModelName extends ModelName<TSchema>,
+    TSelect extends SelectShape<TSchema, TModelName> | undefined,
+  >(
+    schema: TSchema,
+    modelName: TModelName,
+    select: TSelect,
+    aliasState: { next: number },
+  ): NativeJoinPlanNode | null {
+    const manifest = getManifest(schema);
+    const model = manifest.models[modelName];
+    const alias = `t${aliasState.next++}`;
+    const entries = select ? Object.entries(select) : [];
+    const selectedScalarKeys = select
+      ? entries.filter(([key, value]) => key in model.fields && value === true).map(([key]) => key)
+      : Object.keys(model.fields);
+    const node: NativeJoinPlanNode = {
+      modelName,
+      model,
+      alias,
+      presenceAlias: `${alias}__present`,
+      includeAllScalars: !select,
+      selectedScalarKeys,
+      children: [],
+    };
+
+    for (const [key, value] of entries) {
+      if (value === undefined || !(key in schema.models[modelName].relations)) continue;
+
+      const relation = schema.models[modelName].relations[key as RelationName<TSchema, TModelName>];
+      if (relation.kind === "hasMany" || relation.kind === "manyToMany") {
+        return null;
+      }
+
+      const relationArgs = (value === true ? {} : value) as Partial<
+        FindManyArgs<TSchema, any, any>
+      >;
+      if (
+        relationArgs.where !== undefined ||
+        relationArgs.orderBy !== undefined ||
+        relationArgs.take !== undefined ||
+        relationArgs.skip !== undefined
+      ) {
+        return null;
+      }
+
+      const child = buildNativeJoinPlan(
+        schema,
+        relation.target as ModelName<TSchema>,
+        relationArgs.select,
+        aliasState,
+      );
+      if (!child) return null;
+
+      child.relationName = key;
+      child.relationKind = relation.kind;
+
+      if (relation.kind === "belongsTo") {
+        const sourceField = model.fields[relation.foreignKey];
+        if (!sourceField) return null;
+        const targetReference = parseReference(sourceField.references);
+        const targetFieldName =
+          targetReference?.field ?? identityField(manifest.models[relation.target]).name;
+        const targetField = child.model.fields[targetFieldName];
+        if (!targetField) return null;
+        child.sourceField = sourceField;
+        child.targetField = targetField;
+      } else {
+        const targetForeignField = child.model.fields[relation.foreignKey];
+        if (!targetForeignField) return null;
+        const sourceReference = parseReference(targetForeignField.references);
+        const sourceFieldName =
+          sourceReference?.field ?? identityField(manifest.models[modelName]).name;
+        const sourceField = model.fields[sourceFieldName];
+        if (!sourceField) return null;
+        child.sourceField = sourceField;
+        child.targetField = targetForeignField;
+      }
+
+      node.children.push(child);
+    }
+
+    return node;
+  }
+
+  function hasNativeJoinableRelations<
+    TModelName extends ModelName<TSchema>,
+    TSelect extends SelectShape<TSchema, TModelName> | undefined,
+  >(schema: TSchema, modelName: TModelName, select: TSelect) {
+    if (!select) return false;
+    const plan = buildNativeJoinPlan(schema, modelName, select, { next: 0 });
+    return !!plan && plan.children.length > 0;
+  }
+
+  function collectNativeJoinSelects(node: NativeJoinPlanNode, selectList: string[]) {
+    const scalarKeys = node.includeAllScalars
+      ? Object.keys(node.model.fields)
+      : node.selectedScalarKeys;
+
+    for (const fieldName of scalarKeys) {
+      const field = node.model.fields[fieldName];
+      if (!field) continue;
+      selectList.push(
+        `${quoteIdentifier(node.alias, adapter.dialect)}.${quoteIdentifier(field.column, adapter.dialect)} as ${quoteIdentifier(`${node.alias}__${field.name}`, adapter.dialect)}`,
+      );
+    }
+
+    const identity = identityField(node.model);
+    selectList.push(
+      `${quoteIdentifier(node.alias, adapter.dialect)}.${quoteIdentifier(identity.column, adapter.dialect)} as ${quoteIdentifier(node.presenceAlias, adapter.dialect)}`,
+    );
+
+    for (const child of node.children) {
+      collectNativeJoinSelects(child, selectList);
+    }
+  }
+
+  function collectNativeJoinClauses(node: NativeJoinPlanNode, joins: string[]) {
+    for (const child of node.children) {
+      const leftColumn =
+        child.relationKind === "belongsTo"
+          ? `${quoteIdentifier(node.alias, adapter.dialect)}.${quoteIdentifier(child.sourceField!.column, adapter.dialect)}`
+          : `${quoteIdentifier(child.alias, adapter.dialect)}.${quoteIdentifier(child.targetField!.column, adapter.dialect)}`;
+      const rightColumn =
+        child.relationKind === "belongsTo"
+          ? `${quoteIdentifier(child.alias, adapter.dialect)}.${quoteIdentifier(child.targetField!.column, adapter.dialect)}`
+          : `${quoteIdentifier(node.alias, adapter.dialect)}.${quoteIdentifier(child.sourceField!.column, adapter.dialect)}`;
+      joins.push(
+        ` left join ${quoteIdentifier(child.model.table, adapter.dialect)} as ${quoteIdentifier(child.alias, adapter.dialect)} on ${leftColumn} = ${rightColumn}`,
+      );
+      collectNativeJoinClauses(child, joins);
+    }
+  }
+
+  function buildNativeJoinStatement(
+    root: NativeJoinPlanNode,
+    args: {
+      where?: SqlWhere;
+      orderBy?: Partial<Record<string, "asc" | "desc">>;
+      take?: number;
+      skip?: number;
+    },
+  ) {
+    const state: QueryState = { params: [] };
+    const selectList: string[] = [];
+    const joins: string[] = [];
+    collectNativeJoinSelects(root, selectList);
+    collectNativeJoinClauses(root, joins);
+
+    let sql =
+      `select ${selectList.join(", ")}` +
+      ` from ${quoteIdentifier(root.model.table, adapter.dialect)} as ${quoteIdentifier(root.alias, adapter.dialect)}`;
+    if (joins.length) sql += joins.join("");
+    const where = compileWhere(root.model, args.where, adapter.dialect, state, root.alias);
+    if (where) sql += ` where ${where}`;
+    sql += compileOrderBy(root.model, args.orderBy, adapter.dialect, root.alias);
+    sql += compilePagination(adapter.dialect, args.take, args.skip);
+
+    return { sql, params: state.params };
+  }
+
+  function nodePresenceValue(node: NativeJoinPlanNode, rawRow: SqlRow) {
+    return rawRow[node.presenceAlias];
+  }
+
+  function projectNativeJoinNode(node: NativeJoinPlanNode, rawRow: SqlRow): SqlRow | null {
+    if (nodePresenceValue(node, rawRow) == null) {
+      return null;
+    }
+
+    const output: SqlRow = {};
+    const scalarKeys = node.includeAllScalars
+      ? Object.keys(node.model.fields)
+      : node.selectedScalarKeys;
+
+    for (const fieldName of scalarKeys) {
+      const field = node.model.fields[fieldName];
+      if (!field) continue;
+      output[field.name] = decodeValue(
+        field,
+        adapter.dialect,
+        rawRow[`${node.alias}__${field.name}`],
+      );
+    }
+
+    for (const child of node.children) {
+      output[child.relationName!] = projectNativeJoinNode(child, rawRow);
+    }
+
+    return output;
+  }
+
+  async function loadRowsWithNativeJoins<
+    TModelName extends ModelName<TSchema>,
+    TSelect extends SelectShape<TSchema, TModelName> | undefined,
+  >(
+    schema: TSchema,
+    modelName: TModelName,
+    args: {
+      where?: SqlWhere;
+      orderBy?: Partial<Record<string, "asc" | "desc">>;
+      take?: number;
+      skip?: number;
+      select?: TSelect;
+    },
+  ): Promise<Array<SelectedRecord<TSchema, TModelName, TSelect>> | null> {
+    if (!hasNativeJoinableRelations(schema, modelName, args.select)) {
+      return null;
+    }
+
+    const plan = buildNativeJoinPlan(schema, modelName, args.select, { next: 0 });
+    if (!plan || !plan.children.length) {
+      return null;
+    }
+
+    const statement = buildNativeJoinStatement(plan, args);
+    const result = await adapter.query(statement.sql, statement.params);
+    return result.rows.map((row) => projectNativeJoinNode(plan, row)).filter(Boolean) as Array<
+      SelectedRecord<TSchema, TModelName, TSelect>
+    >;
   }
 
   async function projectRow<
