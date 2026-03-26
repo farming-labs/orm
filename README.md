@@ -232,4 +232,3 @@ pnpm release:beta
 pnpm publish:beta
 ```
 
-Docs source lives in `apps/docs/app/docs`.
