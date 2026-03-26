@@ -44,6 +44,14 @@ export type ManifestUniqueLookup = {
   constraint?: ManifestConstraint;
 };
 
+function equalLookupValues(left: unknown, right: unknown) {
+  if (left instanceof Date && right instanceof Date) {
+    return left.getTime() === right.getTime();
+  }
+
+  return Object.is(left, right);
+}
+
 function isFilterObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !(value instanceof Date) && !Array.isArray(value);
 }
@@ -222,7 +230,7 @@ export function mergeUniqueLookupCreateData(
   for (const field of lookup.fields) {
     const currentValue = output[field.name];
     const expectedValue = lookup.values[field.name];
-    if (currentValue !== undefined && currentValue !== expectedValue) {
+    if (currentValue !== undefined && !equalLookupValues(currentValue, expectedValue)) {
       throw new Error(
         `${operation} on model "${model.name}" requires create.${field.name} to match where.${field.name}.`,
       );
@@ -241,7 +249,7 @@ export function validateUniqueLookupUpdateData(
 ) {
   for (const field of lookup.fields) {
     const nextValue = updateData[field.name];
-    if (nextValue !== undefined && nextValue !== lookup.values[field.name]) {
+    if (nextValue !== undefined && !equalLookupValues(nextValue, lookup.values[field.name])) {
       throw new Error(
         `${operation} on model "${model.name}" cannot change the conflict field "${field.name}".`,
       );

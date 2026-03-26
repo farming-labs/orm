@@ -9,12 +9,15 @@ import {
   hasMany,
   hasOne,
   id,
+  mergeUniqueLookupCreateData,
   manyToMany,
   model,
   renderDrizzleSchema,
   renderPrismaSchema,
   renderSafeSql,
+  requireUniqueLookup,
   string,
+  validateUniqueLookupUpdateData,
 } from "../src";
 
 const schema = defineSchema({
@@ -190,5 +193,63 @@ describe("@farming-labs/orm core", () => {
       email: "ada@farminglabs.dev",
       sessions: [{ token: "token-1" }],
     });
+  });
+
+  it("treats equal Date values as matching compound-unique lookup values", () => {
+    const auditSchema = defineSchema({
+      auditEvent: model({
+        table: "audit_events",
+        fields: {
+          id: id(),
+          scope: string(),
+          occurredAt: datetime(),
+          note: string(),
+        },
+        constraints: {
+          unique: [["scope", "occurredAt"]],
+        },
+      }),
+    });
+
+    const manifest = createManifest(auditSchema);
+    const auditModel = manifest.models.auditEvent;
+    const firstDate = new Date("2026-01-01T00:00:00.000Z");
+    const secondDate = new Date("2026-01-01T00:00:00.000Z");
+    const lookup = requireUniqueLookup(
+      auditModel,
+      {
+        scope: "session",
+        occurredAt: firstDate,
+      },
+      "Upsert",
+    );
+
+    expect(
+      mergeUniqueLookupCreateData(
+        auditModel,
+        {
+          scope: "session",
+          occurredAt: secondDate,
+          note: "create",
+        },
+        lookup,
+        "Upsert",
+      ),
+    ).toEqual({
+      scope: "session",
+      occurredAt: secondDate,
+      note: "create",
+    });
+
+    expect(() =>
+      validateUniqueLookupUpdateData(
+        auditModel,
+        {
+          occurredAt: secondDate,
+        },
+        lookup,
+        "Upsert",
+      ),
+    ).not.toThrow();
   });
 });
