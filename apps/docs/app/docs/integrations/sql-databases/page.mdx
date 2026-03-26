@@ -100,6 +100,8 @@ The direct SQL runtime also verifies:
 - `json()` equality filters
 - compound-unique lookups and upserts
 - JSON update and reload behavior
+- collision-safe native projection aliases, so selected scalar fields stay intact
+  even if a model also has a field name used by the native loader internally
 
 For relation loading, the SQL runtime now has a native single-query path for
 joinable singular branches such as:
@@ -123,6 +125,10 @@ relation resolver when they need relation-level filters, paging, or ordering.
 That fallback list should be read as the current implementation scope, not as a
 limitation of SQL itself. PostgreSQL, MySQL, and SQLite can all support richer
 native relation plans than the first singular path added here.
+
+The native loader also keeps its internal presence markers on collision-safe
+aliases. That means a real model field such as `present` can still be selected
+normally without conflicting with native row-mapping metadata.
 
 ## Example output
 
