@@ -55,6 +55,10 @@ email: string().unique();
 
 Marks the field as unique in the schema and generated outputs.
 
+Use this for single-field uniqueness. For compound uniqueness such as
+`provider + accountId`, use model-level `constraints.unique` on `model(...)`
+instead.
+
 ### `.nullable()`
 
 ```ts
