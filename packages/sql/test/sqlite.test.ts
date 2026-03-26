@@ -272,7 +272,7 @@ describe("sqlite SQL runtime", () => {
           message: "hello",
         },
       }),
-    ).rejects.toThrow('requires an "id" field or a unique field');
+    ).rejects.toThrow('requires an "id" field');
 
     expect(database.calls).toEqual([]);
   });

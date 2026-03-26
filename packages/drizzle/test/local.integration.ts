@@ -12,6 +12,7 @@ import { createOrm, renderSafeSql } from "@farming-labs/orm";
 import { createDrizzleDriver } from "../src";
 import {
   assertBelongsToAndManyToManyQueries,
+  assertCompoundUniqueQueries,
   assertModelLevelConstraints,
   assertMutationQueries,
   assertOneToOneAndHasManyQueries,
@@ -367,6 +368,20 @@ describe("local Drizzle integration", () => {
           await assertMutationQueries(runtime.orm, expect, {
             expectTransactionRollback: true,
           });
+        } finally {
+          await runtime.close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
+
+    it(
+      `${target} local Drizzle integration > supports compound-unique lookups and upserts against a real local database`,
+      async () => {
+        const runtime = await runtimeFactories[target]();
+
+        try {
+          await assertCompoundUniqueQueries(runtime.orm, expect);
         } finally {
           await runtime.close();
         }

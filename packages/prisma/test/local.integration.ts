@@ -10,6 +10,7 @@ import { createOrm } from "@farming-labs/orm";
 import { createPrismaDriver } from "../src";
 import {
   assertBelongsToAndManyToManyQueries,
+  assertCompoundUniqueQueries,
   assertModelLevelConstraints,
   assertMutationQueries,
   assertOneToOneAndHasManyQueries,
@@ -39,6 +40,7 @@ type RealGeneratedPrismaClient = {
   user: { deleteMany(): Promise<unknown> };
   profile: { deleteMany(): Promise<unknown> };
   session: { deleteMany(): Promise<unknown> };
+  account: { deleteMany(): Promise<unknown> };
   organization: { deleteMany(): Promise<unknown> };
   member: { deleteMany(): Promise<unknown> };
   $connect(): Promise<void>;
@@ -100,6 +102,7 @@ function getGeneratedPrismaClient(target: PrismaTarget): RealGeneratedPrismaClie
 
 async function resetDatabase(prisma: RealGeneratedPrismaClient) {
   await prisma.member.deleteMany();
+  await prisma.account.deleteMany();
   await prisma.session.deleteMany();
   await prisma.profile.deleteMany();
   await prisma.organization.deleteMany();
@@ -371,6 +374,19 @@ for (const [target, factory] of [
         const { orm, close } = await factory();
         try {
           await assertMutationQueries(orm, expect, { expectTransactionRollback: true });
+        } finally {
+          await close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
+
+    it(
+      "supports compound-unique lookups and upserts against a real local database",
+      async () => {
+        const { orm, close } = await factory();
+        try {
+          await assertCompoundUniqueQueries(orm, expect);
         } finally {
           await close();
         }

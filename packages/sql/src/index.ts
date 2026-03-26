@@ -11,14 +11,19 @@ import {
   type FindUniqueArgs,
   type ManifestField,
   type ManifestModel,
+  mergeUniqueLookupCreateData,
   type OrmDriver,
+  requireUniqueLookup,
+  resolveRowIdentityLookup,
   type SchemaManifest,
   type SchemaDefinition,
   type SelectShape,
   type SelectedRecord,
+  toUniqueLookupWhere,
   type UpdateArgs,
   type UpdateManyArgs,
   type UpsertArgs,
+  validateUniqueLookupUpdateData,
   type Where,
 } from "@farming-labs/orm";
 import type { ModelName, RelationName } from "@farming-labs/orm";
@@ -231,93 +236,6 @@ function mergeWhere(...clauses: Array<SqlWhere | undefined>) {
 
 function isFilterObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !(value instanceof Date) && !Array.isArray(value);
-}
-
-function extractEqualityValue(filter: unknown) {
-  if (!isFilterObject(filter)) {
-    return {
-      supported: true,
-      value: filter,
-    };
-  }
-
-  const keys = Object.keys(filter);
-  if (keys.length === 1 && "eq" in filter) {
-    return {
-      supported: true,
-      value: filter.eq,
-    };
-  }
-
-  return {
-    supported: false,
-    value: undefined,
-  };
-}
-
-function extractUpsertConflict(model: ManifestModel, where: SqlWhere) {
-  const keys = Object.keys(where).filter((key) => key !== "AND" && key !== "OR" && key !== "NOT");
-
-  if ("AND" in where || "OR" in where || "NOT" in where || keys.length !== 1) {
-    throw new Error(
-      `Upsert on model "${model.name}" requires a single unique equality filter in "where".`,
-    );
-  }
-
-  const fieldName = keys[0]!;
-  const field = model.fields[fieldName];
-  if (!field) {
-    throw new Error(`Unknown field "${fieldName}" on model "${model.name}".`);
-  }
-
-  if (!(field.kind === "id" || field.unique)) {
-    throw new Error(
-      `Upsert on model "${model.name}" requires the "where" field "${fieldName}" to be unique or an id field.`,
-    );
-  }
-
-  const { supported, value } = extractEqualityValue(where[fieldName]);
-  if (!supported || value === undefined || value === null) {
-    throw new Error(
-      `Upsert on model "${model.name}" requires the "where" field "${fieldName}" to use a single non-null equality value.`,
-    );
-  }
-
-  return {
-    field,
-    value,
-  };
-}
-
-function mergeUpsertCreateData(
-  model: ManifestModel,
-  createData: Partial<Record<string, unknown>>,
-  conflict: { field: ManifestField; value: unknown },
-) {
-  const currentValue = createData[conflict.field.name];
-  if (currentValue !== undefined && currentValue !== conflict.value) {
-    throw new Error(
-      `Upsert on model "${model.name}" requires create.${conflict.field.name} to match where.${conflict.field.name}.`,
-    );
-  }
-
-  return {
-    ...createData,
-    [conflict.field.name]: currentValue ?? conflict.value,
-  };
-}
-
-function validateUpsertUpdateData(
-  model: ManifestModel,
-  updateData: Partial<Record<string, unknown>>,
-  conflict: { field: ManifestField; value: unknown },
-) {
-  const nextValue = updateData[conflict.field.name];
-  if (nextValue !== undefined && nextValue !== conflict.value) {
-    throw new Error(
-      `Upsert on model "${model.name}" cannot change the conflict field "${conflict.field.name}".`,
-    );
-  }
 }
 
 function compileFieldFilter(
@@ -550,16 +468,7 @@ function buildInsertRow(model: ManifestModel, data: Partial<Record<string, unkno
 }
 
 function buildIdentityWhere(model: ManifestModel, row: SqlRow) {
-  const field = identityField(model);
-  const value = row[field.name];
-  if (value === undefined) {
-    throw new Error(
-      `Model "${model.name}" could not resolve the identity field "${field.name}" from the current row.`,
-    );
-  }
-  return {
-    [field.name]: value,
-  } as SqlWhere;
+  return toUniqueLookupWhere(resolveRowIdentityLookup(model, row)) as SqlWhere;
 }
 
 function buildInsertStatement(model: ManifestModel, dialect: SqlDialect, row: SqlRow) {
@@ -581,7 +490,7 @@ function buildUpsertStatement(
   dialect: SqlDialect,
   row: SqlRow,
   updateData: Partial<Record<string, unknown>>,
-  conflictField: ManifestField,
+  conflictFields: ManifestField[],
 ) {
   const state: QueryState = { params: [] };
   const insertFields = Object.values(model.fields).filter((field) => row[field.name] !== undefined);
@@ -590,11 +499,12 @@ function buildUpsertStatement(
     createPlaceholder(dialect, state, encodeValue(field, dialect, row[field.name])),
   );
   const updateEntries = Object.entries(updateData).filter(([, value]) => value !== undefined);
-  const conflictColumn = quoteIdentifier(conflictField.column, dialect);
+  const conflictColumns = conflictFields.map((field) => quoteIdentifier(field.column, dialect));
 
   let sql = `insert into ${quoteIdentifier(model.table, dialect)} (${columns.join(", ")}) values (${values.join(", ")})`;
 
   if (dialect === "mysql") {
+    const noopColumn = conflictColumns[0]!;
     const updateClause = updateEntries.length
       ? updateEntries.map(([fieldName, value]) => {
           const field = model.fields[fieldName];
@@ -604,7 +514,7 @@ function buildUpsertStatement(
           const placeholder = createPlaceholder(dialect, state, encodeValue(field, dialect, value));
           return `${quoteIdentifier(field.column, dialect)} = ${placeholder}`;
         })
-      : [`${conflictColumn} = ${conflictColumn}`];
+      : [`${noopColumn} = ${noopColumn}`];
 
     sql += ` on duplicate key update ${updateClause.join(", ")}`;
 
@@ -615,7 +525,7 @@ function buildUpsertStatement(
   }
 
   if (!updateEntries.length) {
-    sql += ` on conflict (${conflictColumn}) do nothing`;
+    sql += ` on conflict (${conflictColumns.join(", ")}) do nothing`;
     return {
       sql,
       params: state.params,
@@ -631,7 +541,7 @@ function buildUpsertStatement(
     return `${quoteIdentifier(field.column, dialect)} = ${placeholder}`;
   });
 
-  sql += ` on conflict (${conflictColumn}) do update set ${updateClause.join(", ")}`;
+  sql += ` on conflict (${conflictColumns.join(", ")}) do update set ${updateClause.join(", ")}`;
 
   return {
     sql,
@@ -1137,6 +1047,12 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
       return loadOneRow(schema, model, args);
     },
     async findUnique(schema, model, args) {
+      const manifest = getManifest(schema);
+      requireUniqueLookup(
+        manifest.models[model],
+        args.where as Record<string, unknown>,
+        "FindUnique",
+      );
       return loadOneRow(schema, model, args);
     },
     async count(schema, model, args?: CountArgs<TSchema, ModelName<TSchema>>) {
@@ -1153,15 +1069,15 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
     },
     async create(schema, model, args) {
       const manifest = getManifest(schema);
-      identityField(manifest.models[model]);
       const row = buildInsertRow(
         manifest.models[model],
         args.data as Partial<Record<string, unknown>>,
       );
+      const identityWhere = buildIdentityWhere(manifest.models[model], row);
       const statement = buildInsertStatement(manifest.models[model], adapter.dialect, row);
       await adapter.query(statement.sql, statement.params);
       return loadOneRow(schema, model, {
-        where: buildIdentityWhere(manifest.models[model], row),
+        where: identityWhere,
         select: args.select,
       }) as Promise<any>;
     },
@@ -1217,18 +1133,24 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
     async upsert(schema, model, args) {
       const manifest = getManifest(schema);
       const modelManifest = manifest.models[model];
-      const conflict = extractUpsertConflict(modelManifest, args.where as SqlWhere);
-      validateUpsertUpdateData(
+      const lookup = requireUniqueLookup(
+        modelManifest,
+        args.where as Record<string, unknown>,
+        "Upsert",
+      );
+      validateUniqueLookupUpdateData(
         modelManifest,
         args.update as Partial<Record<string, unknown>>,
-        conflict,
+        lookup,
+        "Upsert",
       );
       const row = buildInsertRow(
         modelManifest,
-        mergeUpsertCreateData(
+        mergeUniqueLookupCreateData(
           modelManifest,
           args.create as Partial<Record<string, unknown>>,
-          conflict,
+          lookup,
+          "Upsert",
         ),
       );
       const statement = buildUpsertStatement(
@@ -1236,7 +1158,7 @@ function createSqlDriver<TSchema extends SchemaDefinition<any>>(
         adapter.dialect,
         row,
         args.update as Partial<Record<string, unknown>>,
-        conflict.field,
+        lookup.fields,
       );
 
       await adapter.query(statement.sql, statement.params);

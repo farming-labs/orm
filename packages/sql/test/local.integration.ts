@@ -41,6 +41,7 @@ const schema = defineSchema({
     relations: {
       profile: hasOne("profile", { foreignKey: "userId" }),
       sessions: hasMany("session", { foreignKey: "userId" }),
+      accounts: hasMany("account", { foreignKey: "userId" }),
       organizations: manyToMany("organization", {
         through: "member",
         from: "userId",
@@ -69,6 +70,22 @@ const schema = defineSchema({
     },
     constraints: {
       indexes: [["userId", "expiresAt"]],
+    },
+    relations: {
+      user: belongsTo("user", { foreignKey: "userId" }),
+    },
+  }),
+  account: model({
+    table: "accounts",
+    fields: {
+      id: id(),
+      userId: string().references("user.id").map("user_id"),
+      provider: string(),
+      accountId: string().map("account_id"),
+    },
+    constraints: {
+      unique: [["provider", "accountId"]],
+      indexes: [["userId", "provider"]],
     },
     relations: {
       user: belongsTo("user", { foreignKey: "userId" }),
@@ -213,6 +230,14 @@ async function seedAuthData(orm: RuntimeOrm) {
     },
   });
 
+  await orm.account.create({
+    data: {
+      userId: ada.id,
+      provider: "github",
+      accountId: "gh_ada",
+    },
+  });
+
   const [acme, farmingLabs] = await orm.organization.createMany({
     data: [
       {
@@ -297,6 +322,91 @@ async function assertModelLevelConstraints(orm: RuntimeOrm) {
   });
 
   expect(memberships).toEqual([{ role: "owner" }]);
+}
+
+async function assertCompoundUniqueQueries(orm: RuntimeOrm) {
+  const { ada, grace } = await seedAuthData(orm);
+
+  const existingAccount = await orm.account.findUnique({
+    where: {
+      provider: "github",
+      accountId: "gh_ada",
+    },
+    select: {
+      provider: true,
+      accountId: true,
+      userId: true,
+    },
+  });
+
+  const updatedAccount = await orm.account.upsert({
+    where: {
+      provider: "github",
+      accountId: "gh_ada",
+    },
+    create: {
+      userId: ada.id,
+      provider: "github",
+      accountId: "gh_ada",
+    },
+    update: {
+      userId: grace.id,
+    },
+    select: {
+      provider: true,
+      accountId: true,
+      userId: true,
+    },
+  });
+
+  const createdAccount = await orm.account.upsert({
+    where: {
+      provider: "google",
+      accountId: "google_grace",
+    },
+    create: {
+      userId: grace.id,
+      provider: "google",
+      accountId: "google_grace",
+    },
+    update: {
+      userId: grace.id,
+    },
+    select: {
+      provider: true,
+      accountId: true,
+      userId: true,
+    },
+  });
+
+  const updatedLookup = await orm.account.findUnique({
+    where: {
+      provider: "github",
+      accountId: "gh_ada",
+    },
+    select: {
+      userId: true,
+    },
+  });
+
+  expect(existingAccount).toEqual({
+    provider: "github",
+    accountId: "gh_ada",
+    userId: ada.id,
+  });
+  expect(updatedAccount).toEqual({
+    provider: "github",
+    accountId: "gh_ada",
+    userId: grace.id,
+  });
+  expect(createdAccount).toEqual({
+    provider: "google",
+    accountId: "google_grace",
+    userId: grace.id,
+  });
+  expect(updatedLookup).toEqual({
+    userId: grace.id,
+  });
 }
 
 async function exerciseRuntime(orm: RuntimeOrm) {
@@ -778,6 +888,16 @@ for (const [target, factory] of [
 
       try {
         await assertModelLevelConstraints(orm);
+      } finally {
+        await close();
+      }
+    });
+
+    it("supports compound-unique lookups and upserts against a real local database", async () => {
+      const { orm, close } = await factory();
+
+      try {
+        await assertCompoundUniqueQueries(orm);
       } finally {
         await close();
       }

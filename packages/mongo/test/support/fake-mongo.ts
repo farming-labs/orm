@@ -261,6 +261,7 @@ export function createTestManager() {
     users: [],
     profiles: [],
     sessions: [],
+    accounts: [],
     organizations: [],
     members: [],
   });
@@ -271,6 +272,7 @@ export function createTestCollections(manager: FakeSessionManager) {
     user: new FakeCollection(manager, "users"),
     profile: new FakeCollection(manager, "profiles"),
     session: new FakeCollection(manager, "sessions"),
+    account: new FakeCollection(manager, "accounts"),
     organization: new FakeCollection(manager, "organizations"),
     member: new FakeCollection(manager, "members"),
   };
