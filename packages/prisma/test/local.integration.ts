@@ -512,8 +512,8 @@ for (const [target, factory] of [
             (sum, value) => sum + value,
             0,
           );
-          const organizations = [...(user?.organizations ?? [])].sort((left, right) =>
-            left.name.localeCompare(right.name),
+          const organizations = [...((user?.organizations ?? []) as Array<{ name: string }>)].sort(
+            (left, right) => left.name.localeCompare(right.name),
           );
 
           expect({

@@ -696,8 +696,18 @@ for (const [label, factory] of [
             },
           },
         });
+        const organizations = [...((user?.organizations ?? []) as Array<{ name: string }>)].sort(
+          (left, right) => left.name.localeCompare(right.name),
+        );
+        const sessions = [...((user?.sessions ?? []) as Array<{ token: string }>)].sort(
+          (left, right) => left.token.localeCompare(right.token),
+        );
 
-        expect(user).toEqual({
+        expect({
+          ...user,
+          organizations,
+          sessions,
+        }).toEqual({
           email: "ada@farminglabs.dev",
           profile: {
             bio: "Writes one storage layer for every stack.",
