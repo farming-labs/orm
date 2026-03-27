@@ -378,3 +378,11 @@ article p {
   font-size: 13px !important;
   letter-spacing: 0.04em !important;
 }
+
+.fd-breadcrumb {
+  font-family: var(--app-font-mono), ui-monospace, monospace !important;
+  font-weight: 130 !important;
+  font-size: 10px !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+}
