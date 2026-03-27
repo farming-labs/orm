@@ -270,6 +270,9 @@ const user = await orm.user.findUnique({
 
 ## 6. Verify with local databases
 
+`pnpm test` already runs the real integration matrix. These commands are useful
+when you want to rerun the database-backed suites directly.
+
 ```bash title="terminal"
 pnpm test:local
 pnpm test:local:prisma

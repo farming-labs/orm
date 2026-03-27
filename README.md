@@ -193,7 +193,8 @@ pnpm dev:docs
 pnpm dev:demo
 ```
 
-Real local database checks:
+`pnpm test` already includes the real integration matrix. Use these when you
+want to rerun the database-backed suites directly:
 
 ```bash
 pnpm test:local

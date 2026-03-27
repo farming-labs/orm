@@ -173,6 +173,9 @@ async function findAccount(orm: typeof authOrm, provider: string, accountId: str
 
 ## Local verification
 
+`pnpm test` already includes these real integration suites. Use the commands
+below when you want to rerun the database-backed paths directly.
+
 ```bash title="terminal"
 pnpm test:local
 pnpm test:local:prisma

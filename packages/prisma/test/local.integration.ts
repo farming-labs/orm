@@ -127,8 +127,6 @@ async function createPrismaOrm(target: PrismaTarget, url: string) {
       },
     },
   });
-
-  // This is a real generated PrismaClient instance, not the fake delegate test double.
   await prisma.$connect();
   await prisma.$queryRawUnsafe("SELECT 1");
 
