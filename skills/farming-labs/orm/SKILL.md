@@ -119,7 +119,6 @@ Beta flow:
 
 ```bash
 pnpm release:beta
-pnpm publish:beta
 ```
 
 ## Runtime matrix
