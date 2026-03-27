@@ -59,6 +59,10 @@ That metadata is derived from the driver, not passed in manually through
 `createOrm(...)`. It is frozen read-only runtime metadata, so higher layers can
 inspect it safely without treating it as mutable app state.
 
+The repo also verifies this against real local database-backed runtimes. The
+local SQL and Prisma integration suites assert the same capability metadata on
+`orm.$driver` and again inside real transaction scopes.
+
 The runtime also understands declared model-level compound unique keys. If a
 schema says `account(provider, accountId)` is unique, live drivers can use that
 same shape in `findUnique(...)` and `upsert(...)`.

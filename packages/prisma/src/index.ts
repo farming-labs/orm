@@ -618,7 +618,8 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
         supportsJSON: true,
         supportsDates: true,
         supportsBooleans: true,
-        supportsTransactions: typeof config.client.$transaction === "function",
+        supportsTransactions:
+          state.inTransaction || typeof config.client.$transaction === "function",
         nativeRelationLoading: "partial",
       },
     }),

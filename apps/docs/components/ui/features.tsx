@@ -54,7 +54,7 @@ export function DocsOverviewFeatures({ className }: { className?: string }) {
     <section className={cn("not-prose py-10 md:py-14", className)} aria-label="Product features">
       <div className="@container flex flex-col items-start max-w-3xl px-0">
         <div className="text-left">
-          <p className="text-balance text-[10px] uppercase font-mono tracking-tight text-white/95">
+          <p className="text-balance underline underline-offset-4 decoration-dotted decoration-from-font text-[10px] uppercase font-mono tracking-tight text-white/95">
             Built for how you ship
           </p>
           <p className="mx-auto mt-3 max-w-lg text-pretty text-sm leading-relaxed text-white/55 md:text-[0.9375rem]">

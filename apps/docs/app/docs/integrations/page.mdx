@@ -46,6 +46,9 @@ Those checks are not generator-only. They run the live runtime query layer
 against real local database instances and real client stacks for each supported
 dialect combination.
 
+That same real local matrix now also verifies `orm.$driver.capabilities`,
+including transaction-scoped access in the live SQL and Prisma runtimes.
+
 Use this command to run the whole local matrix:
 
 ```bash title="terminal"

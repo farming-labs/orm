@@ -1068,6 +1068,23 @@ for (const [target, factory] of [
       }
     });
 
+    it("keeps read-only driver capabilities inside a real database transaction", async () => {
+      const { orm, close } = await factory();
+
+      try {
+        await orm.transaction(async (tx) => {
+          expect(tx.$driver).toBe(orm.$driver);
+          expect(tx.$driver.kind).toBe("sql");
+          expect(tx.$driver.capabilities.supportsTransactions).toBe(true);
+          expect(tx.$driver.capabilities.nativeRelationLoading).toBe("partial");
+          expect(Object.isFrozen(tx.$driver)).toBe(true);
+          expect(Object.isFrozen(tx.$driver.capabilities)).toBe(true);
+        });
+      } finally {
+        await close();
+      }
+    });
+
     it("runs the auth-style runtime flow against a real local database", async () => {
       const { orm, close } = await factory();
 

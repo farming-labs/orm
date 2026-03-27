@@ -415,6 +415,27 @@ for (const [target, factory] of [
     );
 
     it(
+      "keeps read-only driver capabilities inside a real Prisma transaction",
+      async () => {
+        const { orm, close } = await factory();
+        try {
+          await orm.transaction(async (tx) => {
+            expect(tx.$driver.kind).toBe("prisma");
+            expect(tx.$driver.client).not.toBe(orm.$driver.client);
+            expect(tx.$driver.capabilities.supportsTransactions).toBe(true);
+            expect(tx.$driver.capabilities.nativeRelationLoading).toBe("partial");
+            expect(tx.$driver.capabilities).toEqual(orm.$driver.capabilities);
+            expect(Object.isFrozen(tx.$driver)).toBe(true);
+            expect(Object.isFrozen(tx.$driver.capabilities)).toBe(true);
+          });
+        } finally {
+          await close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
+
+    it(
       "supports one-to-one and one-to-many reads against a real local database",
       async () => {
         const { orm, close } = await factory();
