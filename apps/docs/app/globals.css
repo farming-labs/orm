@@ -107,7 +107,7 @@ a {
     opacity: 0;
   }
 }
-
+/* 
 #nd-docs-layout {
   position: relative;
   background:
@@ -194,6 +194,9 @@ a {
   color: #e2e8f0;
 }
 
+
+  background: rgba(255, 255, 255, 0.03);
+} */
 .docs-sidebar-footer {
   display: flex;
   flex-wrap: wrap;
@@ -207,5 +210,4 @@ a {
 .docs-sidebar-footer a {
   border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 7px 9px;
-  background: rgba(255, 255, 255, 0.03);
 }
