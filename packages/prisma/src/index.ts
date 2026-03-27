@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import {
+  createDriverHandle,
   createManifest,
   type CountArgs,
   type CreateArgs,
@@ -610,10 +611,17 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
   }
 
   const driver: OrmDriver<TSchema, PrismaDriverHandle> = {
-    handle: {
+    handle: createDriverHandle({
       kind: "prisma",
       client: config.client,
-    },
+      capabilities: {
+        supportsJSON: true,
+        supportsDates: true,
+        supportsBooleans: true,
+        supportsTransactions: typeof config.client.$transaction === "function",
+        nativeRelationLoading: "partial",
+      },
+    }),
     async findMany(schema, model, args) {
       return loadRows(schema, model, args);
     },

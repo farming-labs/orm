@@ -314,6 +314,17 @@ describe("local Drizzle integration", () => {
           expect(runtime.orm.$driver.kind).toBe("drizzle");
           expect(runtime.orm.$driver.dialect).toBe(runtime.dialect);
           expect(runtime.orm.$driver.client).toBe(runtime.driverClient);
+          expect(runtime.orm.$driver.capabilities).toEqual({
+            supportsNumericIds: false,
+            supportsJSON: true,
+            supportsDates: true,
+            supportsBooleans: true,
+            supportsTransactions: true,
+            supportsJoin: false,
+            nativeRelationLoading: "partial",
+          });
+          expect(Object.isFrozen(runtime.orm.$driver)).toBe(true);
+          expect(Object.isFrozen(runtime.orm.$driver.capabilities)).toBe(true);
         } finally {
           await runtime.close();
         }

@@ -158,6 +158,26 @@ describe("runtime contract", () => {
     });
   });
 
+  it("exposes read-only driver capabilities on the ORM instance", () => {
+    const orm = createAuthOrm();
+
+    expect(orm.$driver.capabilities).toEqual({
+      supportsNumericIds: false,
+      supportsJSON: true,
+      supportsDates: true,
+      supportsBooleans: true,
+      supportsTransactions: true,
+      supportsJoin: false,
+      nativeRelationLoading: "none",
+    });
+    expect(Object.isFrozen(orm.$driver)).toBe(true);
+    expect(Object.isFrozen(orm.$driver.capabilities)).toBe(true);
+
+    expect(() => {
+      (orm.$driver as { kind: string }).kind = "mutated";
+    }).toThrow(TypeError);
+  });
+
   it("supports auth-style reads with findOne, findUnique, count, and nested relations", async () => {
     const orm = createAuthOrm();
 

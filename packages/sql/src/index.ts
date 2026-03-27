@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import {
+  createDriverHandle,
   createManifest,
   type CountArgs,
   type CreateArgs,
@@ -855,11 +856,18 @@ function createSqlDriver<
   THandle extends OrmDriverHandle = SqlDriverHandle<SqlAdapterLike>,
 >(adapter: SqlAdapterLike, handle?: THandle): OrmDriver<TSchema, THandle> {
   const resolvedHandle = (handle ??
-    ({
+    createDriverHandle({
       kind: "sql",
       client: adapter,
       dialect: adapter.dialect,
-    } satisfies SqlDriverHandle<SqlAdapterLike>)) as THandle;
+      capabilities: {
+        supportsJSON: true,
+        supportsDates: true,
+        supportsBooleans: true,
+        supportsTransactions: true,
+        nativeRelationLoading: "partial",
+      },
+    })) as THandle;
 
   async function loadRows<
     TModelName extends ModelName<TSchema>,
@@ -1653,11 +1661,18 @@ export function createSqliteDriver<TSchema extends SchemaDefinition<any>>(
 ) {
   return createSqlDriver<TSchema, SqlDriverHandle<SqliteDatabaseLike, "sqlite">>(
     createSqliteAdapter(database),
-    {
+    createDriverHandle({
       kind: "sql",
       client: database,
       dialect: "sqlite",
-    },
+      capabilities: {
+        supportsJSON: true,
+        supportsDates: true,
+        supportsBooleans: true,
+        supportsTransactions: true,
+        nativeRelationLoading: "partial",
+      },
+    }),
   );
 }
 
@@ -1671,22 +1686,36 @@ export function createSqlDriverFromAdapter<
 export function createPgPoolDriver<TSchema extends SchemaDefinition<any>>(pool: PgPoolLike) {
   return createSqlDriver<TSchema, SqlDriverHandle<PgPoolLike, "postgres">>(
     createPgPoolAdapter(pool),
-    {
+    createDriverHandle({
       kind: "sql",
       client: pool,
       dialect: "postgres",
-    },
+      capabilities: {
+        supportsJSON: true,
+        supportsDates: true,
+        supportsBooleans: true,
+        supportsTransactions: true,
+        nativeRelationLoading: "partial",
+      },
+    }),
   );
 }
 
 export function createPgClientDriver<TSchema extends SchemaDefinition<any>>(client: PgClientLike) {
   return createSqlDriver<TSchema, SqlDriverHandle<PgClientLike, "postgres">>(
     createPgTransactionalAdapter(client),
-    {
+    createDriverHandle({
       kind: "sql",
       client,
       dialect: "postgres",
-    },
+      capabilities: {
+        supportsJSON: true,
+        supportsDates: true,
+        supportsBooleans: true,
+        supportsTransactions: true,
+        nativeRelationLoading: "partial",
+      },
+    }),
   );
 }
 
@@ -1699,10 +1728,17 @@ export function createMysqlDriver<TSchema extends SchemaDefinition<any>>(
       : createMysqlTransactionalAdapter(poolOrConnection);
   return createSqlDriver<TSchema, SqlDriverHandle<MysqlPoolLike | MysqlConnectionLike, "mysql">>(
     adapter,
-    {
+    createDriverHandle({
       kind: "sql",
       client: poolOrConnection,
       dialect: "mysql",
-    },
+      capabilities: {
+        supportsJSON: true,
+        supportsDates: true,
+        supportsBooleans: true,
+        supportsTransactions: true,
+        nativeRelationLoading: "partial",
+      },
+    }),
   );
 }

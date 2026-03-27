@@ -6,6 +6,12 @@
   --font-sans: var(--app-font-heading), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--app-font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   --animate-shadanim: shadanim 15s linear infinite;
+  /* shadcn-style surfaces (docs / Features cards) */
+  --color-background: #050505;
+  --color-card: rgba(10, 10, 11, 0.88);
+  --color-card-foreground: #e8edf3;
+  --color-muted: rgba(14, 14, 16, 0.75);
+  --color-muted-foreground: #9aa4b2;
 }
 
 :root {
@@ -362,5 +368,10 @@ a.docs-sidebar-credit-link {
   font-size: 10px !important;
   color: #9aa4b2 !important;
   text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+}
+.card-custom .prose p, .prose li, .prose td, article p {
+  font-weight: 130 !important;
+  font-size: 13px !important;
   letter-spacing: 0.04em !important;
 }

@@ -87,6 +87,17 @@ describe("mongo local integration", () => {
       try {
         expect(orm.$driver.kind).toBe("mongo");
         expect((orm.$driver.client as { db?: unknown }).db).toBe(db);
+        expect(orm.$driver.capabilities).toEqual({
+          supportsNumericIds: false,
+          supportsJSON: true,
+          supportsDates: true,
+          supportsBooleans: true,
+          supportsTransactions: true,
+          supportsJoin: false,
+          nativeRelationLoading: "none",
+        });
+        expect(Object.isFrozen(orm.$driver)).toBe(true);
+        expect(Object.isFrozen(orm.$driver.capabilities)).toBe(true);
       } finally {
         await close();
       }

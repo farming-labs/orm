@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import {
+  createDriverHandle,
   createManifest,
   type CountArgs,
   type CreateArgs,
@@ -708,14 +709,20 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
   }
 
   const driver: OrmDriver<TSchema, MongooseDriverHandle<TSchema>> = {
-    handle: {
+    handle: createDriverHandle({
       kind: "mongoose",
       client: {
         models: config.models,
         connection: config.connection,
         startSession: config.startSession,
       },
-    },
+      capabilities: {
+        supportsJSON: true,
+        supportsDates: true,
+        supportsBooleans: true,
+        supportsTransactions: Boolean(config.startSession ?? config.connection?.startSession),
+      },
+    }),
     async findMany(schema, model, args) {
       return loadRows(schema, model, args);
     },

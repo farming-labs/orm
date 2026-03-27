@@ -379,6 +379,17 @@ for (const [target, factory] of [
         try {
           expect(orm.$driver.kind).toBe("prisma");
           expect(orm.$driver.client).toBe(prisma);
+          expect(orm.$driver.capabilities).toEqual({
+            supportsNumericIds: false,
+            supportsJSON: true,
+            supportsDates: true,
+            supportsBooleans: true,
+            supportsTransactions: true,
+            supportsJoin: false,
+            nativeRelationLoading: "partial",
+          });
+          expect(Object.isFrozen(orm.$driver)).toBe(true);
+          expect(Object.isFrozen(orm.$driver.capabilities)).toBe(true);
         } finally {
           await close();
         }

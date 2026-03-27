@@ -223,15 +223,59 @@ export type UpsertArgs<
   select?: TSelect;
 };
 
+export type NativeRelationLoading = "none" | "partial" | "full";
+
+export type OrmDriverCapabilities = Readonly<{
+  supportsNumericIds: boolean;
+  supportsJSON: boolean;
+  supportsDates: boolean;
+  supportsBooleans: boolean;
+  supportsTransactions: boolean;
+  supportsJoin: boolean;
+  nativeRelationLoading: NativeRelationLoading;
+}>;
+
+export const defaultDriverCapabilities: OrmDriverCapabilities = Object.freeze({
+  supportsNumericIds: false,
+  supportsJSON: false,
+  supportsDates: false,
+  supportsBooleans: false,
+  supportsTransactions: false,
+  supportsJoin: false,
+  nativeRelationLoading: "none",
+});
+
 export type OrmDriverHandle<
   TKind extends string = string,
   TClient = unknown,
   TDialect extends string | undefined = string | undefined,
-> = {
+> = Readonly<{
   kind: TKind;
   client: TClient;
   dialect?: TDialect;
-};
+  capabilities: OrmDriverCapabilities;
+}>;
+
+export function createDriverHandle<
+  TKind extends string,
+  TClient,
+  TDialect extends string | undefined = string | undefined,
+>(input: {
+  kind: TKind;
+  client: TClient;
+  dialect?: TDialect;
+  capabilities?: Partial<OrmDriverCapabilities>;
+}): OrmDriverHandle<TKind, TClient, TDialect> {
+  return Object.freeze({
+    kind: input.kind,
+    client: input.client,
+    dialect: input.dialect,
+    capabilities: Object.freeze({
+      ...defaultDriverCapabilities,
+      ...input.capabilities,
+    }),
+  });
+}
 
 export interface OrmDriver<
   TSchema extends SchemaDefinition<any>,
@@ -366,7 +410,7 @@ export type OrmClient<
 > = {
   [K in ModelName<TSchema>]: ModelClient<TSchema, K>;
 } & {
-  $driver: THandle;
+  readonly $driver: THandle;
   transaction<TResult>(
     run: (tx: OrmClient<TSchema, THandle>) => Promise<TResult>,
   ): Promise<TResult>;
@@ -435,7 +479,12 @@ export function createOrm<
   }
 
   const orm = models as OrmClient<TSchema, THandle>;
-  orm.$driver = driver.handle;
+  Object.defineProperty(orm, "$driver", {
+    value: driver.handle,
+    writable: false,
+    configurable: false,
+    enumerable: true,
+  });
   orm.transaction = (run) =>
     driver.transaction(schema, async (txDriver) => {
       const tx = createOrm({

@@ -178,6 +178,17 @@ describe("mongoose local integration", () => {
       try {
         expect(orm.$driver.kind).toBe("mongoose");
         expect((orm.$driver.client as { connection?: unknown }).connection).toBe(connection);
+        expect(orm.$driver.capabilities).toEqual({
+          supportsNumericIds: false,
+          supportsJSON: true,
+          supportsDates: true,
+          supportsBooleans: true,
+          supportsTransactions: true,
+          supportsJoin: false,
+          nativeRelationLoading: "none",
+        });
+        expect(Object.isFrozen(orm.$driver)).toBe(true);
+        expect(Object.isFrozen(orm.$driver.capabilities)).toBe(true);
       } finally {
         await close();
       }

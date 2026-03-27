@@ -120,6 +120,10 @@ const user = await orm.user.findOne({
     },
   },
 });
+
+orm.$driver.kind; // "sql"
+orm.$driver.capabilities.supportsTransactions; // true
+orm.$driver.capabilities.nativeRelationLoading; // "partial"
 ```
 
 ## Kysely runtime example

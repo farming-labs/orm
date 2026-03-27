@@ -1,4 +1,5 @@
 import {
+  createDriverHandle,
   createManifest,
   type OrmDriver,
   type OrmDriverHandle,
@@ -330,7 +331,7 @@ function adaptCollection(collection: MongoCollectionLike): MongooseModelLike {
 export function createMongoDriver<TSchema extends SchemaDefinition<any>>(
   config: MongoDriverConfig<TSchema>,
 ): OrmDriver<TSchema, MongoDriverHandle<TSchema>> {
-  const handle: MongoDriverHandle<TSchema> = {
+  const handle: MongoDriverHandle<TSchema> = createDriverHandle({
     kind: "mongo",
     client: {
       collections: config.collections,
@@ -338,7 +339,13 @@ export function createMongoDriver<TSchema extends SchemaDefinition<any>>(
       client: config.client,
       startSession: config.startSession,
     },
-  };
+    capabilities: {
+      supportsJSON: true,
+      supportsDates: true,
+      supportsBooleans: true,
+      supportsTransactions: Boolean(config.startSession ?? config.client?.startSession),
+    },
+  });
   const delegateCache = new WeakMap<object, OrmDriver<TSchema, any>>();
 
   function wrapDelegate(

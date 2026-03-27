@@ -1052,6 +1052,17 @@ for (const [target, factory] of [
         expect(orm.$driver.kind).toBe("sql");
         expect(orm.$driver.dialect).toBe(dialect);
         expect(orm.$driver.client).toBe(driverClient);
+        expect(orm.$driver.capabilities).toEqual({
+          supportsNumericIds: false,
+          supportsJSON: true,
+          supportsDates: true,
+          supportsBooleans: true,
+          supportsTransactions: true,
+          supportsJoin: false,
+          nativeRelationLoading: "partial",
+        });
+        expect(Object.isFrozen(orm.$driver)).toBe(true);
+        expect(Object.isFrozen(orm.$driver.capabilities)).toBe(true);
       } finally {
         await close();
       }

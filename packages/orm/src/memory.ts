@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { createDriverHandle } from "./client";
 import type {
   CountArgs,
   CreateArgs,
@@ -299,10 +300,16 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
   let driver!: OrmDriver<TSchema, OrmDriverHandle<"memory", MemoryStore<TSchema>>>;
 
   driver = {
-    handle: {
+    handle: createDriverHandle({
       kind: "memory",
       client: state,
-    },
+      capabilities: {
+        supportsJSON: true,
+        supportsDates: true,
+        supportsBooleans: true,
+        supportsTransactions: true,
+      },
+    }),
     async findMany(
       schema: TSchema,
       model: ModelName<TSchema>,

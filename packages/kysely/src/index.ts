@@ -1,4 +1,9 @@
-import type { OrmDriver, OrmDriverHandle, SchemaDefinition } from "@farming-labs/orm";
+import {
+  createDriverHandle,
+  type OrmDriver,
+  type OrmDriverHandle,
+  type SchemaDefinition,
+} from "@farming-labs/orm";
 import { createSqlDriverFromAdapter, type SqlAdapterLike } from "@farming-labs/orm-sql";
 import { CompiledQuery, type Compilable, type QueryResult } from "kysely";
 
@@ -48,10 +53,17 @@ export function createKyselyDriver<TSchema extends SchemaDefinition<any>>(
 ): OrmDriver<TSchema, KyselyDriverHandle> {
   return createSqlDriverFromAdapter<TSchema, KyselyDriverHandle>(
     createKyselyAdapter(config.db, config.dialect),
-    {
+    createDriverHandle({
       kind: "kysely",
       client: config.db,
       dialect: config.dialect,
-    },
+      capabilities: {
+        supportsJSON: true,
+        supportsDates: true,
+        supportsBooleans: true,
+        supportsTransactions: true,
+        nativeRelationLoading: "partial",
+      },
+    }),
   );
 }

@@ -1,4 +1,9 @@
-import type { OrmDriver, OrmDriverHandle, SchemaDefinition } from "@farming-labs/orm";
+import {
+  createDriverHandle,
+  type OrmDriver,
+  type OrmDriverHandle,
+  type SchemaDefinition,
+} from "@farming-labs/orm";
 import {
   createMysqlDriver,
   createPgClientDriver,
@@ -161,11 +166,18 @@ export function createDrizzleDriver<TSchema extends SchemaDefinition<any>>(
   config: DrizzleDriverConfig<TSchema>,
 ): OrmDriver<TSchema, DrizzleDriverHandle<DrizzleDatabaseLike | unknown>> {
   const runtimeClient = resolveRuntimeClient(config);
-  const handle: DrizzleDriverHandle<DrizzleDatabaseLike | unknown> = {
+  const handle: DrizzleDriverHandle<DrizzleDatabaseLike | unknown> = createDriverHandle({
     kind: "drizzle",
     client: config.db ?? config.client ?? runtimeClient,
     dialect: config.dialect,
-  };
+    capabilities: {
+      supportsJSON: true,
+      supportsDates: true,
+      supportsBooleans: true,
+      supportsTransactions: true,
+      nativeRelationLoading: "partial",
+    },
+  });
 
   switch (config.dialect) {
     case "postgres":
