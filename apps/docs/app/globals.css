@@ -370,7 +370,10 @@ a.docs-sidebar-credit-link {
   text-transform: uppercase !important;
   letter-spacing: 0.04em !important;
 }
-.card-custom .prose p, .prose li, .prose td, article p {
+.card-custom .prose p,
+.prose li,
+.prose td,
+article p {
   font-weight: 130 !important;
   font-size: 13px !important;
   letter-spacing: 0.04em !important;

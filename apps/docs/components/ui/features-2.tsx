@@ -44,18 +44,15 @@ function CardDecorator({ children }: { children: ReactNode }) {
 
 export function DocsOverviewFeatures({ className }: { className?: string }) {
   return (
-    <section
-      className={cn("not-prose py-10 md:py-14", className)}
-      aria-label="Product features"
-    >
+    <section className={cn("not-prose py-10 md:py-14", className)} aria-label="Product features">
       <div className="@container flex flex-col items-start max-w-3xl px-0">
         <div className="text-left">
           <p className="text-balance text-[10px] uppercase font-mono tracking-tight text-white/95">
             Built for how you ship
           </p>
           <p className="mx-auto mt-3 max-w-lg text-pretty text-sm leading-relaxed text-white/55 md:text-[0.9375rem]">
-            One schema, one query API, and generators that match each app’s stack—without forking your data
-            model.
+            One schema, one query API, and generators that match each app’s stack—without forking
+            your data model.
           </p>
         </div>
 
@@ -72,14 +69,21 @@ export function DocsOverviewFeatures({ className }: { className?: string }) {
               <Card className="card-custom h-full border-white/8 bg-muted/80 transition-[border-color,background-color] duration-200 group-hover:border-white/15 group-hover:bg-muted">
                 <CardHeader className="pb-2">
                   <CardDecorator>
-                    <Icon className="size-5 text-[#d9f3ff] md:size-6" strokeWidth={1.5} aria-hidden />
+                    <Icon
+                      className="size-5 text-[#d9f3ff] md:size-6"
+                      strokeWidth={1.5}
+                      aria-hidden
+                    />
                   </CardDecorator>
-                  <p className="mt-5 text-left uppercase font-mono text-[10px] text-white/90 md:mt-6">{title}</p>
+                  <p className="mt-5 text-left uppercase font-mono text-[10px] text-white/90 md:mt-6">
+                    {title}
+                  </p>
                 </CardHeader>
                 <CardContent className="">
                   <p className="text-left text-[8px] text-white/50">{description}</p>
                   <p className="mt-4 text-left font-mono text-[8px] uppercase tracking-wider text-[#d9f3ff] opacity-0 transition-opacity duration-200 group-hover:opacity-90">
-                    View docs <ArrowUpRight className="mb-1 inline-flex justify-center items-center size-4" />
+                    View docs{" "}
+                    <ArrowUpRight className="mb-1 inline-flex justify-center items-center size-4" />
                   </p>
                 </CardContent>
               </Card>

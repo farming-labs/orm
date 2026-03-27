@@ -197,8 +197,7 @@ export default defineDocs({
           backgroundImage:
             "repeating-linear-gradient(-45deg, color-mix(in srgb, var(--color-fd-border) 7%, transparent), color-mix(in srgb, var(--color-fd-foreground) 5%, transparent) 1px, transparent 1px, transparent 6px)",
         }}
-      >
-      </div>
+      ></div>
     ),
 
     footer: (
