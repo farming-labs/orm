@@ -66,7 +66,9 @@ export default defineDocs({
     title: (
       <div className="flex items-center gap-3 font-medium tracking-tight text-white">
         <div className="flex -mb-1 items-center gap-2">
-          <span className="font-mono text-[11px] uppercase text-white/55"><code>@farming-labs/orm</code></span>
+          <span className="font-mono text-[11px] uppercase text-white/55">
+            <code>@farming-labs/orm</code>
+          </span>
         </div>
       </div>
     ),
@@ -204,6 +206,5 @@ export default defineDocs({
         <a href="/docs/use-cases">Use cases</a>
       </div>
     ),
-
   },
 });

@@ -1,4 +1,3 @@
-
 import type { DocsFeedbackData } from "@farming-labs/docs";
 
 export const DOCS_FEEDBACK_ENDPOINT = "/api/feedback";
@@ -26,4 +25,4 @@ export async function submitDocsFeedback(data: DocsFeedbackData) {
 
     throw new Error(`Failed to submit docs feedback (${response.status})${details}`);
   }
-}  
+}
