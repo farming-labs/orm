@@ -224,3 +224,32 @@ Run it with:
 ```bash
 pnpm test:local:sql
 ```
+
+## Helpful references
+
+<HoverLink
+  href="https://node-postgres.com/features/pooling"
+  title="node-postgres pooling"
+  description="Learn how pg pools connections and transactions, which maps directly to the PostgreSQL path used by the Farming ORM SQL runtime."
+  linkLabel="Open pg docs"
+>
+  PostgreSQL driver docs
+</HoverLink>
+
+<HoverLink
+  href="https://sidorares.github.io/node-mysql2/docs"
+  title="mysql2 documentation"
+  description="Review mysql2 connection and pool behavior for the MySQL runtime path that powers Farming ORM's direct SQL driver."
+  linkLabel="Open mysql2 docs"
+>
+  MySQL driver docs
+</HoverLink>
+
+<HoverLink
+  href="https://nodejs.org/api/sqlite.html"
+  title="Node.js SQLite API"
+  description="See the built-in Node.js SQLite API used by the local SQLite test and runtime path in the direct SQL driver."
+  linkLabel="Open SQLite docs"
+>
+  SQLite runtime docs
+</HoverLink>
