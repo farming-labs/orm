@@ -14,7 +14,7 @@ import {
   type SqliteDatabase,
   type SqliteStatement,
 } from "kysely";
-import { createOrm, renderSafeSql } from "@farming-labs/orm";
+import { createOrm, detectDatabaseRuntime, renderSafeSql } from "@farming-labs/orm";
 import { createKyselyDriver, type KyselyDatabaseLike, type KyselyDialect } from "../src";
 import {
   assertBelongsToAndManyToManyQueries,
@@ -377,6 +377,12 @@ describe("local Kysely integration", () => {
           expect(runtime.orm.$driver.kind).toBe("kysely");
           expect(runtime.orm.$driver.dialect).toBe(runtime.dialect);
           expect(runtime.orm.$driver.client).toBe(runtime.driverClient);
+          expect(detectDatabaseRuntime(runtime.driverClient)).toEqual({
+            kind: "kysely",
+            client: runtime.driverClient,
+            dialect: runtime.dialect,
+            source: "db",
+          });
           expect(runtime.orm.$driver.capabilities).toEqual({
             supportsNumericIds: false,
             supportsJSON: true,

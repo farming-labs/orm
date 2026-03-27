@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MongoClient } from "mongodb";
-import { createOrm } from "@farming-labs/orm";
+import { createOrm, detectDatabaseRuntime } from "@farming-labs/orm";
 import { createMongoDriver } from "../src";
 import type { RuntimeOrm } from "../../mongoose/test/support/auth";
 import {
@@ -87,6 +87,11 @@ describe("mongo local integration", () => {
       try {
         expect(orm.$driver.kind).toBe("mongo");
         expect((orm.$driver.client as { db?: unknown }).db).toBe(db);
+        expect(detectDatabaseRuntime(db)).toEqual({
+          kind: "mongo",
+          client: db,
+          source: "db",
+        });
         expect(orm.$driver.capabilities).toEqual({
           supportsNumericIds: false,
           supportsJSON: true,

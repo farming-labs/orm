@@ -8,7 +8,7 @@ import { drizzle as drizzleSqlite } from "drizzle-orm/sqlite-proxy";
 import { describe, expect, it } from "vitest";
 import mysql from "mysql2/promise";
 import { Pool } from "pg";
-import { createOrm, renderSafeSql } from "@farming-labs/orm";
+import { createOrm, detectDatabaseRuntime, renderSafeSql } from "@farming-labs/orm";
 import { createDrizzleDriver, type DrizzleDialect } from "../src";
 import {
   assertBelongsToAndManyToManyQueries,
@@ -314,6 +314,12 @@ describe("local Drizzle integration", () => {
           expect(runtime.orm.$driver.kind).toBe("drizzle");
           expect(runtime.orm.$driver.dialect).toBe(runtime.dialect);
           expect(runtime.orm.$driver.client).toBe(runtime.driverClient);
+          expect(detectDatabaseRuntime(runtime.driverClient)).toEqual({
+            kind: "drizzle",
+            client: runtime.driverClient,
+            dialect: runtime.dialect,
+            source: "db",
+          });
           expect(runtime.orm.$driver.capabilities).toEqual({
             supportsNumericIds: false,
             supportsJSON: true,

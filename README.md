@@ -70,7 +70,16 @@ layer while the app keeps its own database stack.
 ## Quick example
 
 ```ts
-import { belongsTo, createOrm, defineSchema, hasMany, id, model, string } from "@farming-labs/orm";
+import {
+  belongsTo,
+  createOrm,
+  defineSchema,
+  detectDatabaseRuntime,
+  hasMany,
+  id,
+  model,
+  string,
+} from "@farming-labs/orm";
 import { createPgPoolDriver } from "@farming-labs/orm-sql";
 import { Pool } from "pg";
 
@@ -181,6 +190,22 @@ export default defineConfig({
 farm-orm generate prisma
 farm-orm generate drizzle
 farm-orm generate sql
+```
+
+You can also inspect a raw client before building a driver:
+
+```ts
+import { detectDatabaseRuntime } from "@farming-labs/orm";
+import { Pool } from "pg";
+
+const detected = detectDatabaseRuntime(
+  new Pool({
+    connectionString: process.env.DATABASE_URL,
+  }),
+);
+
+detected?.kind; // "sql"
+detected?.dialect; // "postgres"
 ```
 
 ## Local development

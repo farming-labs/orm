@@ -4,6 +4,7 @@ import {
   boolean,
   createMemoryDriver,
   createOrm,
+  detectDatabaseRuntime,
   datetime,
   defineSchema,
   hasMany,
@@ -176,6 +177,14 @@ describe("runtime contract", () => {
     expect(() => {
       (orm.$driver as { kind: string }).kind = "mutated";
     }).toThrow(TypeError);
+  });
+
+  it("returns null when runtime detection receives an unsupported client", () => {
+    const orm = createAuthOrm();
+
+    expect(detectDatabaseRuntime(orm.$driver.client)).toBe(null);
+    expect(detectDatabaseRuntime({})).toBe(null);
+    expect(detectDatabaseRuntime(null)).toBe(null);
   });
 
   it("supports auth-style reads with findOne, findUnique, count, and nested relations", async () => {
