@@ -1,6 +1,6 @@
 {
   "name": "@farming-labs/orm-cli",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "bin": {
     "farm-orm": "./dist/bin.js"
   },
