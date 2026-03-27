@@ -142,6 +142,10 @@ create table if not exists "users" (
 );
 ```
 
+If you want that SQL output as a string instead of writing a file, use
+`renderSafeSql(...)` from `@farming-labs/orm`. The CLI page includes the string
+render example: [CLI generation](/docs/cli#render-as-a-string).
+
 ## How this fits into PostgreSQL, MySQL, and SQLite workflows
 
 ### PostgreSQL

@@ -192,6 +192,10 @@ the Prisma output looks like:
 email String @unique @map("email_address")
 ```
 
+If you want the Prisma schema as a string instead of writing a file, use
+`renderPrismaSchema(...)` from `@farming-labs/orm`. The CLI page has a full
+example: [CLI generation](/docs/cli#render-as-a-string).
+
 For relations, the generator covers the direct cases cleanly:
 
 - `belongsTo(...)` renders the owning relation field with `@relation(...)`

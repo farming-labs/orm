@@ -111,6 +111,43 @@ That makes it useful for:
 - generator drift checks
 - confirming committed artifacts are still current
 
+## Render as a string
+
+If you want the generated output in memory instead of writing it to disk, use
+the render helpers from `@farming-labs/orm` directly:
+
+```ts
+import { renderDrizzleSchema, renderPrismaSchema, renderSafeSql } from "@farming-labs/orm";
+
+const prismaSchema = renderPrismaSchema(authSchema, {
+  provider: "postgresql",
+});
+
+const drizzleSchema = renderDrizzleSchema(authSchema, {
+  dialect: "pg",
+});
+
+const sqlSchema = renderSafeSql(authSchema, {
+  dialect: "postgres",
+});
+```
+
+Those helpers return strings:
+
+- `renderPrismaSchema(...)` -> `schema.prisma` contents
+- `renderDrizzleSchema(...)` -> generated Drizzle TypeScript source
+- `renderSafeSql(...)` -> generated SQL DDL
+
+This is useful when you want to:
+
+- inspect generated output in tests
+- embed generated schema text in another tool
+- preview generated content without writing a file
+
+If you are using multiple schemas through the CLI config, the CLI merges them
+before writing files. The public string helpers work directly on a schema
+object, so multi-schema rendering still needs a merged schema first.
+
 ## Prisma block mode vs replace mode
 
 ### `mode: "replace"`

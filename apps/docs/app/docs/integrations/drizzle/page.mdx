@@ -138,6 +138,10 @@ export const user = pgTable("users", {
 });
 ```
 
+If you want the generated Drizzle file as a string instead of writing it to
+disk, use `renderDrizzleSchema(...)` from `@farming-labs/orm`. The CLI page has
+the in-memory example: [CLI generation](/docs/cli#render-as-a-string).
+
 For direct relations, the generator also emits `relations(...)` helpers for:
 
 - `belongsTo(...)`
