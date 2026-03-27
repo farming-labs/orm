@@ -73,17 +73,18 @@ a {
 
 /* Home hero: diagonal stripes in side gutters (explicit rgba — reads on #050507) */
 .home-hero-gutter-pattern {
-  background-image: repeating-linear-gradient(-45deg,
-      rgba(255, 255, 255, 0.005) 0,
-      rgba(255, 255, 255, 0.005) 1px,
-      rgba(255, 255, 255, 0.1) 1px,
-      rgba(255, 255, 255, 0.1) 2px,
-      transparent 2px,
-      transparent 7px);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.005) 0,
+    rgba(255, 255, 255, 0.005) 1px,
+    rgba(255, 255, 255, 0.1) 1px,
+    rgba(255, 255, 255, 0.1) 2px,
+    transparent 2px,
+    transparent 7px
+  );
 }
 
 @keyframes home-cli-shimmer {
-
   0%,
   100% {
     background-position: 100% 0;
@@ -99,7 +100,6 @@ a {
 }
 
 @keyframes home-cli-caret-blink {
-
   0%,
   49% {
     opacity: 1;
@@ -250,7 +250,7 @@ a.docs-sidebar-credit-link {
 }
 
 #nd-docs-layout h1,
-#nd-docs-layout h1>a {
+#nd-docs-layout h1 > a {
   font-family: var(--app-font-mono), ui-monospace, SFMono-Regular, Menlo, monospace !important;
   font-size: 1.5rem !important;
   font-weight: 180 !important;
@@ -270,8 +270,7 @@ a.docs-sidebar-credit-link {
   text-decoration-style: dotted !important;
   text-decoration-skip-ink: none !important;
   text-decoration-skip: none !important;
-  transition:
-    text-decoration 0.25s ease-out !important;
+  transition: text-decoration 0.25s ease-out !important;
 }
 
 /* #nd-docs-layout [class*="rounded-"],
@@ -302,7 +301,8 @@ a.docs-sidebar-credit-link {
   text-transform: uppercase !important;
   letter-spacing: 0.04em !important;
 } */
-.fd-page-action-btn , .fd-feedback-question {
+.fd-page-action-btn,
+.fd-feedback-question {
   box-shadow: none !important;
   font-family: var(--app-font-mono), ui-monospace, monospace !important;
   font-weight: 150 !important;
