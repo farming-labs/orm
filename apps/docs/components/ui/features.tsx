@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowUpRight, Braces, Code2, Terminal } from "lucide-react";
+import { ArrowUpRight, Braces, Code2, Terminal, User } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +25,13 @@ const features = [
     description:
       "Swap memory, Prisma, Drizzle, SQL pools, or Mongo without rewriting call sites—the same typed surface everywhere.",
     href: "/docs/runtime",
+  },
+  {
+    icon: User,
+    title: "Who it's for",
+    description:
+      "Auth and billing libraries, internal platforms, and any kit that needs one schema story across many ORMs.",
+    href: "/docs/use-cases",
   },
 ] as const;
 
