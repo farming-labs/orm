@@ -226,8 +226,3 @@ pnpm --filter demo demo -- mongoose
 ```bash
 pnpm release:latest
 ```
-
-```bash
-pnpm release:beta
-pnpm publish:beta
-```
