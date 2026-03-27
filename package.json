@@ -52,6 +52,7 @@
   "pnpm": {
     "overrides": {
       "picomatch": "^4.0.4",
+      "path-to-regexp": "^8.4.0",
       "@prisma/config>effect": "^3.20.0"
     }
   }
