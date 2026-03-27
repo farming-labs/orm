@@ -89,7 +89,7 @@ export default defineDocs({
   },
   breadcrumb: { enabled: true },
   pageActions: {
-    position: "above-title",
+    // position: "above-title",
     alignment: "right",
     copyMarkdown: { enabled: true },
     openDocs: {
