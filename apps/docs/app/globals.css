@@ -220,7 +220,7 @@ a {
   text-transform: uppercase !important;
   letter-spacing: 0.04em !important;
 }
-.docs-sidebar-footer  a:hover {
+.docs-sidebar-footer a:hover {
   border: 1px solid rgba(255, 255, 255, 0.12);
   transition: border 0.3s ease-in-out;
 }

@@ -52,7 +52,7 @@ That keeps package composition explicit and prevents silent overwrites.
 
 ## Core commands
 
-```bash
+```bash title="terminal"
 farm-orm generate prisma
 farm-orm generate drizzle
 farm-orm generate sql
@@ -67,7 +67,7 @@ farm-orm check sql
 
 ### Prisma
 
-```bash
+```bash title="terminal"
 farm-orm generate prisma
 ```
 
@@ -81,7 +81,7 @@ Supported options:
 
 ### Drizzle
 
-```bash
+```bash title="terminal"
 farm-orm generate drizzle
 ```
 
@@ -92,7 +92,7 @@ Supported options:
 
 ### SQL
 
-```bash
+```bash title="terminal"
 farm-orm generate sql
 ```
 
@@ -246,20 +246,20 @@ create table if not exists "users" (
 
 The repo’s package release flow is also `bumpp`-driven now:
 
-```bash
+```bash title="terminal"
 pnpm release:latest
 ```
 
 For prereleases:
 
-```bash
+```bash title="terminal"
 pnpm release:beta
 pnpm publish:beta
 ```
 
 Useful safety commands:
 
-```bash
+```bash title="terminal"
 pnpm publish:latest:dry-run
 pnpm publish:beta:dry-run
 ```

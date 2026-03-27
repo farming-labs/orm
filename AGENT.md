@@ -1,6 +1,6 @@
 # AGENT
 
-This repository is a TypeScript monorepo for Farming Labs ORM.
+This repository is a TypeScript monorepo for @farming-labs/docs
 
 ## What this repo contains
 

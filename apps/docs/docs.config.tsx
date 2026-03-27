@@ -81,7 +81,7 @@ export default defineDocs({
   metadata: {
     titleTemplate: "%s - Farming Labs ORM",
     description:
-      "Unified schema, generator-first tooling, and pixel-border documentation for Farming Labs ORM.",
+      "Unified schema, generator-first tooling, and pixel-border documentation for @farming-labs/docs",
   },
   feedback: {
     enabled: true,
@@ -188,15 +188,18 @@ export default defineDocs({
     building: icon(<Building2 strokeWidth={1.5} />),
   },
   sidebar: {
-    // banner: (
-    // <div className="docs-sidebar-banner">
-    //   <strong>Source of truth</strong>
-    //   <p>
-    //     Define the schema once in <code>@farming-labs/orm</code>, then let generation and docs
-    //     orbit the same contract.
-    //   </p>
-    // </div>
-    // ),
+    banner: (
+      <div
+        className="-mx-4 -my-2 -mb-4 flex flex-col gap-1 font-mono uppercase"
+        style={{
+          padding: "9px 16px",
+          fontSize: "12px",
+          backgroundImage:
+            "repeating-linear-gradient(-45deg, color-mix(in srgb, var(--color-fd-border) 7%, transparent), color-mix(in srgb, var(--color-fd-foreground) 5%, transparent) 1px, transparent 1px, transparent 6px)",
+        }}
+      >
+      </div>
+    ),
 
     footer: (
       <div
