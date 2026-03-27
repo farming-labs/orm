@@ -46,7 +46,8 @@ repo-specific knowledge about the unified ORM API.
 
 3. Prefer real integration coverage when backend behavior changes.
    If runtime semantics change, add or update the relevant
-   `local.integration.ts` suite, not only the fast unit tests.
+   `local.integration.ts` suite. SQL, Prisma, Drizzle, Kysely, MongoDB, and
+   Mongoose no longer keep separate fake runtime test layers.
 
 4. Keep docs aligned with shipped behavior.
    If runtime support, query semantics, or release flow changes, update
@@ -69,7 +70,8 @@ pnpm typecheck
 pnpm test
 ```
 
-When runtime or backend-specific code changes, also run:
+`pnpm test` already includes the real backend matrix. Use these when you want
+to rerun specific local suites:
 
 ```bash
 pnpm test:local
@@ -88,7 +90,6 @@ pnpm test:local:prisma
 Use the package-local test files to find coverage:
 
 - `packages/*/test/local.integration.ts`
-- `packages/sql/test/runtime.test.ts`
 - `packages/orm/test/core.test.ts`
 - `packages/orm/test/runtime.test.ts`
 
