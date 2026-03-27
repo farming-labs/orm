@@ -113,7 +113,6 @@ Current release flow:
 
 ```bash
 pnpm release:latest
-pnpm publish:latest
 ```
 
 Beta flow:

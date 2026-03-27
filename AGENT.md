@@ -62,7 +62,6 @@ pnpm test:local:prisma
 
 ```bash
 pnpm release:latest
-pnpm publish:latest
 ```
 
 Beta:
