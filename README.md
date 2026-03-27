@@ -70,7 +70,16 @@ layer while the app keeps its own database stack.
 ## Quick example
 
 ```ts
-import { belongsTo, createOrm, defineSchema, hasMany, id, model, string } from "@farming-labs/orm";
+import {
+  belongsTo,
+  createOrm,
+  defineSchema,
+  detectDatabaseRuntime,
+  hasMany,
+  id,
+  model,
+  string,
+} from "@farming-labs/orm";
 import { createPgPoolDriver } from "@farming-labs/orm-sql";
 import { Pool } from "pg";
 
@@ -175,6 +184,10 @@ export default defineConfig({
     },
   },
 });
+
+const detected = detectDatabaseRuntime(orm.$driver.client);
+detected?.kind; // "sql"
+detected?.dialect; // "postgres"
 ```
 
 ```bash

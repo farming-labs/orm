@@ -6,7 +6,7 @@ import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 import mysql from "mysql2/promise";
 import { Pool } from "pg";
-import { createOrm } from "@farming-labs/orm";
+import { createOrm, detectDatabaseRuntime } from "@farming-labs/orm";
 import { createPrismaDriver } from "../src";
 import {
   assertBelongsToAndManyToManyQueries,
@@ -377,6 +377,12 @@ for (const [target, factory] of [
         try {
           expect(orm.$driver.kind).toBe("prisma");
           expect(orm.$driver.client).toBe(prisma);
+          expect(detectDatabaseRuntime(prisma)).toEqual({
+            kind: "prisma",
+            client: prisma,
+            dialect: target === "postgresql" ? "postgres" : target,
+            source: "client",
+          });
           expect(orm.$driver.capabilities).toEqual({
             supportsNumericIds: false,
             supportsJSON: true,

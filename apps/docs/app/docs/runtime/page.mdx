@@ -63,6 +63,20 @@ The repo also verifies this against real local database-backed runtimes. The
 local SQL and Prisma integration suites assert the same capability metadata on
 `orm.$driver` and again inside real transaction scopes.
 
+If you need to inspect a raw client before building a driver, the core package
+also exposes `detectDatabaseRuntime(...)`:
+
+```ts title="detect-runtime.ts"
+import { detectDatabaseRuntime } from "@farming-labs/orm";
+
+const detected = detectDatabaseRuntime(prisma);
+
+detected?.kind; // "prisma"
+detected?.dialect; // "postgres" | "mysql" | "sqlite" when detectable
+detected?.source; // "client" | "db" | "connection" | "pool" | "database"
+detected?.client; // the same instance you passed in
+```
+
 The runtime also understands declared model-level compound unique keys. If a
 schema says `account(provider, accountId)` is unique, live drivers can use that
 same shape in `findUnique(...)` and `upsert(...)`.

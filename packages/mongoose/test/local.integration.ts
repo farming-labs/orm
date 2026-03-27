@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import mongoose from "mongoose";
-import { createOrm } from "@farming-labs/orm";
+import { createOrm, detectDatabaseRuntime } from "@farming-labs/orm";
 import { createMongooseDriver } from "../src";
 import type { MongooseModelLike } from "../src";
 import {
@@ -178,6 +178,11 @@ describe("mongoose local integration", () => {
       try {
         expect(orm.$driver.kind).toBe("mongoose");
         expect((orm.$driver.client as { connection?: unknown }).connection).toBe(connection);
+        expect(detectDatabaseRuntime(connection)).toEqual({
+          kind: "mongoose",
+          client: connection,
+          source: "connection",
+        });
         expect(orm.$driver.capabilities).toEqual({
           supportsNumericIds: false,
           supportsJSON: true,

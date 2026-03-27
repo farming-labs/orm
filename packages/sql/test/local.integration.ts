@@ -9,6 +9,7 @@ import {
   belongsTo,
   boolean,
   createOrm,
+  detectDatabaseRuntime,
   datetime,
   defineSchema,
   hasMany,
@@ -1052,6 +1053,19 @@ for (const [target, factory] of [
         expect(orm.$driver.kind).toBe("sql");
         expect(orm.$driver.dialect).toBe(dialect);
         expect(orm.$driver.client).toBe(driverClient);
+        expect(detectDatabaseRuntime(driverClient)).toEqual({
+          kind: "sql",
+          client: driverClient,
+          dialect,
+          source:
+            target === "sqlite"
+              ? "database"
+              : target === "postgres-pool" || target === "mysql-pool"
+                ? "pool"
+                : target === "mysql-connection"
+                  ? "connection"
+                  : "client",
+        });
         expect(orm.$driver.capabilities).toEqual({
           supportsNumericIds: false,
           supportsJSON: true,
