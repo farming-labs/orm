@@ -211,3 +211,31 @@ a {
   border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 7px 9px;
 }
+
+.fd-feedback-actions .fd-page-action-btn {
+  box-shadow: none !important;
+  font-family: var(--app-font-mono), ui-monospace, monospace !important;
+  font-weight: 150 !important;
+  font-size: 11px !important;
+  background: black !important;
+}
+.fd-feedback-input {
+  box-shadow: none !important;
+  font-family: var(--app-font-mono), ui-monospace, monospace !important;
+  font-weight: 150 !important;
+  font-size: 12px !important;
+  color: #e8edf3 !important;
+}
+.fd-feedback-input::placeholder {
+  font-family: var(--app-font-mono), ui-monospace, monospace !important;
+  font-weight: 150 !important;
+  font-size: 12px !important;
+  color: #9aa4b2 !important;
+}
+.fd-feedback-submit  {
+  box-shadow: none !important;
+  font-family: var(--app-font-mono), ui-monospace, monospace !important;
+  font-weight: 150 !important;
+  font-size: 12px !important;
+  color: #e8edf3 !important;
+}
