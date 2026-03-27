@@ -54,10 +54,10 @@ export default defineDocs({
       },
       typography: {
         font: {
-          h1: { size: "2.8rem", weight: 700, letterSpacing: "-0.05em" },
-          h2: { size: "1.72rem", weight: 600, letterSpacing: "-0.035em" },
-          h3: { size: "1.18rem", weight: 600 },
-          body: { size: "1rem", lineHeight: "1.8" },
+          // h1: { size: "2.8rem", weight: 700, letterSpacing: "-0.05em" },
+          // h2: { size: "1.72rem", weight: 600, letterSpacing: "-0.035em" },
+          // h3: { size: "1.18rem", weight: 600 },
+          // body: { size: "1rem", lineHeight: "1.8" },
         },
       },
     },
@@ -65,16 +65,16 @@ export default defineDocs({
   nav: {
     title: (
       <div className="flex items-center gap-3 font-medium tracking-tight text-white">
-        <span className="h-2.5 w-2.5 rounded-sm bg-cyan-100 shadow-[0_0_20px_rgba(125,211,252,0.35)]" />
-        <div className="flex items-center gap-2">
-          <span>Farming Labs ORM</span>
-          <span className="border border-white/10 bg-white/[0.04] px-2 py-0.5 font-mono text-[11px] uppercase text-white/55">
-            docs
-          </span>
+        <div className="flex -mb-1 items-center gap-2">
+          <span className="font-mono text-[11px] uppercase text-white/55"><code>@farming-labs/orm</code></span>
         </div>
       </div>
     ),
     url: "/",
+  },
+  github: {
+    url: "https://github.com/farming-labs/orm",
+    directory: "website",
   },
   metadata: {
     titleTemplate: "%s - Farming Labs ORM",
@@ -194,7 +194,7 @@ export default defineDocs({
     //   </p>
     // </div>
     // ),
-    
+
     footer: (
       <div className="docs-sidebar-footer">
         <a href="/">Home</a>
@@ -204,6 +204,6 @@ export default defineDocs({
         <a href="/docs/use-cases">Use cases</a>
       </div>
     ),
-    
+
   },
 });
