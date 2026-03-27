@@ -205,7 +205,7 @@ export default defineDocs({
           padding: "9px 16px",
           fontSize: "12px",
           backgroundImage:
-            "repeating-linear-gradient(-45deg, color-mix(in srgb, var(--color-fd-border) 7%, transparent), color-mix(in srgb, var(--color-fd-foreground) 7%, transparent) 1px, transparent 1px, transparent 6px)",
+            "repeating-linear-gradient(-45deg, color-mix(in srgb, var(--color-fd-border) 7%, transparent), color-mix(in srgb, var(--color-fd-foreground) 5%, transparent) 1px, transparent 1px, transparent 6px)",
         }}
       >
         <div className="docs-sidebar-footer mb-2">

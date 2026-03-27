@@ -220,6 +220,10 @@ a {
   text-transform: uppercase !important;
   letter-spacing: 0.04em !important;
 }
+.docs-sidebar-footer  a:hover {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: border 0.3s ease-in-out;
+}
 
 /* Sidebar credit: desktop `#nd-sidebar`, mobile drawer `#nd-sidebar-mobile` — scope without id so both match. */
 .docs-sidebar-credit-row {
@@ -273,34 +277,6 @@ a.docs-sidebar-credit-link {
   transition: text-decoration 0.25s ease-out !important;
 }
 
-/* #nd-docs-layout [class*="rounded-"],
-#nd-docs-layout [class*="border-radius"],
-#nd-docs-layout .rounded-lg,
-#nd-docs-layout .rounded-md,
-#nd-docs-layout .rounded-xl,
-#nd-docs-layout .rounded-2xl,
-#nd-docs-layout code:not(pre code) {
-  font-family: var(--app-font-mono), ui-monospace, monospace !important;
-  font-weight: 120 !important;
-  font-size: 9px !important;
-  color: #9aa4b2 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.04em !important;
-} */
-/* #nd-docs-layout [class*="rounded-"],
-#nd-docs-layout [class*="border-radius"],
-#nd-docs-layout .rounded-lg,
-#nd-docs-layout .rounded-md,
-#nd-docs-layout .rounded-xl,
-#nd-docs-layout .rounded-2xl,
-#nd-docs-layout code:not(pre code) .prose p, .prose li, .prose td, article p {
-  font-family: var(--app-font-mono), ui-monospace, monospace !important;
-  font-weight: 130 !important;
-  font-size: 1px !important;
-  color: #9aa4b2 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.04em !important;
-} */
 .fd-page-action-btn,
 .fd-feedback-question {
   box-shadow: none !important;
