@@ -9,9 +9,9 @@
     "typecheck": "next build"
   },
   "dependencies": {
-    "@farming-labs/docs": "0.0.63",
-    "@farming-labs/next": "0.0.63",
-    "@farming-labs/theme": "0.0.63",
+    "@farming-labs/docs": "0.0.64",
+    "@farming-labs/next": "0.0.64",
+    "@farming-labs/theme": "0.0.64",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@tailwindcss/postcss": "4.1.18",
