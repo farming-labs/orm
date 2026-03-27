@@ -66,9 +66,7 @@ export default defineDocs({
     title: (
       <div className="flex items-center gap-3 font-medium tracking-tight text-white">
         <div className="flex -mb-1 items-center gap-2">
-          <span className="font-mono text-[11px] uppercase text-white/55">
-            <code>@farming-labs/orm</code>
-          </span>
+          <span className="font-mono text-[11px] uppercase text-white/55"><code>@farming-labs/orm</code></span>
         </div>
       </div>
     ),
@@ -89,8 +87,9 @@ export default defineDocs({
   },
   breadcrumb: { enabled: true },
   pageActions: {
+    position: "above-title",
+    alignment: "left",
     copyMarkdown: { enabled: true },
-    alignment: "right",
     openDocs: {
       enabled: true,
       providers: [
@@ -198,13 +197,42 @@ export default defineDocs({
     // ),
 
     footer: (
-      <div className="docs-sidebar-footer">
-        <a href="/">Home</a>
-        <a href="/docs/getting-started">Setup</a>
-        <a href="/docs/runtime">Runtime</a>
-        <a href="/docs/integrations">Integrations</a>
-        <a href="/docs/use-cases">Use cases</a>
+      <div
+        className="-mx-4 -my-2 -mb-4 flex flex-col gap-1 font-mono uppercase"
+        style={{
+          padding: "9px 16px",
+          fontSize: "12px",
+          backgroundImage:
+            "repeating-linear-gradient(-45deg, color-mix(in srgb, var(--color-fd-border) 7%, transparent), color-mix(in srgb, var(--color-fd-foreground) 7%, transparent) 1px, transparent 1px, transparent 6px)",
+        }}
+      >
+        <div className="docs-sidebar-footer mb-2">
+          <a href="/">Home</a>
+          <a href="/docs/getting-started">Setup</a>
+          <a href="/docs/runtime">Runtime</a>
+          <a href="/docs/integrations">Integrations</a>
+          <a href="/docs/use-cases">Use cases</a>
+          <a href="/docs/cli">CLI</a>
+          <a href="/docs/schema">Schema</a>
+          <a href="/docs/relations">Relations</a>
+        </div>
+        <div className="docs-sidebar-credit-row text-white/80 opacity-80 flex border-t border-white/10 pb-1 pt-2 -mx-4 gap-2 items-center justify-center text-[10px] font-light font-mono uppercase">
+          <Package size={14} className="inline-flex mb-px shrink-0" />
+          <span>
+            Built with{" "}
+            <a
+              href="https://github.com/farming-labs"
+              target="_blank"
+              rel="noreferrer"
+              className="docs-sidebar-credit-link transition-colors"
+            >
+              @farming-labs
+            </a>
+          </span>
+        </div>
       </div>
+
     ),
+
   },
 });

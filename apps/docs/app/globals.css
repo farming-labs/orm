@@ -19,6 +19,7 @@
   0% {
     background-position: 100% -100%;
   }
+
   100% {
     background-position: -100% 100%;
   }
@@ -72,22 +73,22 @@ a {
 
 /* Home hero: diagonal stripes in side gutters (explicit rgba — reads on #050507) */
 .home-hero-gutter-pattern {
-  background-image: repeating-linear-gradient(
-    -45deg,
-    rgba(255, 255, 255, 0.005) 0,
-    rgba(255, 255, 255, 0.005) 1px,
-    rgba(255, 255, 255, 0.1) 1px,
-    rgba(255, 255, 255, 0.1) 2px,
-    transparent 2px,
-    transparent 7px
-  );
+  background-image: repeating-linear-gradient(-45deg,
+      rgba(255, 255, 255, 0.005) 0,
+      rgba(255, 255, 255, 0.005) 1px,
+      rgba(255, 255, 255, 0.1) 1px,
+      rgba(255, 255, 255, 0.1) 2px,
+      transparent 2px,
+      transparent 7px);
 }
 
 @keyframes home-cli-shimmer {
+
   0%,
   100% {
     background-position: 100% 0;
   }
+
   50% {
     background-position: -100% 0;
   }
@@ -98,15 +99,18 @@ a {
 }
 
 @keyframes home-cli-caret-blink {
+
   0%,
   49% {
     opacity: 1;
   }
+
   50%,
   100% {
     opacity: 0;
   }
 }
+
 /* 
 #nd-docs-layout {
   position: relative;
@@ -209,16 +213,138 @@ a {
 
 .docs-sidebar-footer a {
   border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 7px 9px;
+  padding: 6px 8px;
+  color: #9aa4b2 !important;
+  font-weight: 120 !important;
+  font-size: 9px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
 }
 
-.fd-feedback-actions .fd-page-action-btn {
+/* Sidebar credit: desktop `#nd-sidebar`, mobile drawer `#nd-sidebar-mobile` — scope without id so both match. */
+.docs-sidebar-credit-row {
+  color: var(--color-fd-muted-foreground);
+}
+
+a.docs-sidebar-credit-link {
+  color: var(--color-fd-foreground) !important;
+  text-decoration-line: underline !important;
+  text-decoration-style: dotted !important;
+  text-decoration-color: var(--color-fd-foreground) !important;
+  text-decoration-thickness: 1px !important;
+  text-underline-offset: 2px !important;
+  text-decoration-skip-ink: none !important;
+}
+
+#nd-sidebar a[data-active],
+#nd-sidebar button.text-fd-muted-foreground {
+  font-family: var(--app-font-mono), ui-monospace, SFMono-Regular, Menlo, monospace !important;
+  font-size: 10.5px !important;
+  font-weight: 130 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+#nd-sidebar div.overflow-hidden[data-state] a[data-active] {
+  letter-spacing: 0.05em;
+}
+
+#nd-docs-layout h1,
+#nd-docs-layout h1>a {
+  font-family: var(--app-font-mono), ui-monospace, SFMono-Regular, Menlo, monospace !important;
+  font-size: 1.5rem !important;
+  font-weight: 180 !important;
+  letter-spacing: 0.02em !important;
+  text-transform: uppercase !important;
+}
+
+.peer {
+  font-family: var(--app-font-mono), ui-monospace, SFMono-Regular, Menlo, monospace !important;
+  font-size: 14px !important;
+  font-weight: 180 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  text-decoration: underline dotted #e8edf3 !important;
+  text-underline-offset: 6px !important;
+  text-decoration-thickness: 1px !important;
+  text-decoration-style: dotted !important;
+  text-decoration-skip-ink: none !important;
+  text-decoration-skip: none !important;
+  transition:
+    text-decoration 0.25s ease-out !important;
+}
+
+/* #nd-docs-layout [class*="rounded-"],
+#nd-docs-layout [class*="border-radius"],
+#nd-docs-layout .rounded-lg,
+#nd-docs-layout .rounded-md,
+#nd-docs-layout .rounded-xl,
+#nd-docs-layout .rounded-2xl,
+#nd-docs-layout code:not(pre code) {
+  font-family: var(--app-font-mono), ui-monospace, monospace !important;
+  font-weight: 120 !important;
+  font-size: 9px !important;
+  color: #9aa4b2 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+} */
+/* #nd-docs-layout [class*="rounded-"],
+#nd-docs-layout [class*="border-radius"],
+#nd-docs-layout .rounded-lg,
+#nd-docs-layout .rounded-md,
+#nd-docs-layout .rounded-xl,
+#nd-docs-layout .rounded-2xl,
+#nd-docs-layout code:not(pre code) .prose p, .prose li, .prose td, article p {
+  font-family: var(--app-font-mono), ui-monospace, monospace !important;
+  font-weight: 130 !important;
+  font-size: 1px !important;
+  color: #9aa4b2 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+} */
+.fd-page-action-btn , .fd-feedback-question {
   box-shadow: none !important;
   font-family: var(--app-font-mono), ui-monospace, monospace !important;
   font-weight: 150 !important;
   font-size: 11px !important;
   background: black !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
 }
+
+.fd-page-action-menu {
+  background: black !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: none !important;
+  font-family: var(--app-font-mono), ui-monospace, monospace !important;
+  font-weight: 150 !important;
+  font-size: 11px !important;
+}
+
+.fd-page-action-menu-item {
+  font-family: var(--app-font-mono), ui-monospace, monospace !important;
+  font-weight: 150 !important;
+  font-size: 11px !important;
+  color: #e8edf3 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.fd-page-action-menu-item:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.fd-page-action-menu-item:last-child {
+  border-bottom: none !important;
+}
+
+.fd-page-action-menu-item:first-child {
+  border-top: none !important;
+}
+
 .fd-feedback-input {
   box-shadow: none !important;
   font-family: var(--app-font-mono), ui-monospace, monospace !important;
@@ -226,16 +352,39 @@ a {
   font-size: 12px !important;
   color: #e8edf3 !important;
 }
+
 .fd-feedback-input::placeholder {
   font-family: var(--app-font-mono), ui-monospace, monospace !important;
   font-weight: 150 !important;
   font-size: 12px !important;
   color: #9aa4b2 !important;
 }
+
 .fd-feedback-submit {
   box-shadow: none !important;
   font-family: var(--app-font-mono), ui-monospace, monospace !important;
   font-weight: 150 !important;
   font-size: 12px !important;
   color: #e8edf3 !important;
+}
+
+.fd-page-footer a {
+  font-family: var(--app-font-mono), ui-monospace, monospace !important;
+  font-weight: 150 !important;
+  font-size: 10px !important;
+  color: #e8edf3 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  background: transparent !important;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+}
+
+.fd-last-updated-footer {
+  font-family: var(--app-font-mono), ui-monospace, monospace !important;
+  font-weight: 130 !important;
+  font-size: 10px !important;
+  color: #9aa4b2 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
 }
