@@ -190,14 +190,16 @@ export default defineDocs({
   sidebar: {
     banner: (
       <div
-        className="-mx-4 -my-2 -mb-4 flex flex-col gap-1 font-mono uppercase"
+        className="-mx-4 h-[40px] border border-white/10 border-x-0 border-b mb-1 border-y-0 -my-2 flex flex-col gap-1 font-mono uppercase"
         style={{
           padding: "9px 16px",
           fontSize: "12px",
           backgroundImage:
             "repeating-linear-gradient(-45deg, color-mix(in srgb, var(--color-fd-border) 7%, transparent), color-mix(in srgb, var(--color-fd-foreground) 5%, transparent) 1px, transparent 1px, transparent 6px)",
         }}
-      ></div>
+      >
+
+      </div>
     ),
 
     footer: (
