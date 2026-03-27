@@ -56,7 +56,7 @@ function detectDrizzleDialect(client: Record<string, unknown>) {
 }
 
 function detectKyselyDialect(client: { getExecutor?: () => { adapter?: unknown } }) {
-  const adapterName = getConstructorName(client.getExecutor?.().adapter);
+  const adapterName = getConstructorName(client.getExecutor?.()?.adapter);
 
   if (adapterName.includes("Sqlite")) return "sqlite";
   if (adapterName.includes("Mysql")) return "mysql";
