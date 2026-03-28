@@ -3,15 +3,18 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "build": "next build",
-    "dev": "next dev",
-    "test": "next build",
-    "typecheck": "next build"
+    "build": "pnpm run prisma:generate && next build",
+    "dev": "pnpm run prisma:generate && next dev",
+    "prisma:generate": "prisma generate --schema ./prisma/schema.prisma",
+    "prisma:push": "prisma db push --schema ./prisma/schema.prisma",
+    "test": "pnpm run prisma:generate && next build",
+    "typecheck": "pnpm run prisma:generate && next build"
   },
   "dependencies": {
     "@farming-labs/docs": "0.0.64",
     "@farming-labs/next": "0.0.64",
     "@farming-labs/theme": "0.0.64",
+    "@prisma/client": "^6.19.2",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@tailwindcss/postcss": "4.1.18",
@@ -19,6 +22,7 @@
     "clsx": "^2.1.1",
     "lucide-react": "^1.0.1",
     "next": "^16.1.6",
+    "prisma": "^6.19.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "simple-icons": "^16.13.0",
