@@ -74,9 +74,7 @@ function normalizeDocsFeedback(data: unknown): NormalizedDocsFeedback {
   const value = record.value;
 
   if (typeof value !== "string" || !FEEDBACK_VALUES.has(value as DocsFeedbackInputValue)) {
-    throw new DocsFeedbackValidationError(
-      "value must be either \"positive\" or \"negative\".",
-    );
+    throw new DocsFeedbackValidationError('value must be either "positive" or "negative".');
   }
 
   const pathname = normalizeRequiredString(record, "pathname", 1024);
@@ -95,10 +93,7 @@ function normalizeDocsFeedback(data: unknown): NormalizedDocsFeedback {
   };
 }
 
-export async function saveDocsFeedback(
-  data: unknown,
-  context: SaveDocsFeedbackContext = {},
-) {
+export async function saveDocsFeedback(data: unknown, context: SaveDocsFeedbackContext = {}) {
   if (!process.env.DATABASE_URL?.trim()) {
     throw new Error("DATABASE_URL is not configured for docs feedback storage.");
   }
