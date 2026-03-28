@@ -27,20 +27,20 @@ Farming Labs ORM has two layers:
 | Mongoose runtime    | No         | No    | No     | Yes     | `@farming-labs/orm-mongoose`              |
 | Kysely runtime      | Yes        | Yes   | Yes    | No      | `@farming-labs/orm-kysely`                |
 
-## `integer()` and `json()` coverage
+## Scalar field coverage
 
-The current repo verifies the new scalar builders across the full live runtime
+The current repo verifies the scalar builders across the full live runtime
 matrix:
 
-| Runtime / stack    | PostgreSQL | MySQL | SQLite | MongoDB | `integer()` | `json()` |
-| ------------------ | ---------- | ----- | ------ | ------- | ----------- | -------- |
-| Memory runtime     | N/A        | N/A   | N/A    | N/A     | Yes         | Yes      |
-| Prisma runtime     | Yes        | Yes   | Yes    | No      | Yes         | Yes      |
-| Drizzle runtime    | Yes        | Yes   | Yes    | No      | Yes         | Yes      |
-| Kysely runtime     | Yes        | Yes   | Yes    | No      | Yes         | Yes      |
-| Direct SQL runtime | Yes        | Yes   | Yes    | No      | Yes         | Yes      |
-| MongoDB runtime    | No         | No    | No     | Yes     | Yes         | Yes      |
-| Mongoose runtime   | No         | No    | No     | Yes     | Yes         | Yes      |
+| Runtime / stack    | PostgreSQL | MySQL | SQLite | MongoDB | `integer()` | `json()` | `enumeration()` | `bigint()` | `decimal()` |
+| ------------------ | ---------- | ----- | ------ | ------- | ----------- | -------- | --------------- | ---------- | ----------- |
+| Memory runtime     | N/A        | N/A   | N/A    | N/A     | Yes         | Yes      | Yes             | Yes        | Yes         |
+| Prisma runtime     | Yes        | Yes   | Yes    | No      | Yes         | Yes      | Yes             | Yes        | Yes         |
+| Drizzle runtime    | Yes        | Yes   | Yes    | No      | Yes         | Yes      | Yes             | Yes        | Yes         |
+| Kysely runtime     | Yes        | Yes   | Yes    | No      | Yes         | Yes      | Yes             | Yes        | Yes         |
+| Direct SQL runtime | Yes        | Yes   | Yes    | No      | Yes         | Yes      | Yes             | Yes        | Yes         |
+| MongoDB runtime    | No         | No    | No     | Yes     | Yes         | Yes      | Yes             | Yes        | Yes         |
+| Mongoose runtime   | No         | No    | No     | Yes     | Yes         | Yes      | Yes             | Yes        | Yes         |
 
 Those checks are not generator-only. They run the live runtime query layer
 against real local database instances and real client stacks for each supported
@@ -48,6 +48,10 @@ dialect combination.
 
 That same real local matrix now also verifies `orm.$driver.capabilities`,
 including transaction-scoped access in the live SQL and Prisma runtimes.
+
+For SQLite bigint coverage, the local `node:sqlite` clients enable big-int read
+mode so the values stay as real `bigint` outputs instead of truncating into
+JavaScript `number`.
 
 Use this command to run the whole local matrix:
 

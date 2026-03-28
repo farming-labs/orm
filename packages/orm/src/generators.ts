@@ -28,6 +28,67 @@ const camelize = (value: string) =>
     .replace(/[^a-zA-Z0-9]+(.)/g, (_, char: string) => char.toUpperCase())
     .replace(/^[^a-zA-Z]+/, "")
     .replace(/^[A-Z]/, (char) => char.toLowerCase());
+const pascalize = (value: string) => {
+  const camel = camelize(value);
+  return camel.length ? camel.charAt(0).toUpperCase() + camel.slice(1) : "Value";
+};
+
+function renderTsLiteral(value: unknown) {
+  if (typeof value === "bigint") {
+    return `${value}n`;
+  }
+
+  if (value instanceof Date) {
+    return `new Date(${JSON.stringify(value.toISOString())})`;
+  }
+
+  return JSON.stringify(value);
+}
+
+function sqlStringLiteral(value: string) {
+  return `'${value.replace(/'/g, "''")}'`;
+}
+
+function prismaEnumTypeName(modelName: string, fieldName: string) {
+  return `${capitalize(modelName)}${capitalize(fieldName)}Enum`;
+}
+
+function drizzleEnumSymbolName(modelName: string, fieldName: string) {
+  return camelize(`${modelName}_${fieldName}_enum`) || `${modelName}${capitalize(fieldName)}Enum`;
+}
+
+function uniqueIdentifiers(values: readonly string[], toIdentifier: (value: string) => string) {
+  const used = new Map<string, number>();
+
+  return Object.fromEntries(
+    values.map((value) => {
+      const base = toIdentifier(value);
+      const nextCount = used.get(base) ?? 0;
+      used.set(base, nextCount + 1);
+      return [value, nextCount === 0 ? base : `${base}_${nextCount + 1}`];
+    }),
+  );
+}
+
+function prismaEnumValueIdentifiers(values: readonly string[]) {
+  return uniqueIdentifiers(values, (value) => {
+    const normalized = value
+      .replace(/[^a-zA-Z0-9]+/g, "_")
+      .replace(/^(\d)/, "_$1")
+      .replace(/^_+|_+$/g, "")
+      .toUpperCase();
+    return normalized || "VALUE";
+  });
+}
+
+function sqlEnumCheck(field: ManifestField, dialect: SqlGenerationOptions["dialect"]) {
+  if (dialect === "mysql" || field.kind !== "enum" || !field.enumValues?.length) {
+    return null;
+  }
+
+  const allowed = field.enumValues.map(sqlStringLiteral).join(", ");
+  return `check (${sqlIdentifier(dialect, field.column)} in (${allowed}))`;
+}
 
 function resolveReferenceTarget(
   manifest: SchemaManifest,
@@ -79,6 +140,12 @@ function prismaType(field: ManifestField) {
       return "Int";
     case "json":
       return "Json";
+    case "enum":
+      return "String";
+    case "bigint":
+      return "BigInt";
+    case "decimal":
+      return "Decimal";
   }
 }
 
@@ -108,6 +175,15 @@ function drizzleImports(dialect: DrizzleGenerationOptions["dialect"], manifest: 
   const needsJson = models.some((model) =>
     Object.values(model.fields).some((field) => field.kind === "json"),
   );
+  const needsBigint = models.some((model) =>
+    Object.values(model.fields).some((field) => field.kind === "bigint"),
+  );
+  const needsDecimal = models.some((model) =>
+    Object.values(model.fields).some((field) => field.kind === "decimal"),
+  );
+  const needsEnum = models.some((model) =>
+    Object.values(model.fields).some((field) => field.kind === "enum"),
+  );
   const needsIndexes = models.some(
     (model) => model.constraints.indexes.length || model.constraints.unique.length,
   );
@@ -115,9 +191,12 @@ function drizzleImports(dialect: DrizzleGenerationOptions["dialect"], manifest: 
   if (dialect === "pg") {
     return [
       "pgTable",
+      needsEnum ? "pgEnum" : null,
       "text",
       needsBoolean ? "boolean" : null,
+      needsBigint ? "bigint" : null,
       needsInteger ? "integer" : null,
+      needsDecimal ? "numeric" : null,
       needsDate ? "timestamp" : null,
       needsJson ? "jsonb" : null,
       needsIndexes ? "index" : null,
@@ -128,6 +207,9 @@ function drizzleImports(dialect: DrizzleGenerationOptions["dialect"], manifest: 
   if (dialect === "mysql") {
     return [
       "mysqlTable",
+      needsEnum ? "mysqlEnum" : null,
+      needsBigint ? "bigint" : null,
+      needsDecimal ? "decimal" : null,
       "varchar",
       "text",
       needsBoolean ? "boolean" : null,
@@ -151,11 +233,11 @@ function drizzleImports(dialect: DrizzleGenerationOptions["dialect"], manifest: 
 function drizzleColumn(
   field: ManifestField,
   dialect: DrizzleGenerationOptions["dialect"],
-  options: { indexed?: boolean } = {},
+  options: { indexed?: boolean; modelName?: string } = {},
 ) {
   const renderDefault = () => {
     if (field.defaultValue === undefined || field.kind === "json") return "";
-    return `.default(${JSON.stringify(field.defaultValue)})`;
+    return `.default(${renderTsLiteral(field.defaultValue)})`;
   };
 
   if (field.kind === "id") {
@@ -176,6 +258,15 @@ function drizzleColumn(
     return `text("${field.column}")${field.nullable ? "" : ".notNull()"}${field.unique ? ".unique()" : ""}${renderDefault()}`;
   }
 
+  if (field.kind === "enum") {
+    if (dialect === "pg" || dialect === "mysql") {
+      const symbolName = drizzleEnumSymbolName(options.modelName ?? "model", field.name);
+      return `${symbolName}("${field.column}")${field.nullable ? "" : ".notNull()"}${field.unique ? ".unique()" : ""}${renderDefault()}`;
+    }
+
+    return `text("${field.column}")${field.nullable ? "" : ".notNull()"}${field.unique ? ".unique()" : ""}${renderDefault()}`;
+  }
+
   if (field.kind === "boolean") {
     if (dialect === "sqlite") {
       return `integer("${field.column}", { mode: "boolean" })${field.nullable ? "" : ".notNull()"}${renderDefault()}`;
@@ -188,6 +279,24 @@ function drizzleColumn(
       return `int("${field.column}")${field.nullable ? "" : ".notNull()"}${renderDefault()}`;
     }
     return `integer("${field.column}")${field.nullable ? "" : ".notNull()"}${renderDefault()}`;
+  }
+
+  if (field.kind === "bigint") {
+    if (dialect === "pg" || dialect === "mysql") {
+      return `bigint("${field.column}", { mode: "bigint" })${field.nullable ? "" : ".notNull()"}${renderDefault()}`;
+    }
+
+    return `integer("${field.column}")${field.nullable ? "" : ".notNull()"}${renderDefault()}`;
+  }
+
+  if (field.kind === "decimal") {
+    if (dialect === "pg") {
+      return `numeric("${field.column}", { precision: 65, scale: 30 })${field.nullable ? "" : ".notNull()"}${renderDefault()}`;
+    }
+    if (dialect === "mysql") {
+      return `decimal("${field.column}", { precision: 65, scale: 30 })${field.nullable ? "" : ".notNull()"}${renderDefault()}`;
+    }
+    return `text("${field.column}")${field.nullable ? "" : ".notNull()"}${renderDefault()}`;
   }
 
   if (field.kind === "json") {
@@ -222,11 +331,27 @@ function sqlType(
       ? "varchar(191)"
       : "text";
   }
+  if (field.kind === "enum") {
+    if (dialect === "mysql" && field.enumValues?.length) {
+      return `enum(${field.enumValues.map(sqlStringLiteral).join(", ")})`;
+    }
+    return dialect === "mysql" && (field.unique || field.references || options.indexed)
+      ? "varchar(191)"
+      : "text";
+  }
   if (field.kind === "boolean") {
     return dialect === "sqlite" ? "integer" : "boolean";
   }
   if (field.kind === "integer") {
     return "integer";
+  }
+  if (field.kind === "bigint") {
+    return "bigint";
+  }
+  if (field.kind === "decimal") {
+    if (dialect === "postgres") return "numeric(65, 30)";
+    if (dialect === "mysql") return "decimal(65, 30)";
+    return "text";
   }
   if (field.kind === "json") {
     if (dialect === "postgres") return "jsonb";
@@ -291,6 +416,21 @@ export function renderPrismaSchema(
     }
   }
 
+  const enumBlocks = (Object.values(manifest.models) as ManifestModel[]).flatMap((model) =>
+    Object.values(model.fields)
+      .filter((field) => field.kind === "enum" && field.enumValues?.length)
+      .map((field) => {
+        const enumIdentifiers = prismaEnumValueIdentifiers(field.enumValues ?? []);
+        const values = (field.enumValues ?? []).map((value) => {
+          const identifier = enumIdentifiers[value]!;
+          return identifier === value
+            ? `  ${identifier}`
+            : `  ${identifier} @map(${JSON.stringify(value)})`;
+        });
+        return `enum ${prismaEnumTypeName(model.name, field.name)} {\n${values.join("\n")}\n}`;
+      }),
+  );
+
   const blocks = (Object.values(manifest.models) as ManifestModel[]).map((model) => {
     const lines: string[] = [];
     const modelName = capitalize(model.name);
@@ -298,7 +438,8 @@ export function renderPrismaSchema(
     const handledForeignKeys = new Set<string>();
 
     for (const field of Object.values(model.fields)) {
-      const fieldType = prismaType(field);
+      const fieldType =
+        field.kind === "enum" ? prismaEnumTypeName(model.name, field.name) : prismaType(field);
       const modifiers: string[] = [];
       if (field.kind === "id") modifiers.push("@id");
       if (field.generated === "id") modifiers.push("@default(cuid())");
@@ -308,11 +449,18 @@ export function renderPrismaSchema(
         field.generated === undefined &&
         field.kind !== "json"
       ) {
-        modifiers.push(
-          typeof field.defaultValue === "string"
-            ? `@default("${field.defaultValue}")`
-            : `@default(${String(field.defaultValue)})`,
-        );
+        if (field.kind === "enum") {
+          const enumIdentifiers = prismaEnumValueIdentifiers(field.enumValues ?? []);
+          modifiers.push(`@default(${enumIdentifiers[String(field.defaultValue)]})`);
+        } else if (field.kind === "decimal") {
+          modifiers.push(`@default(${String(field.defaultValue)})`);
+        } else {
+          modifiers.push(
+            typeof field.defaultValue === "string"
+              ? `@default("${field.defaultValue}")`
+              : `@default(${String(field.defaultValue)})`,
+          );
+        }
       }
       if (field.unique && field.kind !== "id") modifiers.push("@unique");
       if (field.column !== field.name) modifiers.push(`@map("${field.column}")`);
@@ -392,7 +540,7 @@ export function renderPrismaSchema(
     `generator ${generatorName} {\n  provider = "prisma-client-js"\n}\n\n` +
     `datasource ${datasourceName} {\n  provider = "${provider}"\n  url      = ${
       provider === "sqlite" ? '"file:./dev.db"' : 'env("DATABASE_URL")'
-    }\n}\n\n${blocks.join("\n\n")}\n`
+    }\n}\n\n${[...enumBlocks, ...blocks].join("\n\n")}\n`
   );
 }
 
@@ -408,11 +556,28 @@ export function renderDrizzleSchema(
       : options.dialect === "mysql"
         ? "mysqlTable"
         : "sqliteTable";
+  const enumBlocks =
+    options.dialect === "sqlite"
+      ? []
+      : (Object.values(manifest.models) as ManifestModel[]).flatMap((model) =>
+          Object.values(model.fields)
+            .filter((field) => field.kind === "enum" && field.enumValues?.length)
+            .map((field) => {
+              const values = (field.enumValues ?? [])
+                .map((value) => JSON.stringify(value))
+                .join(", ");
+              const factory = options.dialect === "pg" ? "pgEnum" : "mysqlEnum";
+              return `export const ${drizzleEnumSymbolName(model.name, field.name)} = ${factory}("${model.table}_${field.column}_enum", [${values}]);`;
+            }),
+        );
 
   const modelBlocks = (Object.values(manifest.models) as ManifestModel[]).map((model) => {
     const indexedFields = constrainedFields(model);
     const lines = Object.values(model.fields).map((field) => {
-      let value = drizzleColumn(field, options.dialect, { indexed: indexedFields.has(field.name) });
+      let value = drizzleColumn(field, options.dialect, {
+        indexed: indexedFields.has(field.name),
+        modelName: model.name,
+      });
       if (field.references) {
         const [targetModel, targetField] = field.references.split(".");
         value += `.references(() => ${targetModel}.${targetField})`;
@@ -489,7 +654,7 @@ export function renderDrizzleSchema(
     .filter(Boolean)
     .join("\n");
 
-  return `${imports}\n\n${[...modelBlocks, ...relationBlocks].join("\n\n")}\n`;
+  return `${imports}\n\n${[...enumBlocks, ...modelBlocks, ...relationBlocks].join("\n\n")}\n`;
 }
 
 export function renderSafeSql(schema: SchemaDefinition<any>, options: SqlGenerationOptions) {
@@ -525,6 +690,10 @@ export function renderSafeSql(schema: SchemaDefinition<any>, options: SqlGenerat
             targetColumn,
           )})`,
         );
+      }
+      const enumCheck = sqlEnumCheck(field, options.dialect);
+      if (enumCheck) {
+        parts.push(enumCheck);
       }
       return `  ${parts.join(" ")}`;
     });

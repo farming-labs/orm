@@ -328,6 +328,59 @@ For compound upserts:
 - `create` must agree with the `where` values for those fields
 - `update` cannot change the conflict fields themselves
 
+## Enum, bigint, and decimal values
+
+Enums behave like constrained strings in the unified API:
+
+```ts
+const premiumUsers = await orm.user.findMany({
+  where: {
+    tier: "pro",
+  },
+  select: {
+    email: true,
+    tier: true,
+  },
+});
+```
+
+Bigints use real JavaScript `bigint` values and support the normal comparison
+operators:
+
+```ts
+const quotaUsers = await orm.user.findMany({
+  where: {
+    quota: {
+      gte: 1024n,
+    },
+  },
+  select: {
+    email: true,
+    quota: true,
+  },
+});
+```
+
+Decimals stay as strings so precision is preserved across runtimes:
+
+```ts
+const updatedAccount = await orm.account.update({
+  where: {
+    provider: "github",
+    accountId: "gh_ada",
+  },
+  data: {
+    balance: "19.95",
+  },
+  select: {
+    balance: true,
+  },
+});
+```
+
+Decimal outputs are normalized strings, so values like `"12.50"` may reload as
+`"12.5"` after a round-trip.
+
 ## `delete`
 
 ```ts

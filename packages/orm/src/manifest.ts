@@ -13,6 +13,7 @@ export type ManifestField = {
   defaultValue?: unknown;
   references?: string;
   description?: string;
+  enumValues?: readonly string[];
 };
 
 export type ManifestConstraint = {
@@ -337,6 +338,7 @@ export function createManifest<
               defaultValue: field.config.defaultValue,
               references: field.config.references,
               description: field.config.description,
+              enumValues: field.config.enumValues,
             } satisfies ManifestField,
           ]),
         );

@@ -161,6 +161,22 @@ function mergeWhere(...clauses: Array<MongoWhere | undefined>) {
   } as MongoWhere;
 }
 
+function normalizeDecimalString(value: string) {
+  const trimmed = value.trim();
+  const match = /^(-?\d+)(?:\.(\d+))?$/.exec(trimmed);
+  if (!match) {
+    return trimmed;
+  }
+
+  const [, integerPart, fractionalPart] = match;
+  if (!fractionalPart) {
+    return integerPart;
+  }
+
+  const normalizedFraction = fractionalPart.replace(/0+$/g, "");
+  return normalizedFraction.length ? `${integerPart}.${normalizedFraction}` : integerPart;
+}
+
 function parseReference(reference?: string) {
   if (!reference) return null;
   const [model, field] = reference.split(".");
@@ -223,10 +239,16 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
     if (value === null) return null;
 
     let next = value;
-    if (field.kind === "boolean") {
+    if (field.kind === "enum") {
+      next = String(next);
+    } else if (field.kind === "boolean") {
       next = Boolean(next);
     } else if (field.kind === "integer") {
       next = Number(next);
+    } else if (field.kind === "bigint") {
+      next = typeof next === "bigint" ? next : BigInt(next as string | number);
+    } else if (field.kind === "decimal") {
+      next = typeof next === "string" ? next : String(next);
     } else if (field.kind === "datetime") {
       next = next instanceof Date ? next : new Date(String(next));
     }
@@ -242,11 +264,26 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
     const transform = fieldTransform(modelName, field.name);
     let next = transform?.decode ? transform.decode(value) : value;
 
+    if (field.kind === "enum") {
+      return typeof next === "string" ? next : String(next);
+    }
     if (field.kind === "boolean") {
       return Boolean(next);
     }
     if (field.kind === "integer") {
       return typeof next === "number" ? next : Number(next);
+    }
+    if (field.kind === "bigint") {
+      if (typeof next === "bigint") {
+        return next;
+      }
+      if (typeof next === "number") {
+        return BigInt(Math.trunc(next));
+      }
+      return BigInt(String(next));
+    }
+    if (field.kind === "decimal") {
+      return normalizeDecimalString(typeof next === "string" ? next : String(next));
     }
     if (field.kind === "datetime") {
       return next instanceof Date ? next : new Date(String(next));

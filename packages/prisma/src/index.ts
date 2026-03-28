@@ -109,21 +109,57 @@ function mergeWhere(...clauses: Array<PrismaWhere | undefined>) {
   } as PrismaWhere;
 }
 
+function prismaEnumIdentifiers(field: ManifestField) {
+  const values = field.enumValues ?? [];
+  const used = new Map<string, number>();
+
+  return Object.fromEntries(
+    values.map((value) => {
+      const base =
+        value
+          .replace(/[^a-zA-Z0-9]+/g, "_")
+          .replace(/^(\d)/, "_$1")
+          .replace(/^_+|_+$/g, "")
+          .toUpperCase() || "VALUE";
+      const nextCount = used.get(base) ?? 0;
+      used.set(base, nextCount + 1);
+      return [value, nextCount === 0 ? base : `${base}_${nextCount + 1}`];
+    }),
+  ) as Record<string, string>;
+}
+
+function encodeScalarValue(field: ManifestField, value: unknown) {
+  if (value === undefined || value === null) {
+    return value;
+  }
+
+  if (field.kind === "enum") {
+    const identifiers = prismaEnumIdentifiers(field);
+    return identifiers[String(value)] ?? String(value);
+  }
+
+  return value;
+}
+
 function buildCreateData(model: ManifestModel, input: Partial<Record<string, unknown>>) {
   const output: PrismaRow = {};
 
   for (const field of Object.values(model.fields)) {
     const value = applyDefault(input[field.name], field);
     if (value !== undefined) {
-      output[field.name] = value;
+      output[field.name] = encodeScalarValue(field, value);
     }
   }
 
   return output;
 }
 
-function buildUpdateData(input: Partial<Record<string, unknown>>) {
-  return Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined));
+function buildUpdateData(model: ManifestModel, input: Partial<Record<string, unknown>>) {
+  return Object.fromEntries(
+    Object.entries(input)
+      .filter(([, value]) => value !== undefined)
+      .map(([fieldName, value]) => [fieldName, encodeScalarValue(model.fields[fieldName]!, value)]),
+  );
 }
 
 function compileFilter(field: ManifestField, filter: unknown) {
@@ -133,19 +169,69 @@ function compileFilter(field: ManifestField, filter: unknown) {
         equals: filter,
       };
     }
-    return filter;
+    return encodeScalarValue(field, filter);
   }
 
   const output: Record<string, unknown> = {};
-  if ("eq" in filter) output.equals = filter.eq;
+  if ("eq" in filter) output.equals = encodeScalarValue(field, filter.eq);
   if ("contains" in filter) output.contains = filter.contains;
-  if ("in" in filter) output.in = filter.in;
-  if ("not" in filter) output.not = filter.not;
-  if ("gt" in filter) output.gt = filter.gt;
-  if ("gte" in filter) output.gte = filter.gte;
-  if ("lt" in filter) output.lt = filter.lt;
-  if ("lte" in filter) output.lte = filter.lte;
+  if ("in" in filter)
+    output.in = Array.isArray(filter.in)
+      ? filter.in.map((value) => encodeScalarValue(field, value))
+      : filter.in;
+  if ("not" in filter) output.not = encodeScalarValue(field, filter.not);
+  if ("gt" in filter) output.gt = encodeScalarValue(field, filter.gt);
+  if ("gte" in filter) output.gte = encodeScalarValue(field, filter.gte);
+  if ("lt" in filter) output.lt = encodeScalarValue(field, filter.lt);
+  if ("lte" in filter) output.lte = encodeScalarValue(field, filter.lte);
   return output;
+}
+
+function normalizeDecimalString(value: string) {
+  const trimmed = value.trim();
+  const match = /^(-?\d+)(?:\.(\d+))?$/.exec(trimmed);
+  if (!match) {
+    return trimmed;
+  }
+
+  const [, integerPart, fractionalPart] = match;
+  if (!fractionalPart) {
+    return integerPart;
+  }
+
+  const normalizedFraction = fractionalPart.replace(/0+$/g, "");
+  return normalizedFraction.length ? `${integerPart}.${normalizedFraction}` : integerPart;
+}
+
+function decodeScalarValue(field: ManifestField, value: unknown) {
+  if (value === undefined || value === null) {
+    return value;
+  }
+
+  if (field.kind === "enum") {
+    const identifiers = prismaEnumIdentifiers(field);
+    const reversed = Object.fromEntries(
+      Object.entries(identifiers).map(([rawValue, identifier]) => [identifier, rawValue]),
+    ) as Record<string, string>;
+    const next = typeof value === "string" ? value : String(value);
+    return reversed[next] ?? next;
+  }
+
+  if (field.kind === "bigint") {
+    if (typeof value === "bigint") return value;
+    if (typeof value === "number") return BigInt(Math.trunc(value));
+    return BigInt(String(value));
+  }
+
+  if (field.kind === "decimal") {
+    if (typeof value === "string") return normalizeDecimalString(value);
+    if (value && typeof value === "object" && "toString" in value) {
+      return normalizeDecimalString(String(value.toString()));
+    }
+    return normalizeDecimalString(String(value));
+  }
+
+  return value;
 }
 
 function compileWhere(model: ManifestModel, where?: PrismaWhere): PrismaWhereInput | undefined {
@@ -400,7 +486,7 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
 
     if (!select) {
       for (const fieldName of Object.keys(model.fields)) {
-        output[fieldName] = row[fieldName];
+        output[fieldName] = decodeScalarValue(model.fields[fieldName]!, row[fieldName]);
       }
       return output as SelectedRecord<TSchema, TModelName, TSelect>;
     }
@@ -409,7 +495,7 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
       if (value === undefined) continue;
 
       if (key in model.fields && value === true) {
-        output[key] = row[key];
+        output[key] = decodeScalarValue(model.fields[key]!, row[key]);
         continue;
       }
 
@@ -678,7 +764,10 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
 
       const delegate = getDelegate(model);
       const identityWhere = buildIdentityWhere(manifest.models[model], current);
-      const updateData = buildUpdateData(args.data as Partial<Record<string, unknown>>);
+      const updateData = buildUpdateData(
+        manifest.models[model],
+        args.data as Partial<Record<string, unknown>>,
+      );
       const updated =
         delegate.update?.({
           where: identityWhere,
@@ -708,7 +797,10 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
       const manifest = getManifest(schema);
       const result = await getDelegate(model).updateMany({
         where: compileWhere(manifest.models[model], args.where as PrismaWhere),
-        data: buildUpdateData(args.data as Partial<Record<string, unknown>>),
+        data: buildUpdateData(
+          manifest.models[model],
+          args.data as Partial<Record<string, unknown>>,
+        ),
       });
       return Number(result.count ?? 0);
     },
@@ -729,7 +821,10 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
           "Upsert",
         ),
       );
-      const updateData = buildUpdateData(args.update as Partial<Record<string, unknown>>);
+      const updateData = buildUpdateData(
+        manifest.models[model],
+        args.update as Partial<Record<string, unknown>>,
+      );
       validateUniqueLookupUpdateData(
         manifest.models[model],
         args.update as Partial<Record<string, unknown>>,

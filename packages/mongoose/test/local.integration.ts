@@ -4,6 +4,7 @@ import { createOrm, detectDatabaseRuntime } from "@farming-labs/orm";
 import { createMongooseDriver } from "../src";
 import type { MongooseModelLike } from "../src";
 import {
+  assertEnumBigintAndDecimalQueries,
   assertBelongsToAndManyToManyQueries,
   assertCompoundUniqueQueries,
   assertIntegerAndJsonQueries,
@@ -58,6 +59,8 @@ async function createLocalMongooseOrm() {
       name: { type: String, required: true },
       email_verified: { type: Boolean, default: false },
       login_count: { type: Number, default: 0 },
+      tier: { type: String, enum: ["free", "pro", "enterprise"], default: "free" },
+      quota_bigint: { type: BigInt, default: 0n },
       created_at: { type: Date, default: Date.now },
       updated_at: { type: Date, default: Date.now },
     },
@@ -90,6 +93,11 @@ async function createLocalMongooseOrm() {
       user_id: { type: String, required: true },
       provider: { type: String, required: true },
       account_id: { type: String, required: true },
+      plan_tier: { type: String, enum: ["oss", "pro", "enterprise"], default: "oss" },
+      balance: {
+        type: mongoose.Schema.Types.Decimal128,
+        default: () => mongoose.Types.Decimal128.fromString("0.00"),
+      },
       metadata: { type: mongoose.Schema.Types.Mixed, default: null },
     },
     { versionKey: false },
@@ -144,6 +152,25 @@ async function createLocalMongooseOrm() {
           account: asModelLike(AccountModel),
           organization: asModelLike(OrganizationModel),
           member: asModelLike(MemberModel),
+        },
+        transforms: {
+          account: {
+            balance: {
+              encode(value) {
+                if (value === undefined || value === null) return value;
+                return mongoose.Types.Decimal128.fromString(
+                  typeof value === "string" ? value : String(value),
+                );
+              },
+              decode(value) {
+                if (value === undefined || value === null) return value;
+                const next = typeof value === "string" ? value : String(value);
+                return next.includes(".")
+                  ? next.replace(/(\.\d*?[1-9])0+$/u, "$1").replace(/\.0+$/u, "")
+                  : next;
+              },
+            },
+          },
         },
         connection,
       }),
@@ -241,6 +268,14 @@ describe("mongoose local integration", () => {
     "supports integer and json fields against a real local MongoDB instance",
     async () => {
       await withLocalOrm((orm) => assertIntegerAndJsonQueries(orm, expect));
+    },
+    LOCAL_TIMEOUT_MS,
+  );
+
+  it(
+    "supports enum, bigint, and decimal fields against a real local MongoDB instance",
+    async () => {
+      await withLocalOrm((orm) => assertEnumBigintAndDecimalQueries(orm, expect));
     },
     LOCAL_TIMEOUT_MS,
   );

@@ -1,15 +1,18 @@
 import {
   createDriverHandle,
   createManifest,
+  type ManifestField,
   type OrmDriver,
   type OrmDriverHandle,
   type SchemaDefinition,
 } from "@farming-labs/orm";
 import type { ModelName } from "@farming-labs/orm";
+import { Decimal128, Long } from "mongodb";
 import {
   createMongooseDriver,
   type MongooseDriverConfig,
   type MongooseExecLike,
+  type MongooseFieldTransform,
   type MongooseModelLike,
   type MongooseQueryLike,
   type MongooseSessionLike,
@@ -328,6 +331,96 @@ function adaptCollection(collection: MongoCollectionLike): MongooseModelLike {
   };
 }
 
+function mergeModelTransforms(
+  base: Partial<Record<string, Partial<Record<string, MongooseFieldTransform>>>>,
+  extra: Partial<Record<string, Partial<Record<string, MongooseFieldTransform>>>>,
+) {
+  const output = { ...base };
+
+  for (const [modelName, fieldTransforms] of Object.entries(extra)) {
+    output[modelName] = {
+      ...(output[modelName] ?? {}),
+      ...(fieldTransforms ?? {}),
+    };
+  }
+
+  return output;
+}
+
+function normalizeDecimalString(value: string) {
+  const trimmed = value.trim();
+  const match = /^(-?\d+)(?:\.(\d+))?$/.exec(trimmed);
+  if (!match) {
+    return trimmed;
+  }
+
+  const [, integerPart, fractionalPart] = match;
+  if (!fractionalPart) {
+    return integerPart;
+  }
+
+  const normalizedFraction = fractionalPart.replace(/0+$/g, "");
+  return normalizedFraction.length ? `${integerPart}.${normalizedFraction}` : integerPart;
+}
+
+function defaultMongoFieldTransform(field: ManifestField) {
+  if (field.kind === "bigint") {
+    return {
+      encode(value: unknown) {
+        if (value === undefined || value === null) return value;
+        const next = typeof value === "bigint" ? value : BigInt(value as string | number);
+        return Long.fromString(next.toString());
+      },
+      decode(value: unknown) {
+        if (value === undefined || value === null) return value;
+        if (typeof value === "bigint") return value;
+        if (typeof value === "number") return BigInt(Math.trunc(value));
+        return BigInt(String(value));
+      },
+    };
+  }
+
+  if (field.kind === "decimal") {
+    return {
+      encode(value: unknown) {
+        if (value === undefined || value === null) return value;
+        return Decimal128.fromString(typeof value === "string" ? value : String(value));
+      },
+      decode(value: unknown) {
+        if (value === undefined || value === null) return value;
+        return normalizeDecimalString(typeof value === "string" ? value : String(value));
+      },
+    };
+  }
+
+  return null;
+}
+
+function buildDefaultMongoTransforms<TSchema extends SchemaDefinition<any>>(schema: TSchema) {
+  const manifest = createManifest(schema);
+  const output: NonNullable<MongoDriverConfig<TSchema>["transforms"]> = {};
+
+  for (const model of Object.values(manifest.models)) {
+    const fieldTransforms = Object.fromEntries(
+      Object.values(model.fields)
+        .map((field) => {
+          const transform = defaultMongoFieldTransform(field);
+          return transform ? [field.name, transform] : null;
+        })
+        .filter(
+          (entry): entry is [string, NonNullable<ReturnType<typeof defaultMongoFieldTransform>>] =>
+            entry !== null,
+        ),
+    );
+
+    if (Object.keys(fieldTransforms).length) {
+      output[model.name as ModelName<TSchema>] = fieldTransforms;
+    }
+  }
+
+  return output;
+}
+
 export function createMongoDriver<TSchema extends SchemaDefinition<any>>(
   config: MongoDriverConfig<TSchema>,
 ): OrmDriver<TSchema, MongoDriverHandle<TSchema>> {
@@ -408,7 +501,10 @@ export function createMongoDriver<TSchema extends SchemaDefinition<any>>(
       models,
       connection: config.client,
       startSession: config.startSession,
-      transforms: config.transforms,
+      transforms: mergeModelTransforms(
+        buildDefaultMongoTransforms(schema),
+        config.transforms ?? {},
+      ),
     });
     delegateCache.set(schema, driver);
     return driver;

@@ -9,6 +9,7 @@ import { Pool } from "pg";
 import { createOrm, detectDatabaseRuntime } from "@farming-labs/orm";
 import { createPrismaDriver } from "../src";
 import {
+  assertEnumBigintAndDecimalQueries,
   assertBelongsToAndManyToManyQueries,
   assertCompoundUniqueQueries,
   assertIntegerAndJsonQueries,
@@ -618,6 +619,19 @@ for (const [target, factory] of [
         const { orm, close } = await factory();
         try {
           await assertIntegerAndJsonQueries(orm, expect);
+        } finally {
+          await close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
+
+    it(
+      "supports enum, bigint, and decimal fields against a real local database",
+      async () => {
+        const { orm, close } = await factory();
+        try {
+          await assertEnumBigintAndDecimalQueries(orm, expect);
         } finally {
           await close();
         }
