@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { rm } from "node:fs/promises";
 import { userInfo } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,7 +8,7 @@ import { describe, expect, it } from "vitest";
 import mysql from "mysql2/promise";
 import { Pool } from "pg";
 import { createOrm, detectDatabaseRuntime } from "@farming-labs/orm";
-import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+import { bootstrapDatabase, createOrmFromRuntime, pushSchema } from "@farming-labs/orm-runtime";
 import { createPrismaDriver } from "../src";
 import {
   assertEnumBigintAndDecimalQueries,
@@ -186,7 +187,7 @@ function instrumentPrismaClient(prisma: RealGeneratedPrismaClient): Instrumented
   };
 }
 
-async function pushSchema(target: Exclude<PrismaTarget, "sqlite">, databaseUrl: string) {
+async function pushFixtureSchema(target: Exclude<PrismaTarget, "sqlite">, databaseUrl: string) {
   await execFileAsync(
     "pnpm",
     ["exec", "prisma", "db", "push", "--schema", fixtureSchemaPath(target), "--skip-generate"],
@@ -297,7 +298,7 @@ async function createLocalPostgresOrm() {
   const databaseUrl = assignDatabase(adminUrl, databaseName);
 
   try {
-    await pushSchema("postgresql", databaseUrl);
+    await pushFixtureSchema("postgresql", databaseUrl);
   } catch (error) {
     const cleanupAdmin = new Pool({ connectionString: adminUrl });
     await cleanupAdmin.query(`DROP DATABASE IF EXISTS "${databaseName}"`);
@@ -344,7 +345,7 @@ async function createLocalMysqlOrm() {
   const databaseUrl = assignDatabase(adminUrl, databaseName);
 
   try {
-    await pushSchema("mysql", databaseUrl);
+    await pushFixtureSchema("mysql", databaseUrl);
   } catch (error) {
     const cleanupAdmin = mysql.createPool(adminUrl);
     await cleanupAdmin.query(`DROP DATABASE IF EXISTS \`${databaseName}\``);
@@ -457,6 +458,55 @@ for (const [target, factory] of [
           expect(count).toBe(1);
         } finally {
           await close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
+
+    it.runIf(target === "sqlite")(
+      "pushes and bootstraps schema through @farming-labs/orm-runtime",
+      async () => {
+        const databasePath = path.join(dirname, "fixtures", "sqlite", `runtime-${Date.now()}.db`);
+        const databaseUrl = `file:${databasePath}`;
+        const PrismaClient = getGeneratedPrismaClient("sqlite");
+        const prisma = new PrismaClient({
+          datasources: {
+            db: {
+              url: databaseUrl,
+            },
+          },
+        });
+
+        try {
+          await prisma.$connect();
+          await pushSchema({
+            schema,
+            client: prisma,
+          });
+
+          const orm = (await bootstrapDatabase({
+            schema,
+            client: prisma,
+          })) as RuntimeOrm;
+
+          const created = await orm.user.create({
+            data: {
+              email: "runtime@farminglabs.dev",
+              name: "Runtime",
+            },
+            select: {
+              id: true,
+              email: true,
+            },
+          });
+
+          expect(created).toEqual({
+            id: expect.any(String),
+            email: "runtime@farminglabs.dev",
+          });
+        } finally {
+          await prisma.$disconnect().catch(() => undefined);
+          await rm(databasePath, { force: true }).catch(() => undefined);
         }
       },
       LOCAL_TIMEOUT_MS,

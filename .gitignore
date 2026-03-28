@@ -8,5 +8,6 @@ packages/prisma/test/fixtures/*/dev.db
 packages/prisma/test/fixtures/*/schema.prisma
 packages/prisma/test/fixtures/*/schema.sql
 packages/prisma/test/fixtures/*/generated
+packages/prisma/test/fixtures/sqlite/runtime-*.db
 apps/demo/prisma/dev.db
 apps/demo/prisma/schema.sql

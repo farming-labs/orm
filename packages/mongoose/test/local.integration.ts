@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import mongoose from "mongoose";
 import { createOrm, detectDatabaseRuntime } from "@farming-labs/orm";
-import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+import { bootstrapDatabase, createOrmFromRuntime, pushSchema } from "@farming-labs/orm-runtime";
 import { createMongooseDriver } from "../src";
 import type { MongooseModelLike } from "../src";
 import {
@@ -38,7 +38,7 @@ async function closeLocalConnection(connection: mongoose.Connection) {
   }
 }
 
-async function createLocalMongooseOrm() {
+async function createLocalConnection() {
   const baseUri = process.env.FARM_ORM_LOCAL_MONGODB_URL ?? "mongodb://127.0.0.1:27017";
   const connection = mongoose.createConnection(baseUri, {
     dbName: createIsolatedName("farm_orm_mongo"),
@@ -53,6 +53,10 @@ async function createLocalMongooseOrm() {
     throw formatLocalDbError(error, baseUri);
   }
 
+  return connection;
+}
+
+function registerModels(connection: mongoose.Connection, includeSchemaIndexes: boolean) {
   const userSchema = new mongoose.Schema(
     {
       _id: { type: String, required: true },
@@ -86,7 +90,9 @@ async function createLocalMongooseOrm() {
     },
     { versionKey: false },
   );
-  sessionSchema.index({ user_id: 1, expires_at: 1 });
+  if (includeSchemaIndexes) {
+    sessionSchema.index({ user_id: 1, expires_at: 1 });
+  }
 
   const accountSchema = new mongoose.Schema(
     {
@@ -103,8 +109,10 @@ async function createLocalMongooseOrm() {
     },
     { versionKey: false },
   );
-  accountSchema.index({ provider: 1, account_id: 1 }, { unique: true });
-  accountSchema.index({ user_id: 1, provider: 1 });
+  if (includeSchemaIndexes) {
+    accountSchema.index({ provider: 1, account_id: 1 }, { unique: true });
+    accountSchema.index({ user_id: 1, provider: 1 });
+  }
 
   const organizationSchema = new mongoose.Schema(
     {
@@ -124,8 +132,10 @@ async function createLocalMongooseOrm() {
     },
     { versionKey: false },
   );
-  memberSchema.index({ user_id: 1, organization_id: 1 }, { unique: true });
-  memberSchema.index({ organization_id: 1, role: 1 });
+  if (includeSchemaIndexes) {
+    memberSchema.index({ user_id: 1, organization_id: 1 }, { unique: true });
+    memberSchema.index({ organization_id: 1, role: 1 });
+  }
 
   const UserModel = connection.model("User", userSchema, "users");
   const ProfileModel = connection.model("Profile", profileSchema, "profiles");
@@ -133,27 +143,34 @@ async function createLocalMongooseOrm() {
   const AccountModel = connection.model("Account", accountSchema, "accounts");
   const OrganizationModel = connection.model("Organization", organizationSchema, "organizations");
   const MemberModel = connection.model("Member", memberSchema, "members");
+
+  return {
+    user: asModelLike(UserModel),
+    profile: asModelLike(ProfileModel),
+    session: asModelLike(SessionModel),
+    account: asModelLike(AccountModel),
+    organization: asModelLike(OrganizationModel),
+    member: asModelLike(MemberModel),
+  } satisfies Record<string, MongooseModelLike>;
+}
+
+async function createLocalMongooseOrm() {
+  const connection = await createLocalConnection();
+  const models = registerModels(connection, true);
   await Promise.all([
-    UserModel.init(),
-    ProfileModel.init(),
-    SessionModel.init(),
-    AccountModel.init(),
-    OrganizationModel.init(),
-    MemberModel.init(),
+    connection.models.User.init(),
+    connection.models.Profile.init(),
+    connection.models.Session.init(),
+    connection.models.Account.init(),
+    connection.models.Organization.init(),
+    connection.models.Member.init(),
   ]);
 
   return {
     orm: createOrm({
       schema,
       driver: createMongooseDriver<typeof schema>({
-        models: {
-          user: asModelLike(UserModel),
-          profile: asModelLike(ProfileModel),
-          session: asModelLike(SessionModel),
-          account: asModelLike(AccountModel),
-          organization: asModelLike(OrganizationModel),
-          member: asModelLike(MemberModel),
-        },
+        models: models as Record<keyof typeof schema.models, MongooseModelLike>,
         transforms: {
           account: {
             balance: {
@@ -198,6 +215,50 @@ async function withLocalOrm<TResult>(run: (orm: RuntimeOrm) => Promise<TResult>)
 }
 
 describe("mongoose local integration", () => {
+  it(
+    "pushes and bootstraps collections and indexes from a live Mongoose connection",
+    async () => {
+      const connection = await createLocalConnection();
+      registerModels(connection, false);
+
+      try {
+        await pushSchema({
+          schema,
+          client: connection,
+        });
+
+        const orm = (await bootstrapDatabase({
+          schema,
+          client: connection,
+        })) as RuntimeOrm;
+
+        const created = await orm.user.create({
+          data: {
+            email: "runtime@farminglabs.dev",
+            name: "Runtime",
+          },
+          select: {
+            id: true,
+            email: true,
+          },
+        });
+
+        const accountIndexes = await connection.collection("accounts").indexes();
+
+        expect(created).toEqual({
+          id: expect.any(String),
+          email: "runtime@farminglabs.dev",
+        });
+        expect(
+          accountIndexes.some((index) => index.name === "accounts_provider_account_id_unique"),
+        ).toBe(true);
+      } finally {
+        await closeLocalConnection(connection);
+      }
+    },
+    LOCAL_TIMEOUT_MS,
+  );
+
   it(
     "exposes the live Mongoose connection on orm.$driver",
     async () => {

@@ -15,7 +15,7 @@ import {
   type SqliteStatement,
 } from "kysely";
 import { createOrm, detectDatabaseRuntime, renderSafeSql } from "@farming-labs/orm";
-import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+import { bootstrapDatabase, createOrmFromRuntime, pushSchema } from "@farming-labs/orm-runtime";
 import { createKyselyDriver, type KyselyDatabaseLike, type KyselyDialect } from "../src";
 import {
   assertEnumBigintAndDecimalQueries,
@@ -380,6 +380,52 @@ const runtimeFactories: Record<KyselyTarget, RuntimeFactory> = {
 };
 
 describe("local Kysely integration", () => {
+  it(
+    "sqlite local Kysely integration > pushes and bootstraps schema through @farming-labs/orm-runtime",
+    async () => {
+      const directory = await mkdtemp(path.join(tmpdir(), "farm-orm-kysely-runtime-"));
+      const databasePath = path.join(directory, "runtime.db");
+      const client = new DatabaseSync(databasePath, { readBigInts: true });
+      const db = new Kysely({
+        dialect: new SqliteDialect({
+          database: new NodeSqliteDatabaseAdapter(client),
+        }),
+      });
+
+      try {
+        await pushSchema({
+          schema,
+          client: db,
+        });
+
+        const orm = (await bootstrapDatabase({
+          schema,
+          client: db,
+        })) as RuntimeOrm;
+
+        const created = await orm.user.create({
+          data: {
+            email: "runtime@farminglabs.dev",
+            name: "Runtime",
+          },
+          select: {
+            id: true,
+            email: true,
+          },
+        });
+
+        expect(created).toEqual({
+          id: expect.any(String),
+          email: "runtime@farminglabs.dev",
+        });
+      } finally {
+        await db.destroy();
+        await rm(directory, { recursive: true, force: true });
+      }
+    },
+    LOCAL_TIMEOUT_MS,
+  );
+
   for (const target of kyselyTargets) {
     if (!shouldRunTarget(target)) continue;
 
