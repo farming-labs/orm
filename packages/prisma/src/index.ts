@@ -158,7 +158,13 @@ function buildUpdateData(model: ManifestModel, input: Partial<Record<string, unk
   return Object.fromEntries(
     Object.entries(input)
       .filter(([, value]) => value !== undefined)
-      .map(([fieldName, value]) => [fieldName, encodeScalarValue(model.fields[fieldName]!, value)]),
+      .map(([fieldName, value]) => {
+        const field = model.fields[fieldName];
+        if (!field) {
+          throw new Error(`Unknown field "${fieldName}" on model "${model.name}".`);
+        }
+        return [fieldName, encodeScalarValue(field, value)];
+      }),
   );
 }
 

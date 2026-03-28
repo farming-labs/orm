@@ -243,6 +243,23 @@ const orm = createOrm({
 });
 ```
 
+### Or detect the runtime automatically
+
+If you already have the raw runtime instance and want the helper to build the
+driver for you, use `@farming-labs/orm-runtime`:
+
+```ts title="auto-runtime.ts"
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const orm = createOrmFromRuntime({
+  schema: authSchema,
+  client: prisma,
+});
+```
+
+That path is especially useful for higher-level integrations that want to
+accept a raw Prisma, Drizzle, Kysely, SQL, MongoDB, or Mongoose runtime.
+
 ## 5. Use the client
 
 ```ts title="user-query.ts"

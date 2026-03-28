@@ -28,6 +28,8 @@ layer while the app keeps its own database stack.
   Runtime driver for the native `mongodb` client
 - `@farming-labs/orm-mongoose`
   Runtime driver for Mongoose
+- `@farming-labs/orm-runtime`
+  Auto-detect helpers that build a driver or ORM from a raw runtime instance
 
 ## What works today
 
@@ -210,6 +212,34 @@ const detected = detectDatabaseRuntime(
 
 detected?.kind; // "sql"
 detected?.dialect; // "postgres"
+```
+
+Or let the helper package detect the runtime and build the ORM for you:
+
+```ts
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+import { Pool } from "pg";
+
+const orm = createOrmFromRuntime({
+  schema,
+  client: new Pool({
+    connectionString: process.env.DATABASE_URL,
+  }),
+});
+
+orm.$driver.kind; // "sql"
+orm.$driver.dialect; // "postgres"
+```
+
+If you want only the driver, use the lower-level helper:
+
+```ts
+import { createDriverFromRuntime } from "@farming-labs/orm-runtime";
+
+const driver = createDriverFromRuntime({
+  schema,
+  client: prisma,
+});
 ```
 
 ## Local development

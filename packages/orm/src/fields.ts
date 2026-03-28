@@ -75,7 +75,7 @@ export class FieldBuilder<
   constructor(readonly config: FieldConfig<Kind, Nullable>) {}
 
   unique() {
-    return cloneField({
+    return cloneField<Kind, Nullable, Value>({
       ...this.config,
       unique: true,
     });
@@ -88,36 +88,36 @@ export class FieldBuilder<
     });
   }
 
-  default(value: unknown) {
-    return cloneField({
+  default(value: Nullable extends true ? Value | null : Value) {
+    return cloneField<Kind, Nullable, Value>({
       ...this.config,
       defaultValue: value,
     });
   }
 
   defaultNow() {
-    return cloneField({
+    return cloneField<Kind, Nullable, Value>({
       ...this.config,
       generated: "now",
     });
   }
 
   references(reference: FieldReference) {
-    return cloneField({
+    return cloneField<Kind, Nullable, Value>({
       ...this.config,
       references: reference,
     });
   }
 
   map(name: string) {
-    return cloneField({
+    return cloneField<Kind, Nullable, Value>({
       ...this.config,
       mappedName: name,
     });
   }
 
   describe(description: string) {
-    return cloneField({
+    return cloneField<Kind, Nullable, Value>({
       ...this.config,
       description,
     });

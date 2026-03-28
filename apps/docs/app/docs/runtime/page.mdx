@@ -77,6 +77,28 @@ detected?.source; // "client" | "db" | "connection" | "pool" | "database"
 detected?.client; // the same instance you passed in
 ```
 
+If you want the same fallback behavior in one step, use
+`@farming-labs/orm-runtime`:
+
+```ts title="create-orm-from-runtime.ts"
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const orm = createOrmFromRuntime({
+  schema: authSchema,
+  client: prisma,
+});
+
+orm.$driver.kind; // "prisma"
+orm.$driver.client; // the same PrismaClient instance
+```
+
+That helper keeps `createOrm(...)` itself explicit while giving higher-level
+integrations a clean “accept the raw client and normalize it” entrypoint.
+
+There is also a dedicated guide for this flow:
+
+- [Runtime Helpers](/docs/runtime/runtime-helpers)
+
 The runtime also understands declared model-level compound unique keys. If a
 schema says `account(provider, accountId)` is unique, live drivers can use that
 same shape in `findUnique(...)` and `upsert(...)`.
@@ -148,6 +170,8 @@ It also means unique lookups can be:
 - `createPgClientDriver(...)` from `@farming-labs/orm-sql`
 - `createMongoDriver(...)` from `@farming-labs/orm-mongo`
 - `createMongooseDriver(...)` from `@farming-labs/orm-mongoose`
+- `createOrmFromRuntime(...)` from `@farming-labs/orm-runtime`
+- `createDriverFromRuntime(...)` from `@farming-labs/orm-runtime`
 
 ## Why this matters
 
@@ -202,6 +226,7 @@ pnpm test:local:mongodb
 
 ## Continue
 
+- [Runtime Helpers](/docs/runtime/runtime-helpers)
 - [Query API](/docs/runtime/query-api)
 - [Memory driver](/docs/runtime/memory-driver)
 - [Schema relations](/docs/schema/relations)

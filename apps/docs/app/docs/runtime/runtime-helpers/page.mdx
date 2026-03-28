@@ -1,0 +1,301 @@
+---
+title: "Runtime Helpers"
+description: "Create a driver or ORM directly from a raw Prisma, Drizzle, Kysely, SQL, MongoDB, or Mongoose runtime."
+order: 2
+icon: harddrive
+---
+
+# Runtime Helpers
+
+`@farming-labs/orm-runtime` is the convenience layer on top of
+`createOrm(...)`.
+
+It accepts a raw runtime instance, detects what it is, creates the matching
+driver, and then builds the ORM for you.
+
+## Why it exists
+
+The core `createOrm(...)` API stays explicit:
+
+```ts
+const orm = createOrm({
+  schema,
+  driver: createPrismaDriver({ client: prisma }),
+});
+```
+
+The runtime helper is for higher-level integrations that want to accept the raw
+client directly:
+
+```ts
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const orm = createOrmFromRuntime({
+  schema,
+  client: prisma,
+});
+```
+
+That is especially useful when another library wants to accept:
+
+- a `PrismaClient`
+- a Drizzle database
+- a Kysely instance
+- a `pg` pool/client
+- a `mysql2` pool/connection
+- a Mongo `Db` or `MongoClient`
+- a Mongoose connection
+
+## `createOrmFromRuntime(...)`
+
+This is the highest-level helper.
+
+```ts title="create-orm-from-runtime.ts"
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const orm = createOrmFromRuntime({
+  schema,
+  client: prisma,
+});
+```
+
+It does four things:
+
+1. detects the runtime with the same logic as `detectDatabaseRuntime(...)`
+2. creates the right Farming ORM driver
+3. calls `createOrm(...)`
+4. returns the normal typed ORM client
+
+## `createDriverFromRuntime(...)`
+
+If you want the driver but still want to call `createOrm(...)` yourself, use
+the lower-level helper:
+
+```ts title="create-driver-from-runtime.ts"
+import { createOrm } from "@farming-labs/orm";
+import { createDriverFromRuntime } from "@farming-labs/orm-runtime";
+
+const driver = createDriverFromRuntime({
+  schema,
+  client: prisma,
+});
+
+const orm = createOrm({
+  schema,
+  driver,
+});
+```
+
+## Supported runtime inputs
+
+`@farming-labs/orm-runtime` currently supports:
+
+- Prisma client
+- Drizzle database
+- Kysely instance
+- SQLite database
+- `pg` Pool
+- `pg` Client
+- `mysql2` Pool
+- `mysql2` Connection
+- Mongo `Db`
+- Mongo `MongoClient`
+- Mongoose connection
+
+## Examples
+
+### Prisma
+
+```ts title="prisma.ts"
+import { PrismaClient } from "@prisma/client";
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const prisma = new PrismaClient();
+
+const orm = createOrmFromRuntime({
+  schema,
+  client: prisma,
+});
+```
+
+### Direct SQL
+
+```ts title="pg.ts"
+import { Pool } from "pg";
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const orm = createOrmFromRuntime({
+  schema,
+  client: new Pool({
+    connectionString: process.env.DATABASE_URL,
+  }),
+});
+```
+
+### Drizzle
+
+For PostgreSQL and MySQL, Drizzle usually carries enough runtime information on
+its own.
+
+```ts title="drizzle.ts"
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+const db = drizzle(pool);
+
+const orm = createOrmFromRuntime({
+  schema,
+  client: db,
+});
+```
+
+For Drizzle SQLite, pass the raw client explicitly too:
+
+```ts title="drizzle-sqlite.ts"
+import { DatabaseSync } from "node:sqlite";
+import { drizzle } from "drizzle-orm/sqlite-proxy";
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const sqlite = new DatabaseSync("app.db");
+const db = drizzle(async (sql, params, method) => {
+  const statement = sqlite.prepare(sql);
+  if (method === "run") {
+    statement.run(...params);
+    return { rows: [] };
+  }
+  return { rows: statement.all(...params) as Record<string, unknown>[] };
+});
+
+const orm = createOrmFromRuntime({
+  schema,
+  client: db,
+  drizzle: {
+    client: sqlite,
+  },
+});
+```
+
+### Kysely
+
+```ts title="kysely.ts"
+import { Kysely, PostgresDialect } from "kysely";
+import { Pool } from "pg";
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const db = new Kysely({
+  dialect: new PostgresDialect({
+    pool: new Pool({
+      connectionString: process.env.DATABASE_URL,
+    }),
+  }),
+});
+
+const orm = createOrmFromRuntime({
+  schema,
+  client: db,
+});
+```
+
+### MongoDB
+
+If you pass a `Db`, the helper can use it directly:
+
+```ts title="mongo-db.ts"
+const db = client.db("app");
+
+const orm = createOrmFromRuntime({
+  schema,
+  client: db,
+});
+```
+
+If you pass a `MongoClient`, also provide `databaseName`:
+
+```ts title="mongo-client.ts"
+import { MongoClient } from "mongodb";
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const client = new MongoClient(process.env.MONGODB_URL!);
+await client.connect();
+
+const orm = createOrmFromRuntime({
+  schema,
+  client,
+  databaseName: "app",
+});
+```
+
+### Mongoose
+
+If you pass a Mongoose connection, the helper will infer models by collection
+name from the schema manifest.
+
+```ts title="mongoose.ts"
+import mongoose from "mongoose";
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const connection = await mongoose.createConnection(process.env.MONGODB_URL!).asPromise();
+
+const orm = createOrmFromRuntime({
+  schema,
+  client: connection,
+});
+```
+
+If you want to control the exact models or transforms, pass overrides:
+
+```ts title="mongoose-overrides.ts"
+const orm = createOrmFromRuntime({
+  schema,
+  client: connection,
+  mongoose: {
+    models: {
+      user: UserModel,
+      profile: ProfileModel,
+      session: SessionModel,
+    },
+  },
+});
+```
+
+## Relationship with `detectDatabaseRuntime(...)`
+
+These helpers build directly on top of runtime detection.
+
+```ts title="runtime-detection.ts"
+import { detectDatabaseRuntime } from "@farming-labs/orm";
+
+const detected = detectDatabaseRuntime(prisma);
+
+detected?.kind; // "prisma"
+detected?.client; // the same instance
+```
+
+Use `detectDatabaseRuntime(...)` when you only want inspection.
+
+Use `createDriverFromRuntime(...)` or `createOrmFromRuntime(...)` when you want
+to execute queries.
+
+## Real local verification
+
+The repo verifies this helper against live local runtimes, not a fake adapter
+layer.
+
+That matrix includes:
+
+- direct SQL on SQLite, PostgreSQL, and MySQL
+- Drizzle on SQLite, PostgreSQL, and MySQL
+- Kysely on SQLite, PostgreSQL, and MySQL
+- Prisma on SQLite, PostgreSQL, and MySQL
+- MongoDB
+- Mongoose
+
+## Continue
+
+- [Runtime](/docs/runtime)
+- [Query API](/docs/runtime/query-api)
+- [Getting Started](/docs/getting-started)

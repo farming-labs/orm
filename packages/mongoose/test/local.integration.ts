@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import mongoose from "mongoose";
 import { createOrm, detectDatabaseRuntime } from "@farming-labs/orm";
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
 import { createMongooseDriver } from "../src";
 import type { MongooseModelLike } from "../src";
 import {
@@ -221,6 +222,48 @@ describe("mongoose local integration", () => {
         });
         expect(Object.isFrozen(orm.$driver)).toBe(true);
         expect(Object.isFrozen(orm.$driver.capabilities)).toBe(true);
+      } finally {
+        await close();
+      }
+    },
+    LOCAL_TIMEOUT_MS,
+  );
+
+  it(
+    "creates an ORM directly from a live Mongoose connection",
+    async () => {
+      const { connection, close } = await createLocalMongooseOrm();
+
+      try {
+        const orm = createOrmFromRuntime({
+          schema,
+          client: connection,
+        }) as RuntimeOrm;
+
+        const created = await orm.user.create({
+          data: {
+            email: "auto@farminglabs.dev",
+            name: "Auto",
+          },
+          select: {
+            id: true,
+            email: true,
+          },
+        });
+
+        const count = await orm.user.count({
+          where: {
+            email: "auto@farminglabs.dev",
+          },
+        });
+
+        expect(orm.$driver.kind).toBe("mongoose");
+        expect((orm.$driver.client as { connection?: unknown }).connection).toBe(connection);
+        expect(created).toEqual({
+          id: expect.any(String),
+          email: "auto@farminglabs.dev",
+        });
+        expect(count).toBe(1);
       } finally {
         await close();
       }

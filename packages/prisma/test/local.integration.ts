@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import mysql from "mysql2/promise";
 import { Pool } from "pg";
 import { createOrm, detectDatabaseRuntime } from "@farming-labs/orm";
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
 import { createPrismaDriver } from "../src";
 import {
   assertEnumBigintAndDecimalQueries,
@@ -420,6 +421,48 @@ for (const [target, factory] of [
     );
 
     it(
+      "creates an ORM directly from the live Prisma client",
+      async () => {
+        const { prisma, close } = await factory();
+
+        try {
+          const orm = createOrmFromRuntime({
+            schema,
+            client: prisma,
+          }) as RuntimeOrm;
+
+          const created = await orm.user.create({
+            data: {
+              email: "auto@farminglabs.dev",
+              name: "Auto",
+            },
+            select: {
+              id: true,
+              email: true,
+            },
+          });
+
+          const count = await orm.user.count({
+            where: {
+              email: "auto@farminglabs.dev",
+            },
+          });
+
+          expect(orm.$driver.kind).toBe("prisma");
+          expect(orm.$driver.client).toBe(prisma);
+          expect(created).toEqual({
+            id: expect.any(String),
+            email: "auto@farminglabs.dev",
+          });
+          expect(count).toBe(1);
+        } finally {
+          await close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
+
+    it(
       "keeps read-only driver capabilities inside a real Prisma transaction",
       async () => {
         const { orm, close } = await factory();
@@ -433,6 +476,31 @@ for (const [target, factory] of [
             expect(Object.isFrozen(tx.$driver)).toBe(true);
             expect(Object.isFrozen(tx.$driver.capabilities)).toBe(true);
           });
+        } finally {
+          await close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
+
+    it(
+      "throws a friendly error for unknown update fields instead of crashing",
+      async () => {
+        const { orm, close } = await factory();
+        try {
+          await seedAuthData(orm);
+
+          await expect(
+            orm.user.update({
+              where: {
+                email: "ada@farminglabs.dev",
+              },
+              data: {
+                name: "Ada Lovelace",
+                notInSchema: "nope",
+              } as any,
+            }),
+          ).rejects.toThrow('Unknown field "notInSchema" on model "user".');
         } finally {
           await close();
         }

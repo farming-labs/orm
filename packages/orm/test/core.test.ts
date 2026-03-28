@@ -9,6 +9,7 @@ import {
   datetime,
   defineSchema,
   enumeration,
+  type FieldOutput,
   hasMany,
   hasOne,
   id,
@@ -24,6 +25,18 @@ import {
   string,
   validateUniqueLookupUpdateData,
 } from "../src";
+
+const chainedEnumField = enumeration(["free", "pro"])
+  .default("free")
+  .map("tier")
+  .unique()
+  .describe("Subscription tier");
+
+const acceptsChainedEnum = (value: FieldOutput<typeof chainedEnumField>) => value;
+acceptsChainedEnum("free");
+acceptsChainedEnum("pro");
+// @ts-expect-error chained enumeration() builders should preserve the literal union
+acceptsChainedEnum("enterprise");
 
 const schema = defineSchema({
   user: model({
@@ -197,6 +210,22 @@ describe("@farming-labs/orm core", () => {
     expect(mysqlSql).toContain("`metadata` json");
     expect(mysqlSql).toContain(
       "create unique index `members_userid_organizationid_unique` on `members`(`userId`, `organizationId`);",
+    );
+  });
+
+  it("throws for invalid Prisma enum defaults instead of rendering @default(undefined)", () => {
+    const invalidSchema = defineSchema({
+      user: model({
+        table: "users",
+        fields: {
+          id: id(),
+          tier: enumeration(["free", "pro"]).default("enterprise" as any),
+        },
+      }),
+    });
+
+    expect(() => renderPrismaSchema(invalidSchema, { provider: "postgresql" })).toThrow(
+      'Invalid default value "enterprise" for enum field "user.tier". Expected one of: free, pro.',
     );
   });
 

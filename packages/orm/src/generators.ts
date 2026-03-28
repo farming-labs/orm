@@ -81,6 +81,19 @@ function prismaEnumValueIdentifiers(values: readonly string[]) {
   });
 }
 
+function prismaEnumDefaultIdentifier(field: ManifestField, model: ManifestModel) {
+  const enumIdentifiers = prismaEnumValueIdentifiers(field.enumValues ?? []);
+  const identifier = enumIdentifiers[String(field.defaultValue)];
+
+  if (!identifier) {
+    throw new Error(
+      `Invalid default value ${JSON.stringify(field.defaultValue)} for enum field "${model.name}.${field.name}". Expected one of: ${(field.enumValues ?? []).join(", ")}.`,
+    );
+  }
+
+  return identifier;
+}
+
 function sqlEnumCheck(field: ManifestField, dialect: SqlGenerationOptions["dialect"]) {
   if (dialect === "mysql" || field.kind !== "enum" || !field.enumValues?.length) {
     return null;
@@ -450,8 +463,7 @@ export function renderPrismaSchema(
         field.kind !== "json"
       ) {
         if (field.kind === "enum") {
-          const enumIdentifiers = prismaEnumValueIdentifiers(field.enumValues ?? []);
-          modifiers.push(`@default(${enumIdentifiers[String(field.defaultValue)]})`);
+          modifiers.push(`@default(${prismaEnumDefaultIdentifier(field, model)})`);
         } else if (field.kind === "decimal") {
           modifiers.push(`@default(${String(field.defaultValue)})`);
         } else {

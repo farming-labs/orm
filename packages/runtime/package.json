@@ -1,0 +1,38 @@
+{
+  "name": "@farming-labs/orm-runtime",
+  "version": "0.0.18",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsx ./scripts/build.ts",
+    "test": "vitest run --config vitest.local.config.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@farming-labs/orm": "workspace:*",
+    "@farming-labs/orm-drizzle": "workspace:*",
+    "@farming-labs/orm-kysely": "workspace:*",
+    "@farming-labs/orm-mongo": "workspace:*",
+    "@farming-labs/orm-mongoose": "workspace:*",
+    "@farming-labs/orm-prisma": "workspace:*",
+    "@farming-labs/orm-sql": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.4.0"
+  }
+}
