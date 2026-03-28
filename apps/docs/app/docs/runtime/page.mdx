@@ -95,6 +95,16 @@ orm.$driver.client; // the same PrismaClient instance
 That helper keeps `createOrm(...)` itself explicit while giving higher-level
 integrations a clean “accept the raw client and normalize it” entrypoint.
 
+The same package also exposes runtime-aware setup helpers:
+
+- `pushSchema(...)`
+- `applySchema(...)`
+- `bootstrapDatabase(...)`
+
+Those helpers use the same runtime detection layer to prepare direct SQL,
+Prisma, MongoDB, Mongoose, Drizzle, and Kysely runtimes without inventing a
+separate config surface.
+
 There is also a dedicated guide for this flow:
 
 - [Runtime Helpers](/docs/runtime/runtime-helpers)
@@ -172,6 +182,9 @@ It also means unique lookups can be:
 - `createMongooseDriver(...)` from `@farming-labs/orm-mongoose`
 - `createOrmFromRuntime(...)` from `@farming-labs/orm-runtime`
 - `createDriverFromRuntime(...)` from `@farming-labs/orm-runtime`
+- `pushSchema(...)` from `@farming-labs/orm-runtime`
+- `applySchema(...)` from `@farming-labs/orm-runtime`
+- `bootstrapDatabase(...)` from `@farming-labs/orm-runtime`
 
 ## Why this matters
 

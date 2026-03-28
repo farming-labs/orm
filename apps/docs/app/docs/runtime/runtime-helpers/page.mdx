@@ -66,6 +66,89 @@ It does four things:
 3. calls `createOrm(...)`
 4. returns the normal typed ORM client
 
+## `pushSchema(...)`, `applySchema(...)`, and `bootstrapDatabase(...)`
+
+The same package also owns the runtime-aware setup flow.
+
+```ts title="bootstrap-database.ts"
+import { bootstrapDatabase } from "@farming-labs/orm-runtime";
+
+const orm = await bootstrapDatabase({
+  schema,
+  client: prisma,
+});
+```
+
+Use them like this:
+
+- `pushSchema(...)`
+  Ensures the current schema is pushed into the live runtime.
+- `applySchema(...)`
+  Applies the current schema through the same runtime-aware setup path.
+- `bootstrapDatabase(...)`
+  Pushes the schema, then returns `createOrmFromRuntime(...)`.
+
+That means one package now covers:
+
+1. detect the runtime
+2. create the driver
+3. create the ORM
+4. prepare the live database or collections
+
+### SQL-family runtimes
+
+For direct SQL, Drizzle, and Kysely, the helper renders safe SQL DDL and applies
+it to the detected dialect.
+
+```ts title="push-sql-schema.ts"
+import { pushSchema } from "@farming-labs/orm-runtime";
+
+await pushSchema({
+  schema,
+  client: pool,
+});
+```
+
+### Prisma
+
+For Prisma, the helper renders a temporary Prisma schema and runs `prisma db
+push --skip-generate` under the hood.
+
+```ts title="push-prisma-schema.ts"
+import { pushSchema } from "@farming-labs/orm-runtime";
+
+await pushSchema({
+  schema,
+  client: prisma,
+});
+```
+
+If your Prisma client does not expose a usable datasource URL, pass one
+explicitly:
+
+```ts title="push-prisma-schema-explicit-url.ts"
+await pushSchema({
+  schema,
+  client: prisma,
+  prisma: {
+    databaseUrl: process.env.DATABASE_URL!,
+  },
+});
+```
+
+### MongoDB and Mongoose
+
+For MongoDB and Mongoose, the helper creates the declared collections and
+ensures unique/index metadata from the schema manifest.
+
+```ts title="push-mongo-schema.ts"
+await pushSchema({
+  schema,
+  client,
+  databaseName: "app",
+});
+```
+
 ## `createDriverFromRuntime(...)`
 
 If you want the driver but still want to call `createOrm(...)` yourself, use
@@ -279,6 +362,9 @@ Use `detectDatabaseRuntime(...)` when you only want inspection.
 
 Use `createDriverFromRuntime(...)` or `createOrmFromRuntime(...)` when you want
 to execute queries.
+
+Use `pushSchema(...)`, `applySchema(...)`, or `bootstrapDatabase(...)` when you
+also want the runtime helper package to prepare the live database.
 
 ## Real local verification
 

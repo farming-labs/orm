@@ -4,7 +4,13 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import { createManifest, defineSchema, id, model, renderSafeSql, string } from "@farming-labs/orm";
-import { createDriverFromRuntime, createOrmFromRuntime } from "../src";
+import {
+  applySchema,
+  bootstrapDatabase,
+  createDriverFromRuntime,
+  createOrmFromRuntime,
+  pushSchema,
+} from "../src";
 
 const schema = defineSchema({
   user: model({
@@ -67,6 +73,55 @@ describe("runtime helper local integration", () => {
         email: "ada@farminglabs.dev",
         name: "Ada",
       });
+    } finally {
+      database.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("pushes, applies, and bootstraps schema against a real SQLite database", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "farm-orm-runtime-bootstrap-"));
+    const databasePath = path.join(directory, "bootstrap.sqlite");
+    const database = new DatabaseSync(databasePath);
+
+    try {
+      await pushSchema({
+        schema,
+        client: database,
+      });
+      await applySchema({
+        schema,
+        client: database,
+      });
+
+      const tables = database
+        .prepare("select name from sqlite_master where type = 'table' and name = ?")
+        .all("users") as Array<{ name: string }>;
+      expect(tables).toEqual([{ name: "users" }]);
+
+      const orm = await bootstrapDatabase({
+        schema,
+        client: database,
+      });
+
+      const created = await orm.user.create({
+        data: {
+          email: "bootstrap@farminglabs.dev",
+          name: "Bootstrap",
+        },
+        select: {
+          id: true,
+          email: true,
+        },
+      });
+
+      expect(created).toEqual({
+        id: expect.any(String),
+        email: "bootstrap@farminglabs.dev",
+      });
+      expect(renderSafeSql(schema, { dialect: "sqlite" })).toContain(
+        'create table if not exists "users"',
+      );
     } finally {
       database.close();
       await rm(directory, { recursive: true, force: true });

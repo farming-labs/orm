@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 import mysql from "mysql2/promise";
 import { Pool } from "pg";
 import { createOrm, detectDatabaseRuntime, renderSafeSql } from "@farming-labs/orm";
-import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+import { bootstrapDatabase, createOrmFromRuntime, pushSchema } from "@farming-labs/orm-runtime";
 import { createDrizzleDriver, type DrizzleDialect } from "../src";
 import {
   assertEnumBigintAndDecimalQueries,
@@ -321,6 +321,76 @@ const runtimeFactories: Record<DrizzleTarget, RuntimeFactory> = {
 };
 
 describe("local Drizzle integration", () => {
+  it(
+    "sqlite local Drizzle integration > pushes and bootstraps schema through @farming-labs/orm-runtime",
+    async () => {
+      const directory = await mkdtemp(path.join(tmpdir(), "farm-orm-drizzle-runtime-"));
+      const databasePath = path.join(directory, "runtime.db");
+      const client = new DatabaseSync(databasePath, { readBigInts: true });
+
+      const db = drizzleSqlite(async (sql, params, method) => {
+        const statement = client.prepare(sql);
+        (
+          statement as typeof statement & {
+            setReadBigInts?: (enabled: boolean) => void;
+          }
+        ).setReadBigInts?.(true);
+
+        if (method === "run") {
+          statement.run(...params);
+          return { rows: [] };
+        }
+
+        if (method === "get") {
+          const row = statement.get(...params) as Record<string, unknown> | undefined;
+          return { rows: row ? [row] : [] };
+        }
+
+        return {
+          rows: statement.all(...params) as Record<string, unknown>[],
+        };
+      });
+
+      try {
+        await pushSchema({
+          schema,
+          client: db,
+          drizzle: {
+            client,
+          },
+        });
+
+        const orm = (await bootstrapDatabase({
+          schema,
+          client: db,
+          drizzle: {
+            client,
+          },
+        })) as RuntimeOrm;
+
+        const created = await orm.user.create({
+          data: {
+            email: "runtime@farminglabs.dev",
+            name: "Runtime",
+          },
+          select: {
+            id: true,
+            email: true,
+          },
+        });
+
+        expect(created).toEqual({
+          id: expect.any(String),
+          email: "runtime@farminglabs.dev",
+        });
+      } finally {
+        client.close();
+        await rm(directory, { recursive: true, force: true });
+      }
+    },
+    LOCAL_TIMEOUT_MS,
+  );
+
   for (const target of drizzleTargets) {
     if (!shouldRunTarget(target)) continue;
 

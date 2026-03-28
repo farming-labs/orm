@@ -242,6 +242,26 @@ const driver = createDriverFromRuntime({
 });
 ```
 
+The same package can also prepare the live database:
+
+```ts
+import { bootstrapDatabase, pushSchema } from "@farming-labs/orm-runtime";
+
+await pushSchema({
+  schema,
+  client: prisma,
+});
+
+const orm = await bootstrapDatabase({
+  schema,
+  client: prisma,
+});
+```
+
+For SQL-family runtimes it applies generated DDL. For Prisma it runs a temporary
+`prisma db push --skip-generate`. For MongoDB and Mongoose it ensures
+collections and indexes from the schema manifest.
+
 ## Local development
 
 ```bash
