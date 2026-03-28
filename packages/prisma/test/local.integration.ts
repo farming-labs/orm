@@ -484,6 +484,31 @@ for (const [target, factory] of [
     );
 
     it(
+      "throws a friendly error for unknown update fields instead of crashing",
+      async () => {
+        const { orm, close } = await factory();
+        try {
+          await seedAuthData(orm);
+
+          await expect(
+            orm.user.update({
+              where: {
+                email: "ada@farminglabs.dev",
+              },
+              data: {
+                name: "Ada Lovelace",
+                notInSchema: "nope",
+              } as any,
+            }),
+          ).rejects.toThrow('Unknown field "notInSchema" on model "user".');
+        } finally {
+          await close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
+
+    it(
       "supports one-to-one and one-to-many reads against a real local database",
       async () => {
         const { orm, close } = await factory();
