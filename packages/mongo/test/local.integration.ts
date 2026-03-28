@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { MongoClient } from "mongodb";
 import { createOrm, detectDatabaseRuntime } from "@farming-labs/orm";
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
 import { createMongoDriver } from "../src";
 import type { RuntimeOrm } from "../../mongoose/test/support/auth";
-import { createOrmFromRuntime } from "../../runtime/src";
 import {
   assertEnumBigintAndDecimalQueries,
   assertBelongsToAndManyToManyQueries,

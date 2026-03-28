@@ -32,7 +32,7 @@ import {
   createSqliteDriver,
 } from "../src";
 import type { MysqlConnectionLike, MysqlPoolLike } from "../src";
-import { createOrmFromRuntime } from "../../runtime/src";
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
 
 const schema = defineSchema({
   user: model({

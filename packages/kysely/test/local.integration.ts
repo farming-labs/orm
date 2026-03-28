@@ -15,8 +15,8 @@ import {
   type SqliteStatement,
 } from "kysely";
 import { createOrm, detectDatabaseRuntime, renderSafeSql } from "@farming-labs/orm";
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
 import { createKyselyDriver, type KyselyDatabaseLike, type KyselyDialect } from "../src";
-import { createOrmFromRuntime } from "../../runtime/src";
 import {
   assertEnumBigintAndDecimalQueries,
   assertBelongsToAndManyToManyQueries,
