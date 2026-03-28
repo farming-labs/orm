@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import mongoose from "mongoose";
 import { createOrm, detectDatabaseRuntime } from "@farming-labs/orm";
-import { bootstrapDatabase, createOrmFromRuntime, pushSchema } from "@farming-labs/orm-runtime";
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+import { bootstrapDatabase, pushSchema } from "@farming-labs/orm-runtime/setup";
 import { createMongooseDriver } from "../src";
 import type { MongooseModelLike } from "../src";
 import {
@@ -296,10 +297,10 @@ describe("mongoose local integration", () => {
       const { connection, close } = await createLocalMongooseOrm();
 
       try {
-        const orm = createOrmFromRuntime({
+        const orm = (await createOrmFromRuntime({
           schema,
           client: connection,
-        }) as RuntimeOrm;
+        })) as RuntimeOrm;
 
         const created = await orm.user.create({
           data: {

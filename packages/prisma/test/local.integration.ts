@@ -8,7 +8,8 @@ import { describe, expect, it } from "vitest";
 import mysql from "mysql2/promise";
 import { Pool } from "pg";
 import { createOrm, detectDatabaseRuntime } from "@farming-labs/orm";
-import { bootstrapDatabase, createOrmFromRuntime, pushSchema } from "@farming-labs/orm-runtime";
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+import { bootstrapDatabase, pushSchema } from "@farming-labs/orm-runtime/setup";
 import { createPrismaDriver } from "../src";
 import {
   assertEnumBigintAndDecimalQueries,
@@ -427,10 +428,10 @@ for (const [target, factory] of [
         const { prisma, close } = await factory();
 
         try {
-          const orm = createOrmFromRuntime({
+          const orm = (await createOrmFromRuntime({
             schema,
             client: prisma,
-          }) as RuntimeOrm;
+          })) as RuntimeOrm;
 
           const created = await orm.user.create({
             data: {

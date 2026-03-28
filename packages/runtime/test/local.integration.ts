@@ -4,13 +4,8 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import { createManifest, defineSchema, id, model, renderSafeSql, string } from "@farming-labs/orm";
-import {
-  applySchema,
-  bootstrapDatabase,
-  createDriverFromRuntime,
-  createOrmFromRuntime,
-  pushSchema,
-} from "../src";
+import { createDriverFromRuntime, createOrmFromRuntime } from "../src";
+import { applySchema, bootstrapDatabase, pushSchema } from "../src/setup";
 
 const schema = defineSchema({
   user: model({
@@ -24,6 +19,18 @@ const schema = defineSchema({
 });
 
 describe("runtime helper local integration", () => {
+  it("keeps setup helpers on the dedicated setup subpath", async () => {
+    const core = await import("../src");
+    const setup = await import("../src/setup");
+
+    expect("applySchema" in core).toBe(false);
+    expect("pushSchema" in core).toBe(false);
+    expect("bootstrapDatabase" in core).toBe(false);
+    expect(typeof setup.applySchema).toBe("function");
+    expect(typeof setup.pushSchema).toBe("function");
+    expect(typeof setup.bootstrapDatabase).toBe("function");
+  });
+
   it("creates a SQL driver and ORM from a real SQLite database", async () => {
     const directory = await mkdtemp(path.join(tmpdir(), "farm-orm-runtime-"));
     const databasePath = path.join(directory, "runtime.sqlite");
@@ -32,11 +39,11 @@ describe("runtime helper local integration", () => {
     try {
       database.exec(renderSafeSql(schema, { dialect: "sqlite" }));
 
-      const driver = createDriverFromRuntime({
+      const driver = await createDriverFromRuntime({
         schema,
         client: database,
       });
-      const orm = createOrmFromRuntime({
+      const orm = await createOrmFromRuntime({
         schema,
         client: database,
       });

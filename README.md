@@ -220,7 +220,7 @@ Or let the helper package detect the runtime and build the ORM for you:
 import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
 import { Pool } from "pg";
 
-const orm = createOrmFromRuntime({
+const orm = await createOrmFromRuntime({
   schema,
   client: new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -236,16 +236,16 @@ If you want only the driver, use the lower-level helper:
 ```ts
 import { createDriverFromRuntime } from "@farming-labs/orm-runtime";
 
-const driver = createDriverFromRuntime({
+const driver = await createDriverFromRuntime({
   schema,
   client: prisma,
 });
 ```
 
-The same package can also prepare the live database:
+For runtime-aware setup and schema bootstrap, use the Node-only setup path:
 
 ```ts
-import { bootstrapDatabase, pushSchema } from "@farming-labs/orm-runtime";
+import { bootstrapDatabase, pushSchema } from "@farming-labs/orm-runtime/setup";
 
 await pushSchema({
   schema,

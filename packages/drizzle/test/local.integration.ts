@@ -9,7 +9,8 @@ import { describe, expect, it } from "vitest";
 import mysql from "mysql2/promise";
 import { Pool } from "pg";
 import { createOrm, detectDatabaseRuntime, renderSafeSql } from "@farming-labs/orm";
-import { bootstrapDatabase, createOrmFromRuntime, pushSchema } from "@farming-labs/orm-runtime";
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+import { bootstrapDatabase, pushSchema } from "@farming-labs/orm-runtime/setup";
 import { createDrizzleDriver, type DrizzleDialect } from "../src";
 import {
   assertEnumBigintAndDecimalQueries,
@@ -468,13 +469,13 @@ describe("local Drizzle integration", () => {
         const runtime = await runtimeFactories[target]();
 
         try {
-          const orm = createOrmFromRuntime({
+          const orm = (await createOrmFromRuntime({
             schema,
             client: runtime.driverClient,
             drizzle: {
               client: runtime.rawClient,
             },
-          }) as RuntimeOrm;
+          })) as RuntimeOrm;
 
           const created = await orm.user.create({
             data: {

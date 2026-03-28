@@ -7,7 +7,7 @@ icon: harddrive
 
 # Runtime Helpers
 
-`@farming-labs/orm-runtime` is the convenience layer on top of
+`@farming-labs/orm-runtime` is the light, lazy convenience layer on top of
 `createOrm(...)`.
 
 It accepts a raw runtime instance, detects what it is, creates the matching
@@ -30,7 +30,7 @@ client directly:
 ```ts
 import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
 
-const orm = createOrmFromRuntime({
+const orm = await createOrmFromRuntime({
   schema,
   client: prisma,
 });
@@ -53,7 +53,7 @@ This is the highest-level helper.
 ```ts title="create-orm-from-runtime.ts"
 import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
 
-const orm = createOrmFromRuntime({
+const orm = await createOrmFromRuntime({
   schema,
   client: prisma,
 });
@@ -68,10 +68,10 @@ It does four things:
 
 ## `pushSchema(...)`, `applySchema(...)`, and `bootstrapDatabase(...)`
 
-The same package also owns the runtime-aware setup flow.
+The runtime-aware setup flow lives on the Node-only setup subpath.
 
 ```ts title="bootstrap-database.ts"
-import { bootstrapDatabase } from "@farming-labs/orm-runtime";
+import { bootstrapDatabase } from "@farming-labs/orm-runtime/setup";
 
 const orm = await bootstrapDatabase({
   schema,
@@ -101,7 +101,7 @@ For direct SQL, Drizzle, and Kysely, the helper renders safe SQL DDL and applies
 it to the detected dialect.
 
 ```ts title="push-sql-schema.ts"
-import { pushSchema } from "@farming-labs/orm-runtime";
+import { pushSchema } from "@farming-labs/orm-runtime/setup";
 
 await pushSchema({
   schema,
@@ -115,7 +115,7 @@ For Prisma, the helper renders a temporary Prisma schema and runs `prisma db
 push --skip-generate` under the hood.
 
 ```ts title="push-prisma-schema.ts"
-import { pushSchema } from "@farming-labs/orm-runtime";
+import { pushSchema } from "@farming-labs/orm-runtime/setup";
 
 await pushSchema({
   schema,
@@ -158,7 +158,7 @@ the lower-level helper:
 import { createOrm } from "@farming-labs/orm";
 import { createDriverFromRuntime } from "@farming-labs/orm-runtime";
 
-const driver = createDriverFromRuntime({
+const driver = await createDriverFromRuntime({
   schema,
   client: prisma,
 });
@@ -195,7 +195,7 @@ import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
 
 const prisma = new PrismaClient();
 
-const orm = createOrmFromRuntime({
+const orm = await createOrmFromRuntime({
   schema,
   client: prisma,
 });
@@ -207,7 +207,7 @@ const orm = createOrmFromRuntime({
 import { Pool } from "pg";
 import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
 
-const orm = createOrmFromRuntime({
+const orm = await createOrmFromRuntime({
   schema,
   client: new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -230,7 +230,7 @@ const pool = new Pool({
 });
 const db = drizzle(pool);
 
-const orm = createOrmFromRuntime({
+const orm = await createOrmFromRuntime({
   schema,
   client: db,
 });
@@ -253,7 +253,7 @@ const db = drizzle(async (sql, params, method) => {
   return { rows: statement.all(...params) as Record<string, unknown>[] };
 });
 
-const orm = createOrmFromRuntime({
+const orm = await createOrmFromRuntime({
   schema,
   client: db,
   drizzle: {
@@ -277,7 +277,7 @@ const db = new Kysely({
   }),
 });
 
-const orm = createOrmFromRuntime({
+const orm = await createOrmFromRuntime({
   schema,
   client: db,
 });
@@ -290,7 +290,7 @@ If you pass a `Db`, the helper can use it directly:
 ```ts title="mongo-db.ts"
 const db = client.db("app");
 
-const orm = createOrmFromRuntime({
+const orm = await createOrmFromRuntime({
   schema,
   client: db,
 });
@@ -305,7 +305,7 @@ import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
 const client = new MongoClient(process.env.MONGODB_URL!);
 await client.connect();
 
-const orm = createOrmFromRuntime({
+const orm = await createOrmFromRuntime({
   schema,
   client,
   databaseName: "app",
@@ -323,7 +323,7 @@ import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
 
 const connection = await mongoose.createConnection(process.env.MONGODB_URL!).asPromise();
 
-const orm = createOrmFromRuntime({
+const orm = await createOrmFromRuntime({
   schema,
   client: connection,
 });
@@ -332,7 +332,7 @@ const orm = createOrmFromRuntime({
 If you want to control the exact models or transforms, pass overrides:
 
 ```ts title="mongoose-overrides.ts"
-const orm = createOrmFromRuntime({
+const orm = await createOrmFromRuntime({
   schema,
   client: connection,
   mongoose: {
@@ -363,8 +363,9 @@ Use `detectDatabaseRuntime(...)` when you only want inspection.
 Use `createDriverFromRuntime(...)` or `createOrmFromRuntime(...)` when you want
 to execute queries.
 
-Use `pushSchema(...)`, `applySchema(...)`, or `bootstrapDatabase(...)` when you
-also want the runtime helper package to prepare the live database.
+Use `pushSchema(...)`, `applySchema(...)`, or `bootstrapDatabase(...)` from
+`@farming-labs/orm-runtime/setup` when you also want the runtime helper package
+to prepare the live database.
 
 ## Real local verification
 

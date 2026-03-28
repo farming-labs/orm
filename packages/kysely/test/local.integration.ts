@@ -23,7 +23,8 @@ import {
   renderSafeSql,
   string,
 } from "@farming-labs/orm";
-import { bootstrapDatabase, createOrmFromRuntime, pushSchema } from "@farming-labs/orm-runtime";
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+import { bootstrapDatabase, pushSchema } from "@farming-labs/orm-runtime/setup";
 import { createKyselyDriver, type KyselyDatabaseLike, type KyselyDialect } from "../src";
 import {
   assertEnumBigintAndDecimalQueries,
@@ -553,10 +554,10 @@ describe("local Kysely integration", () => {
         const runtime = await runtimeFactories[target]();
 
         try {
-          const orm = createOrmFromRuntime({
+          const orm = (await createOrmFromRuntime({
             schema,
             client: runtime.driverClient,
-          }) as RuntimeOrm;
+          })) as RuntimeOrm;
 
           const created = await orm.user.create({
             data: {

@@ -1,6 +1,6 @@
 {
   "name": "@farming-labs/orm-runtime",
-  "version": "0.0.19",
+  "version": "0.0.20",
   "files": [
     "dist"
   ],
@@ -13,6 +13,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./setup": {
+      "types": "./dist/setup.d.ts",
+      "import": "./dist/setup.js",
+      "require": "./dist/setup.cjs"
     }
   },
   "publishConfig": {
