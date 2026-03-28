@@ -16,6 +16,7 @@ import {
 } from "kysely";
 import { createOrm, detectDatabaseRuntime, renderSafeSql } from "@farming-labs/orm";
 import { createKyselyDriver, type KyselyDatabaseLike, type KyselyDialect } from "../src";
+import { createOrmFromRuntime } from "../../runtime/src";
 import {
   assertEnumBigintAndDecimalQueries,
   assertBelongsToAndManyToManyQueries,
@@ -441,6 +442,49 @@ describe("local Kysely integration", () => {
           expect(created).toEqual({
             id: expect.any(String),
             email: "ada@farminglabs.dev",
+          });
+          expect(count).toBe(1);
+        } finally {
+          await runtime.close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
+
+    it(
+      `${target} local Kysely integration > creates an ORM directly from the live Kysely instance`,
+      async () => {
+        const runtime = await runtimeFactories[target]();
+
+        try {
+          const orm = createOrmFromRuntime({
+            schema,
+            client: runtime.driverClient,
+          }) as RuntimeOrm;
+
+          const created = await orm.user.create({
+            data: {
+              email: "auto@farminglabs.dev",
+              name: "Auto",
+            },
+            select: {
+              id: true,
+              email: true,
+            },
+          });
+
+          const count = await orm.user.count({
+            where: {
+              email: "auto@farminglabs.dev",
+            },
+          });
+
+          expect(orm.$driver.kind).toBe("kysely");
+          expect(orm.$driver.dialect).toBe(runtime.dialect);
+          expect(orm.$driver.client).toBe(runtime.driverClient);
+          expect(created).toEqual({
+            id: expect.any(String),
+            email: "auto@farminglabs.dev",
           });
           expect(count).toBe(1);
         } finally {

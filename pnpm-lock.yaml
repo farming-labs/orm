@@ -271,6 +271,34 @@ importers:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)
 
+  packages/runtime:
+    dependencies:
+      '@farming-labs/orm':
+        specifier: workspace:*
+        version: link:../orm
+      '@farming-labs/orm-drizzle':
+        specifier: workspace:*
+        version: link:../drizzle
+      '@farming-labs/orm-kysely':
+        specifier: workspace:*
+        version: link:../kysely
+      '@farming-labs/orm-mongo':
+        specifier: workspace:*
+        version: link:../mongo
+      '@farming-labs/orm-mongoose':
+        specifier: workspace:*
+        version: link:../mongoose
+      '@farming-labs/orm-prisma':
+        specifier: workspace:*
+        version: link:../prisma
+      '@farming-labs/orm-sql':
+        specifier: workspace:*
+        version: link:../sql
+    devDependencies:
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)
+
   packages/sql:
     dependencies:
       '@farming-labs/orm':

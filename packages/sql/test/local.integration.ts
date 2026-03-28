@@ -32,6 +32,7 @@ import {
   createSqliteDriver,
 } from "../src";
 import type { MysqlConnectionLike, MysqlPoolLike } from "../src";
+import { createOrmFromRuntime } from "../../runtime/src";
 
 const schema = defineSchema({
   user: model({
@@ -1213,6 +1214,45 @@ for (const [target, factory] of [
         });
         expect(Object.isFrozen(orm.$driver)).toBe(true);
         expect(Object.isFrozen(orm.$driver.capabilities)).toBe(true);
+      } finally {
+        await close();
+      }
+    });
+
+    it("creates an ORM directly from the raw SQL runtime client", async () => {
+      const { driverClient, dialect, close } = await factory();
+
+      try {
+        const orm = createOrmFromRuntime({
+          schema,
+          client: driverClient,
+        }) as RuntimeOrm;
+
+        const created = await orm.user.create({
+          data: {
+            email: "auto@farminglabs.dev",
+            name: "Auto",
+          },
+          select: {
+            id: true,
+            email: true,
+          },
+        });
+
+        const count = await orm.user.count({
+          where: {
+            email: "auto@farminglabs.dev",
+          },
+        });
+
+        expect(orm.$driver.kind).toBe("sql");
+        expect(orm.$driver.dialect).toBe(dialect);
+        expect(orm.$driver.client).toBe(driverClient);
+        expect(created).toEqual({
+          id: expect.any(String),
+          email: "auto@farminglabs.dev",
+        });
+        expect(count).toBe(1);
       } finally {
         await close();
       }

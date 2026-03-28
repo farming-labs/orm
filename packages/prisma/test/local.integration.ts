@@ -8,6 +8,7 @@ import mysql from "mysql2/promise";
 import { Pool } from "pg";
 import { createOrm, detectDatabaseRuntime } from "@farming-labs/orm";
 import { createPrismaDriver } from "../src";
+import { createOrmFromRuntime } from "../../runtime/src";
 import {
   assertEnumBigintAndDecimalQueries,
   assertBelongsToAndManyToManyQueries,
@@ -412,6 +413,48 @@ for (const [target, factory] of [
           expect(typeof prisma.$connect).toBe("function");
           expect(typeof prisma.$queryRawUnsafe).toBe("function");
           await expect(prisma.$queryRawUnsafe("SELECT 1")).resolves.toBeDefined();
+        } finally {
+          await close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
+
+    it(
+      "creates an ORM directly from the live Prisma client",
+      async () => {
+        const { prisma, close } = await factory();
+
+        try {
+          const orm = createOrmFromRuntime({
+            schema,
+            client: prisma,
+          }) as RuntimeOrm;
+
+          const created = await orm.user.create({
+            data: {
+              email: "auto@farminglabs.dev",
+              name: "Auto",
+            },
+            select: {
+              id: true,
+              email: true,
+            },
+          });
+
+          const count = await orm.user.count({
+            where: {
+              email: "auto@farminglabs.dev",
+            },
+          });
+
+          expect(orm.$driver.kind).toBe("prisma");
+          expect(orm.$driver.client).toBe(prisma);
+          expect(created).toEqual({
+            id: expect.any(String),
+            email: "auto@farminglabs.dev",
+          });
+          expect(count).toBe(1);
         } finally {
           await close();
         }

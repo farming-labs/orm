@@ -10,6 +10,7 @@ import mysql from "mysql2/promise";
 import { Pool } from "pg";
 import { createOrm, detectDatabaseRuntime, renderSafeSql } from "@farming-labs/orm";
 import { createDrizzleDriver, type DrizzleDialect } from "../src";
+import { createOrmFromRuntime } from "../../runtime/src";
 import {
   assertEnumBigintAndDecimalQueries,
   assertBelongsToAndManyToManyQueries,
@@ -25,6 +26,7 @@ import {
 type RuntimeFactory = () => Promise<{
   orm: RuntimeOrm;
   driverClient: unknown;
+  rawClient: unknown;
   dialect: DrizzleDialect;
   close: () => Promise<void>;
 }>;
@@ -185,6 +187,7 @@ async function createLocalSqliteOrm() {
   return {
     orm,
     driverClient: db,
+    rawClient: client,
     dialect: "sqlite",
     close: async () => {
       client.close();
@@ -239,6 +242,7 @@ async function createLocalPostgresOrm() {
   return {
     orm,
     driverClient: db,
+    rawClient: pool,
     dialect: "postgres",
     close: async () => {
       await pool.end();
@@ -299,6 +303,7 @@ async function createLocalMysqlOrm() {
   return {
     orm,
     driverClient: db,
+    rawClient: pool,
     dialect: "mysql",
     close: async () => {
       await pool.end();
@@ -378,6 +383,52 @@ describe("local Drizzle integration", () => {
           expect(created).toEqual({
             id: expect.any(String),
             email: "ada@farminglabs.dev",
+          });
+          expect(count).toBe(1);
+        } finally {
+          await runtime.close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
+
+    it(
+      `${target} local Drizzle integration > creates an ORM directly from the live Drizzle instance`,
+      async () => {
+        const runtime = await runtimeFactories[target]();
+
+        try {
+          const orm = createOrmFromRuntime({
+            schema,
+            client: runtime.driverClient,
+            drizzle: {
+              client: runtime.rawClient,
+            },
+          }) as RuntimeOrm;
+
+          const created = await orm.user.create({
+            data: {
+              email: "auto@farminglabs.dev",
+              name: "Auto",
+            },
+            select: {
+              id: true,
+              email: true,
+            },
+          });
+
+          const count = await orm.user.count({
+            where: {
+              email: "auto@farminglabs.dev",
+            },
+          });
+
+          expect(orm.$driver.kind).toBe("drizzle");
+          expect(orm.$driver.dialect).toBe(runtime.dialect);
+          expect(orm.$driver.client).toBe(runtime.driverClient);
+          expect(created).toEqual({
+            id: expect.any(String),
+            email: "auto@farminglabs.dev",
           });
           expect(count).toBe(1);
         } finally {
