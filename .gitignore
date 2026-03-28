@@ -2,6 +2,9 @@ node_modules
 .next
 dist
 coverage
+.env
+.env.*
+!.env.example
 *.tsbuildinfo
 generated
 packages/prisma/test/fixtures/*/dev.db
