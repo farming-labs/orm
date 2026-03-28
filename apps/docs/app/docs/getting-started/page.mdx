@@ -251,7 +251,7 @@ driver for you, use `@farming-labs/orm-runtime`:
 ```ts title="auto-runtime.ts"
 import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
 
-const orm = createOrmFromRuntime({
+const orm = await createOrmFromRuntime({
   schema: authSchema,
   client: prisma,
 });

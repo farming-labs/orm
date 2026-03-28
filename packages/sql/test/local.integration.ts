@@ -1223,10 +1223,10 @@ for (const [target, factory] of [
       const { driverClient, dialect, close } = await factory();
 
       try {
-        const orm = createOrmFromRuntime({
+        const orm = (await createOrmFromRuntime({
           schema,
           client: driverClient,
-        }) as RuntimeOrm;
+        })) as RuntimeOrm;
 
         const created = await orm.user.create({
           data: {

@@ -13,6 +13,8 @@ export default defineConfig({
       "@farming-labs/orm-mongo": path.resolve(dirname, "../mongo/src/index.ts"),
       "@farming-labs/orm-mongoose": path.resolve(dirname, "../mongoose/src/index.ts"),
       "@farming-labs/orm-prisma": path.resolve(dirname, "../prisma/src/index.ts"),
+      "@farming-labs/orm-runtime/setup": path.resolve(dirname, "./src/setup.ts"),
+      "@farming-labs/orm-runtime": path.resolve(dirname, "./src/index.ts"),
       "@farming-labs/orm-sql": path.resolve(dirname, "../sql/src/index.ts"),
     },
   },
