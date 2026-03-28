@@ -239,7 +239,9 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
     if (value === null) return null;
 
     let next = value;
-    if (field.kind === "enum") {
+    if (field.kind === "id" && field.idType === "integer") {
+      next = Number(next);
+    } else if (field.kind === "enum") {
       next = String(next);
     } else if (field.kind === "boolean") {
       next = Boolean(next);
@@ -264,6 +266,9 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
     const transform = fieldTransform(modelName, field.name);
     let next = transform?.decode ? transform.decode(value) : value;
 
+    if (field.kind === "id" && field.idType === "integer") {
+      return typeof next === "number" ? next : Number(next);
+    }
     if (field.kind === "enum") {
       return typeof next === "string" ? next : String(next);
     }
@@ -754,16 +759,35 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
         startSession: config.startSession,
       },
       capabilities: {
+        numericIds: "manual",
         supportsJSON: true,
         supportsDates: true,
         supportsBooleans: true,
         supportsTransactions: Boolean(config.startSession ?? config.connection?.startSession),
         textComparison: "case-sensitive",
+        textMatching: {
+          equality: "case-sensitive",
+          contains: "case-sensitive",
+          ordering: "case-sensitive",
+        },
         upsert: "native",
         returning: {
           create: true,
           update: true,
           delete: false,
+        },
+        returningMode: {
+          create: "record",
+          update: "record",
+          delete: "none",
+        },
+        nativeRelations: {
+          singularChains: false,
+          hasMany: false,
+          manyToMany: false,
+          filtered: false,
+          ordered: false,
+          paginated: false,
         },
       },
     }),

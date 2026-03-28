@@ -133,6 +133,28 @@ function encodeScalarValue(field: ManifestField, value: unknown) {
     return value;
   }
 
+  if (field.kind === "id" && field.idType === "integer") {
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!/^-?\d+$/.test(trimmed)) {
+        throw new Error(`Expected integer id for field "${field.name}", received "${value}".`);
+      }
+
+      const parsed = Number(trimmed);
+      if (!Number.isSafeInteger(parsed)) {
+        throw new Error(`Expected integer id for field "${field.name}", received "${value}".`);
+      }
+
+      return parsed;
+    }
+
+    if (typeof value === "number" && Number.isSafeInteger(value)) {
+      return value;
+    }
+
+    throw new Error(`Expected integer id for field "${field.name}".`);
+  }
+
   if (field.kind === "enum") {
     const identifiers = prismaEnumIdentifiers(field);
     return identifiers[String(value)] ?? String(value);
@@ -707,6 +729,7 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
       kind: "prisma",
       client: config.client,
       capabilities: {
+        numericIds: "manual",
         supportsJSON: true,
         supportsDates: true,
         supportsBooleans: true,
@@ -716,11 +739,29 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
         supportsTransactionalDDL: false,
         nativeRelationLoading: "partial",
         textComparison: "database-default",
+        textMatching: {
+          equality: "database-default",
+          contains: "database-default",
+          ordering: "database-default",
+        },
         upsert: "native",
         returning: {
           create: true,
           update: true,
           delete: false,
+        },
+        returningMode: {
+          create: "record",
+          update: "record",
+          delete: "none",
+        },
+        nativeRelations: {
+          singularChains: true,
+          hasMany: true,
+          manyToMany: true,
+          filtered: false,
+          ordered: false,
+          paginated: false,
         },
       },
     }),

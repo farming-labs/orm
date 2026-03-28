@@ -231,6 +231,7 @@ orm.$driver.kind; // "sql"
 orm.$driver.dialect; // "postgres"
 orm.$driver.capabilities.upsert; // "native"
 orm.$driver.capabilities.textComparison; // "database-default"
+orm.$driver.capabilities.numericIds; // "manual"
 ```
 
 If you want only the driver, use the lower-level helper:
@@ -242,6 +243,19 @@ const driver = await createDriverFromRuntime({
   schema,
   client: prisma,
 });
+```
+
+If you need to understand why runtime detection failed, use the diagnostic
+report:
+
+```ts
+import { inspectDatabaseRuntime } from "@farming-labs/orm";
+
+const report = inspectDatabaseRuntime(client);
+
+report.runtime; // detected runtime or null
+report.summary;
+report.hint;
 ```
 
 For runtime-aware setup and schema bootstrap, use the Node-only setup path:
@@ -282,6 +296,23 @@ if (isOrmError(error)) {
   error.code; // "UNIQUE_CONSTRAINT_VIOLATION"
   error.backendKind; // "sql" | "prisma" | "mongo" | ...
 }
+```
+
+The schema DSL also supports manual numeric IDs and Postgres-style namespaced
+tables:
+
+```ts
+import { defineSchema, id, model, string, tableName } from "@farming-labs/orm";
+
+const schema = defineSchema({
+  user: model({
+    table: tableName("users", { schema: "auth" }),
+    fields: {
+      id: id({ type: "integer" }),
+      email: string().unique(),
+    },
+  }),
+});
 ```
 
 ## Local development

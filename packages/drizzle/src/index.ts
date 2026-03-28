@@ -171,6 +171,7 @@ export function createDrizzleDriver<TSchema extends SchemaDefinition<any>>(
     client: config.db ?? config.client ?? runtimeClient,
     dialect: config.dialect,
     capabilities: {
+      numericIds: "manual",
       supportsJSON: true,
       supportsDates: true,
       supportsBooleans: true,
@@ -179,11 +180,29 @@ export function createDrizzleDriver<TSchema extends SchemaDefinition<any>>(
       supportsTransactionalDDL: config.dialect !== "mysql",
       nativeRelationLoading: "partial",
       textComparison: "database-default",
+      textMatching: {
+        equality: "database-default",
+        contains: "database-default",
+        ordering: "database-default",
+      },
       upsert: "native",
       returning: {
         create: true,
         update: true,
         delete: false,
+      },
+      returningMode: {
+        create: "record",
+        update: "record",
+        delete: "none",
+      },
+      nativeRelations: {
+        singularChains: true,
+        hasMany: true,
+        manyToMany: true,
+        filtered: false,
+        ordered: false,
+        paginated: false,
       },
     },
   });

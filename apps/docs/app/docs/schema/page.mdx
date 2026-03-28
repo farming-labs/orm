@@ -14,6 +14,7 @@ the schema directly or consumes its normalized manifest form.
 
 - `defineSchema(...)` defines the top-level schema object
 - `model(...)` defines one model
+- `tableName(...)` builds a structured table reference when you need a namespace
 - field builders such as `id()`, `string()`, `boolean()`, and `datetime()`
 - relation helpers such as `belongsTo(...)`, `hasOne(...)`, `hasMany(...)`, and `manyToMany(...)`
 - model-level constraints such as compound `unique` keys and `indexes`
@@ -119,16 +120,42 @@ export const appSchema = defineSchema({
 });
 ```
 
+## Namespaced tables
+
+Flat table names still work:
+
+```ts
+table: "users";
+```
+
+When you need a Postgres schema namespace, use `tableName(...)`:
+
+```ts
+import { tableName } from "@farming-labs/orm";
+
+user: model({
+  table: tableName("users", { schema: "auth" }),
+  fields: {
+    id: id(),
+    email: string().unique(),
+  },
+});
+```
+
+That keeps the logical model name as `user` while generators and the SQL runtime
+emit qualified identifiers like `"auth"."users"`.
+
 ## Field builders
 
 ### Scalar field types
 
-| Builder      | Output type | Notes                                            |
-| ------------ | ----------- | ------------------------------------------------ |
-| `id()`       | `string`    | Unique by default and generated as an id         |
-| `string()`   | `string`    | Plain string scalar                              |
-| `boolean()`  | `boolean`   | Boolean scalar                                   |
-| `datetime()` | `Date`      | Represents a JavaScript `Date` in runtime typing |
+| Builder                   | Output type | Notes                                            |
+| ------------------------- | ----------- | ------------------------------------------------ |
+| `id()`                    | `string`    | Unique by default and generated as an id         |
+| `id({ type: "integer" })` | `number`    | Numeric primary key support                      |
+| `string()`                | `string`    | Plain string scalar                              |
+| `boolean()`               | `boolean`   | Boolean scalar                                   |
+| `datetime()`              | `Date`      | Represents a JavaScript `Date` in runtime typing |
 
 ### Field methods
 

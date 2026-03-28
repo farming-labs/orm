@@ -121,6 +121,18 @@ function quoteIdentifier(value: string, dialect: SqlDialect) {
   return `"${value.replace(/"/g, '""')}"`;
 }
 
+function quoteTableIdentifier(model: ManifestModel, dialect: SqlDialect) {
+  if (!model.schema) {
+    return quoteIdentifier(model.table, dialect);
+  }
+
+  return `${quoteIdentifier(model.schema, dialect)}.${quoteIdentifier(model.table, dialect)}`;
+}
+
+function defaultTableAlias(model: ManifestModel) {
+  return model.name;
+}
+
 function createPlaceholder(dialect: SqlDialect, state: QueryState, value: unknown) {
   state.params.push(value);
   return dialect === "postgres" ? `$${state.params.length}` : "?";
@@ -155,6 +167,10 @@ function applyDefault(value: unknown, field: ManifestField) {
 function encodeValue(field: ManifestField, dialect: SqlDialect, value: unknown) {
   if (value === undefined) return value;
   if (value === null) return null;
+
+  if (field.kind === "id" && field.idType === "integer") {
+    return Number(value);
+  }
 
   if (field.kind === "enum") {
     return String(value);
@@ -245,6 +261,10 @@ function decodeValue(field: ManifestField, dialect: SqlDialect, value: unknown) 
   if (value === undefined) return value;
   if (value === null) return null;
 
+  if (field.kind === "id" && field.idType === "integer") {
+    return typeof value === "number" ? value : Number(value);
+  }
+
   if (field.kind === "enum") {
     return typeof value === "string" ? value : String(value);
   }
@@ -321,14 +341,16 @@ function compileFieldFilter(
   filter: unknown,
   dialect: SqlDialect,
   state: QueryState,
-  tableAlias = model.table,
+  tableAlias?: string,
 ) {
   const field = model.fields[fieldName];
   if (!field) {
     throw new Error(`Unknown field "${fieldName}" on model "${model.name}".`);
   }
 
-  const column = `${quoteIdentifier(tableAlias, dialect)}.${quoteIdentifier(field.column, dialect)}`;
+  const column = tableAlias
+    ? `${quoteIdentifier(tableAlias, dialect)}.${quoteIdentifier(field.column, dialect)}`
+    : quoteIdentifier(field.column, dialect);
   const createValueExpression = (value: unknown) => {
     const placeholder = createPlaceholder(dialect, state, encodeValue(field, dialect, value));
     if (field.kind === "json" && dialect === "mysql") {
@@ -409,7 +431,7 @@ function compileWhere(
   where: SqlWhere | undefined,
   dialect: SqlDialect,
   state: QueryState,
-  tableAlias = model.table,
+  tableAlias?: string,
 ): string | undefined {
   if (!where) return undefined;
 
@@ -455,7 +477,7 @@ function compileOrderBy(
   model: ManifestModel,
   orderBy: Partial<Record<string, "asc" | "desc">> | undefined,
   dialect: SqlDialect,
-  tableAlias = model.table,
+  tableAlias?: string,
 ) {
   if (!orderBy) return "";
 
@@ -463,9 +485,10 @@ function compileOrderBy(
     .filter(([fieldName]) => fieldName in model.fields)
     .map(([fieldName, direction]) => {
       const field = model.fields[fieldName];
-      return `${quoteIdentifier(tableAlias, dialect)}.${quoteIdentifier(field.column, dialect)} ${
-        direction === "desc" ? "desc" : "asc"
-      }`;
+      const column = tableAlias
+        ? `${quoteIdentifier(tableAlias, dialect)}.${quoteIdentifier(field.column, dialect)}`
+        : quoteIdentifier(field.column, dialect);
+      return `${column} ${direction === "desc" ? "desc" : "asc"}`;
     });
 
   if (!parts.length) return "";
@@ -510,13 +533,13 @@ function buildSelectStatement(
   },
 ) {
   const state: QueryState = { params: [] };
-  const tableAlias = args.tableAlias ?? model.table;
+  const tableAlias = args.tableAlias ?? defaultTableAlias(model);
   const selectList = Object.values(model.fields).map(
     (field) =>
       `${quoteIdentifier(tableAlias, dialect)}.${quoteIdentifier(field.column, dialect)} as ${quoteIdentifier(field.name, dialect)}`,
   );
 
-  let sql = `select ${selectList.join(", ")} from ${quoteIdentifier(model.table, dialect)} as ${quoteIdentifier(tableAlias, dialect)}`;
+  let sql = `select ${selectList.join(", ")} from ${quoteTableIdentifier(model, dialect)} as ${quoteIdentifier(tableAlias, dialect)}`;
   const where = compileWhere(model, args.where, dialect, state, tableAlias);
   if (where) sql += ` where ${where}`;
   sql += compileOrderBy(model, args.orderBy, dialect, tableAlias);
@@ -531,7 +554,7 @@ function buildCountStatement(
   where: SqlWhere | undefined,
 ) {
   const state: QueryState = { params: [] };
-  let sql = `select count(*) as ${quoteIdentifier("count", dialect)} from ${quoteIdentifier(model.table, dialect)}`;
+  let sql = `select count(*) as ${quoteIdentifier("count", dialect)} from ${quoteTableIdentifier(model, dialect)}`;
   const compiledWhere = compileWhere(model, where, dialect, state);
   if (compiledWhere) sql += ` where ${compiledWhere}`;
   return { sql, params: state.params };
@@ -560,7 +583,7 @@ function buildInsertStatement(model: ManifestModel, dialect: SqlDialect, row: Sq
   );
 
   return {
-    sql: `insert into ${quoteIdentifier(model.table, dialect)} (${columns.join(", ")}) values (${values.join(", ")})`,
+    sql: `insert into ${quoteTableIdentifier(model, dialect)} (${columns.join(", ")}) values (${values.join(", ")})`,
     params: state.params,
   };
 }
@@ -581,7 +604,7 @@ function buildUpsertStatement(
   const updateEntries = Object.entries(updateData).filter(([, value]) => value !== undefined);
   const conflictColumns = conflictFields.map((field) => quoteIdentifier(field.column, dialect));
 
-  let sql = `insert into ${quoteIdentifier(model.table, dialect)} (${columns.join(", ")}) values (${values.join(", ")})`;
+  let sql = `insert into ${quoteTableIdentifier(model, dialect)} (${columns.join(", ")}) values (${values.join(", ")})`;
 
   if (dialect === "mysql") {
     const noopColumn = conflictColumns[0]!;
@@ -657,7 +680,7 @@ function buildUpdateStatement(
   }
 
   return {
-    sql: `update ${quoteIdentifier(model.table, dialect)} set ${setClause.join(", ")} where ${compiledWhere}`,
+    sql: `update ${quoteTableIdentifier(model, dialect)} set ${setClause.join(", ")} where ${compiledWhere}`,
     params: state.params,
   };
 }
@@ -670,7 +693,7 @@ function buildDeleteStatement(model: ManifestModel, dialect: SqlDialect, where: 
   }
 
   return {
-    sql: `delete from ${quoteIdentifier(model.table, dialect)} where ${compiledWhere}`,
+    sql: `delete from ${quoteTableIdentifier(model, dialect)} where ${compiledWhere}`,
     params: state.params,
   };
 }
@@ -902,6 +925,7 @@ function createMysqlPoolAdapter(pool: MysqlPoolLike): SqlAdapterLike {
 
 function sqlDriverCapabilities(dialect: SqlDialect) {
   return {
+    numericIds: "manual" as const,
     supportsJSON: true,
     supportsDates: true,
     supportsBooleans: true,
@@ -910,11 +934,29 @@ function sqlDriverCapabilities(dialect: SqlDialect) {
     supportsTransactionalDDL: dialect !== "mysql",
     nativeRelationLoading: "partial" as const,
     textComparison: "database-default" as const,
+    textMatching: {
+      equality: "database-default" as const,
+      contains: "database-default" as const,
+      ordering: "database-default" as const,
+    },
     upsert: "native" as const,
     returning: {
       create: true,
       update: true,
       delete: false,
+    },
+    returningMode: {
+      create: "record" as const,
+      update: "record" as const,
+      delete: "none" as const,
+    },
+    nativeRelations: {
+      singularChains: true,
+      hasMany: true,
+      manyToMany: true,
+      filtered: false,
+      ordered: false,
+      paginated: false,
     },
   };
 }
@@ -1177,10 +1219,10 @@ function createSqlDriver<
     for (const child of node.children) {
       if (child.relationKind === "manyToMany") {
         joins.push(
-          ` left join ${quoteIdentifier(child.throughModel!.table, adapter.dialect)} as ${quoteIdentifier(child.throughAlias!, adapter.dialect)} on ${quoteIdentifier(node.alias, adapter.dialect)}.${quoteIdentifier(child.sourceField!.column, adapter.dialect)} = ${quoteIdentifier(child.throughAlias!, adapter.dialect)}.${quoteIdentifier(child.throughFromField!.column, adapter.dialect)}`,
+          ` left join ${quoteTableIdentifier(child.throughModel!, adapter.dialect)} as ${quoteIdentifier(child.throughAlias!, adapter.dialect)} on ${quoteIdentifier(node.alias, adapter.dialect)}.${quoteIdentifier(child.sourceField!.column, adapter.dialect)} = ${quoteIdentifier(child.throughAlias!, adapter.dialect)}.${quoteIdentifier(child.throughFromField!.column, adapter.dialect)}`,
         );
         joins.push(
-          ` left join ${quoteIdentifier(child.model.table, adapter.dialect)} as ${quoteIdentifier(child.alias, adapter.dialect)} on ${quoteIdentifier(child.throughAlias!, adapter.dialect)}.${quoteIdentifier(child.throughToField!.column, adapter.dialect)} = ${quoteIdentifier(child.alias, adapter.dialect)}.${quoteIdentifier(child.targetField!.column, adapter.dialect)}`,
+          ` left join ${quoteTableIdentifier(child.model, adapter.dialect)} as ${quoteIdentifier(child.alias, adapter.dialect)} on ${quoteIdentifier(child.throughAlias!, adapter.dialect)}.${quoteIdentifier(child.throughToField!.column, adapter.dialect)} = ${quoteIdentifier(child.alias, adapter.dialect)}.${quoteIdentifier(child.targetField!.column, adapter.dialect)}`,
         );
       } else {
         const leftColumn =
@@ -1192,7 +1234,7 @@ function createSqlDriver<
             ? `${quoteIdentifier(child.alias, adapter.dialect)}.${quoteIdentifier(child.targetField!.column, adapter.dialect)}`
             : `${quoteIdentifier(node.alias, adapter.dialect)}.${quoteIdentifier(child.sourceField!.column, adapter.dialect)}`;
         joins.push(
-          ` left join ${quoteIdentifier(child.model.table, adapter.dialect)} as ${quoteIdentifier(child.alias, adapter.dialect)} on ${leftColumn} = ${rightColumn}`,
+          ` left join ${quoteTableIdentifier(child.model, adapter.dialect)} as ${quoteIdentifier(child.alias, adapter.dialect)} on ${leftColumn} = ${rightColumn}`,
         );
       }
       collectNativeJoinClauses(child, joins);
@@ -1217,7 +1259,7 @@ function createSqlDriver<
 
     let sql =
       `select ${selectList.join(", ")}` +
-      ` from ${quoteIdentifier(root.model.table, adapter.dialect)} as ${quoteIdentifier(sourceAlias, adapter.dialect)}`;
+      ` from ${quoteTableIdentifier(root.model, adapter.dialect)} as ${quoteIdentifier(sourceAlias, adapter.dialect)}`;
     const where = compileWhere(root.model, args.where, adapter.dialect, state, sourceAlias);
     if (where) sql += ` where ${where}`;
     sql += compileOrderBy(root.model, args.orderBy, adapter.dialect, sourceAlias);

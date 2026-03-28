@@ -151,7 +151,8 @@ describe("mongo local integration", () => {
           source: "db",
         });
         expect(orm.$driver.capabilities).toEqual({
-          supportsNumericIds: false,
+          supportsNumericIds: true,
+          numericIds: "manual",
           supportsJSON: true,
           supportsDates: true,
           supportsBooleans: true,
@@ -161,16 +162,37 @@ describe("mongo local integration", () => {
           supportsJoin: false,
           nativeRelationLoading: "none",
           textComparison: "case-sensitive",
+          textMatching: {
+            equality: "case-sensitive",
+            contains: "case-sensitive",
+            ordering: "case-sensitive",
+          },
           upsert: "native",
           returning: {
             create: true,
             update: true,
             delete: false,
           },
+          returningMode: {
+            create: "record",
+            update: "record",
+            delete: "none",
+          },
+          nativeRelations: {
+            singularChains: false,
+            hasMany: false,
+            manyToMany: false,
+            filtered: false,
+            ordered: false,
+            paginated: false,
+          },
         });
         expect(Object.isFrozen(orm.$driver)).toBe(true);
         expect(Object.isFrozen(orm.$driver.capabilities)).toBe(true);
         expect(Object.isFrozen(orm.$driver.capabilities.returning)).toBe(true);
+        expect(Object.isFrozen(orm.$driver.capabilities.returningMode)).toBe(true);
+        expect(Object.isFrozen(orm.$driver.capabilities.textMatching)).toBe(true);
+        expect(Object.isFrozen(orm.$driver.capabilities.nativeRelations)).toBe(true);
       } finally {
         await close();
       }

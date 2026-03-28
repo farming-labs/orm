@@ -79,6 +79,31 @@ type MongoSchemaTargetLike = {
   createCollection?(name: string): Promise<unknown>;
 };
 
+export class RuntimeSetupError extends Error {
+  readonly stage: "apply" | "push" | "bootstrap";
+  readonly runtimeKind: string;
+  readonly dialect?: string;
+  readonly statement?: string;
+  override readonly cause?: unknown;
+
+  constructor(input: {
+    stage: "apply" | "push" | "bootstrap";
+    runtimeKind: string;
+    dialect?: string;
+    message: string;
+    statement?: string;
+    cause?: unknown;
+  }) {
+    super(input.message);
+    this.name = "RuntimeSetupError";
+    this.stage = input.stage;
+    this.runtimeKind = input.runtimeKind;
+    this.dialect = input.dialect;
+    this.statement = input.statement;
+    this.cause = input.cause;
+  }
+}
+
 const execFileAsync = promisify(execFile);
 const defaultPrismaPackageRoot = process.cwd();
 
@@ -189,11 +214,19 @@ function splitSqlStatements(sql: string) {
 }
 
 async function runSqlStatements(
+  dialect: AutoDialect,
   statements: readonly string[],
   run: (sql: string) => Promise<unknown> | unknown,
 ) {
   for (const statement of statements) {
-    await run(statement);
+    try {
+      await run(statement);
+    } catch (error) {
+      if (isEquivalentSqlSetupError(dialect, statement, error)) {
+        continue;
+      }
+      throw error;
+    }
   }
 }
 
@@ -361,19 +394,21 @@ async function applySqlSchemaToClient(client: unknown, dialect: AutoDialect, sql
   const statements = splitSqlStatements(sql);
 
   if (hasFunction(client, "query")) {
-    await runSqlStatements(statements, (statement) => (client as SqlQueryClient).query(statement));
+    await runSqlStatements(dialect, statements, (statement) =>
+      (client as SqlQueryClient).query(statement),
+    );
     return;
   }
 
   if (hasFunction(client, "execute")) {
-    await runSqlStatements(statements, (statement) =>
+    await runSqlStatements(dialect, statements, (statement) =>
       (client as SqlExecuteClient).execute(statement),
     );
     return;
   }
 
   if (hasFunction(client, "executeQuery")) {
-    await runSqlStatements(statements, (statement) =>
+    await runSqlStatements(dialect, statements, (statement) =>
       (client as KyselyExecuteClient).executeQuery({
         sql: statement,
         parameters: [],
@@ -407,6 +442,53 @@ async function runPrismaDbPush(schemaPath: string, databaseUrl: string, packageR
   );
 }
 
+function isEquivalentSqlSetupError(dialect: AutoDialect, statement: string, error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  const code = isRecord(error) ? error.code : undefined;
+  const errno = isRecord(error) ? error.errno : undefined;
+  const isIndexStatement = /^\s*create\s+(unique\s+)?index\b/i.test(statement);
+
+  if (!isIndexStatement) {
+    return false;
+  }
+
+  if (dialect === "mysql") {
+    return code === "ER_DUP_KEYNAME" || errno === 1061 || /duplicate key name/i.test(message);
+  }
+
+  if (dialect === "sqlite") {
+    return /index .+ already exists/i.test(message);
+  }
+
+  return code === "42P07" || /already exists/i.test(message);
+}
+
+function wrapSetupError(
+  stage: "apply" | "push" | "bootstrap",
+  runtime: ReturnType<typeof resolveRuntime>,
+  error: unknown,
+  statement?: string,
+) {
+  if (error instanceof RuntimeSetupError) {
+    return error;
+  }
+
+  const runtimeLabel = runtime.dialect ? `${runtime.kind} (${runtime.dialect})` : runtime.kind;
+  const detail = error instanceof Error ? error.message : String(error);
+  const suffix = statement ? ` Statement: ${statement}` : "";
+  const helperName =
+    stage === "apply" ? "applySchema()" : stage === "push" ? "pushSchema()" : "bootstrapDatabase()";
+
+  return new RuntimeSetupError({
+    stage,
+    runtimeKind: runtime.kind,
+    dialect: runtime.dialect,
+    statement,
+    cause: error,
+    message: `${helperName} failed for ${runtimeLabel} runtime. ${detail}${suffix}`.trim(),
+  });
+}
+
 async function pushPrismaSchema(
   schema: SchemaDefinition<any>,
   runtime: ReturnType<typeof resolveRuntime>,
@@ -428,61 +510,72 @@ async function pushPrismaSchema(
 }
 
 async function applySchemaInternal<TSchema extends SchemaDefinition<any>, TClient = unknown>(
+  stage: "apply" | "push",
   options: CreateDriverFromRuntimeOptions<TSchema, TClient>,
 ) {
   const runtime = resolveRuntime(options);
 
-  if (runtime.kind === "prisma") {
-    await pushPrismaSchema(options.schema, runtime, options);
-    return;
-  }
+  try {
+    if (runtime.kind === "prisma") {
+      await pushPrismaSchema(options.schema, runtime, options);
+      return;
+    }
 
-  if (runtime.kind === "mongo") {
-    const db = resolveMongoDb(runtime, options);
-    await ensureMongoCollectionsAndIndexes(options.schema, asMongoSchemaTarget(db));
-    return;
-  }
+    if (runtime.kind === "mongo") {
+      const db = resolveMongoDb(runtime, options);
+      await ensureMongoCollectionsAndIndexes(options.schema, asMongoSchemaTarget(db));
+      return;
+    }
 
-  if (runtime.kind === "mongoose") {
-    const connection = runtime.client as Record<string, unknown>;
-    const db = isRecord(connection.db) ? connection.db : connection;
-    await ensureMongoCollectionsAndIndexes(options.schema, asMongoSchemaTarget(db));
-    return;
-  }
+    if (runtime.kind === "mongoose") {
+      const connection = runtime.client as Record<string, unknown>;
+      const db = isRecord(connection.db) ? connection.db : connection;
+      await ensureMongoCollectionsAndIndexes(options.schema, asMongoSchemaTarget(db));
+      return;
+    }
 
-  const dialect = resolveDialect(runtime, options.dialect);
-  const sql = renderSafeSql(options.schema, { dialect });
+    const dialect = resolveDialect(runtime, options.dialect);
+    const sql = renderSafeSql(options.schema, { dialect });
 
-  if (runtime.kind === "sql") {
+    if (runtime.kind === "sql") {
+      await applySqlSchemaToClient(runtime.client, dialect, sql);
+      return;
+    }
+
+    if (runtime.kind === "drizzle") {
+      await applySqlSchemaToClient(resolveDrizzleRuntimeClient(runtime, options), dialect, sql);
+      return;
+    }
+
     await applySqlSchemaToClient(runtime.client, dialect, sql);
-    return;
+  } catch (error) {
+    throw wrapSetupError(stage, runtime, error);
   }
-
-  if (runtime.kind === "drizzle") {
-    await applySqlSchemaToClient(resolveDrizzleRuntimeClient(runtime, options), dialect, sql);
-    return;
-  }
-
-  await applySqlSchemaToClient(runtime.client, dialect, sql);
 }
 
 export async function applySchema<TSchema extends SchemaDefinition<any>, TClient = unknown>(
   options: ApplySchemaOptions<TSchema, TClient>,
 ) {
-  await applySchemaInternal(options);
+  await applySchemaInternal("apply", options);
 }
 
 export async function pushSchema<TSchema extends SchemaDefinition<any>, TClient = unknown>(
   options: PushSchemaOptions<TSchema, TClient>,
 ) {
-  await applySchemaInternal(options);
+  await applySchemaInternal("push", options);
 }
 
 export async function bootstrapDatabase<TSchema extends SchemaDefinition<any>, TClient = unknown>(
   options: BootstrapDatabaseOptions<TSchema, TClient>,
 ) {
-  await pushSchema(options);
-  return createOrmFromRuntime(options);
+  const runtime = resolveRuntime(options);
+
+  try {
+    await pushSchema(options);
+    return await createOrmFromRuntime(options);
+  } catch (error) {
+    throw wrapSetupError("bootstrap", runtime, error);
+  }
 }
 
 export type {

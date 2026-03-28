@@ -9,6 +9,16 @@ export type ScalarKind =
   | "bigint"
   | "decimal";
 
+export type GeneratedKind = "id" | "now" | "increment";
+export type IdValueType = "string" | "integer";
+export type IdOptions =
+  | {
+      type?: "string";
+    }
+  | {
+      type: "integer";
+    };
+
 export type JsonValue =
   | null
   | string
@@ -27,11 +37,12 @@ export type FieldConfig<
   nullable: Nullable;
   unique: boolean;
   defaultValue?: unknown;
-  generated?: "id" | "now";
+  generated?: GeneratedKind;
   mappedName?: string;
   references?: FieldReference;
   description?: string;
   enumValues?: readonly string[];
+  idType?: IdValueType;
 };
 
 export type ScalarValue<Kind extends ScalarKind> = Kind extends "id"
@@ -133,12 +144,34 @@ export type FieldOutput<TField> = TField extends {
     : Value
   : never;
 
-export function id() {
-  return new FieldBuilder({
+export function id(): FieldBuilder<"id", false, string>;
+export function id(options: { type?: "string" }): FieldBuilder<"id", false, string>;
+export function id(options: { type: "integer" }): FieldBuilder<"id", false, number>;
+export function id(options?: IdOptions) {
+  if (options?.type === "integer") {
+    return new FieldBuilder<"id", false, number>({
+      kind: "id",
+      nullable: false,
+      unique: true,
+      idType: "integer",
+    });
+  }
+
+  return new FieldBuilder<"id", false, string>({
     kind: "id",
     nullable: false,
     unique: true,
     generated: "id",
+    idType: "string",
+  });
+}
+
+export function numericId() {
+  return new FieldBuilder<"id", false, number>({
+    kind: "id",
+    nullable: false,
+    unique: true,
+    idType: "integer",
   });
 }
 

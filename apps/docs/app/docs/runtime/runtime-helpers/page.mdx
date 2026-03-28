@@ -87,6 +87,9 @@ const orm = await createOrmFromRuntime({
 orm.$driver.capabilities.upsert; // "native" | "emulated" | "none"
 orm.$driver.capabilities.returning.update; // true | false
 orm.$driver.capabilities.supportsSchemaNamespaces; // true | false
+orm.$driver.capabilities.numericIds; // "none" | "manual" | "generated"
+orm.$driver.capabilities.textMatching.contains; // "database-default" | "case-sensitive" | "case-insensitive"
+orm.$driver.capabilities.nativeRelations.manyToMany; // true | false
 
 const error = await orm.user
   .create({
@@ -101,6 +104,19 @@ if (isOrmError(error)) {
   error.code; // "UNIQUE_CONSTRAINT_VIOLATION"
   error.backendKind; // "sql" | "prisma" | "mongo" | ...
 }
+```
+
+If runtime detection fails, ask for the structured report:
+
+```ts title="runtime-detection-report.ts"
+import { inspectDatabaseRuntime } from "@farming-labs/orm";
+
+const report = inspectDatabaseRuntime(client);
+
+report.runtime; // null when detection failed
+report.summary; // high-level reason
+report.hint; // what to pass explicitly
+report.candidates; // partial heuristic matches
 ```
 
 ## `pushSchema(...)`, `applySchema(...)`, and `bootstrapDatabase(...)`
@@ -124,6 +140,26 @@ Use them like this:
   Applies the current schema through the same runtime-aware setup path.
 - `bootstrapDatabase(...)`
   Pushes the schema, then returns `createOrmFromRuntime(...)`.
+
+When setup fails, the setup subpath throws `RuntimeSetupError` with the stage,
+detected runtime kind, dialect, and original cause preserved:
+
+```ts title="runtime-setup-error.ts"
+import { RuntimeSetupError, pushSchema } from "@farming-labs/orm-runtime/setup";
+
+try {
+  await pushSchema({
+    schema,
+    client: prisma,
+  });
+} catch (error) {
+  if (error instanceof RuntimeSetupError) {
+    error.stage; // "push"
+    error.runtimeKind; // "prisma"
+    error.dialect; // "sqlite" | "postgres" | "mysql" | undefined
+  }
+}
+```
 
 That means one package now covers:
 

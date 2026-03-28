@@ -496,7 +496,8 @@ describe("local Kysely integration", () => {
             source: "db",
           });
           expect(runtime.orm.$driver.capabilities).toEqual({
-            supportsNumericIds: false,
+            supportsNumericIds: true,
+            numericIds: "manual",
             supportsJSON: true,
             supportsDates: true,
             supportsBooleans: true,
@@ -506,16 +507,37 @@ describe("local Kysely integration", () => {
             supportsJoin: false,
             nativeRelationLoading: "partial",
             textComparison: "database-default",
+            textMatching: {
+              equality: "database-default",
+              contains: "database-default",
+              ordering: "database-default",
+            },
             upsert: "native",
             returning: {
               create: true,
               update: true,
               delete: false,
             },
+            returningMode: {
+              create: "record",
+              update: "record",
+              delete: "none",
+            },
+            nativeRelations: {
+              singularChains: true,
+              hasMany: true,
+              manyToMany: true,
+              filtered: false,
+              ordered: false,
+              paginated: false,
+            },
           });
           expect(Object.isFrozen(runtime.orm.$driver)).toBe(true);
           expect(Object.isFrozen(runtime.orm.$driver.capabilities)).toBe(true);
           expect(Object.isFrozen(runtime.orm.$driver.capabilities.returning)).toBe(true);
+          expect(Object.isFrozen(runtime.orm.$driver.capabilities.returningMode)).toBe(true);
+          expect(Object.isFrozen(runtime.orm.$driver.capabilities.textMatching)).toBe(true);
+          expect(Object.isFrozen(runtime.orm.$driver.capabilities.nativeRelations)).toBe(true);
         } finally {
           await runtime.close();
         }
