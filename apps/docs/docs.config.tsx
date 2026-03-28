@@ -143,7 +143,7 @@ export default defineDocs({
     },
     {
       slug: "runtime",
-      children: [{ slug: "query-api" }, { slug: "memory-driver" }],
+      children: [{ slug: "query-api" }, { slug: "from-runtime" }, { slug: "memory-driver" }],
     },
     { slug: "cli" },
     {

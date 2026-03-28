@@ -95,6 +95,10 @@ orm.$driver.client; // the same PrismaClient instance
 That helper keeps `createOrm(...)` itself explicit while giving higher-level
 integrations a clean “accept the raw client and normalize it” entrypoint.
 
+There is also a dedicated guide for this flow:
+
+- [From Runtime](/docs/runtime/from-runtime)
+
 The runtime also understands declared model-level compound unique keys. If a
 schema says `account(provider, accountId)` is unique, live drivers can use that
 same shape in `findUnique(...)` and `upsert(...)`.
@@ -222,6 +226,7 @@ pnpm test:local:mongodb
 
 ## Continue
 
+- [From Runtime](/docs/runtime/from-runtime)
 - [Query API](/docs/runtime/query-api)
 - [Memory driver](/docs/runtime/memory-driver)
 - [Schema relations](/docs/schema/relations)

@@ -231,6 +231,17 @@ orm.$driver.kind; // "sql"
 orm.$driver.dialect; // "postgres"
 ```
 
+If you want only the driver, use the lower-level helper:
+
+```ts
+import { createDriverFromRuntime } from "@farming-labs/orm-runtime";
+
+const driver = createDriverFromRuntime({
+  schema,
+  client: prisma,
+});
+```
+
 ## Local development
 
 ```bash
