@@ -70,6 +70,39 @@ The returned client still exposes the same generic capability and normalized
 error surface as any other Farming ORM client through `orm.$driver.capabilities`
 and `OrmError`.
 
+## Capabilities and normalized errors
+
+The runtime helper does not return a special client shape. Once the ORM is
+created, it behaves like any other Farming ORM client.
+
+```ts title="runtime-capabilities-and-errors.ts"
+import { isOrmError } from "@farming-labs/orm";
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const orm = await createOrmFromRuntime({
+  schema,
+  client: prisma,
+});
+
+orm.$driver.capabilities.upsert; // "native" | "emulated" | "none"
+orm.$driver.capabilities.returning.update; // true | false
+orm.$driver.capabilities.supportsSchemaNamespaces; // true | false
+
+const error = await orm.user
+  .create({
+    data: {
+      email: "duplicate@farminglabs.dev",
+      name: "Ada",
+    },
+  })
+  .catch((reason) => reason);
+
+if (isOrmError(error)) {
+  error.code; // "UNIQUE_CONSTRAINT_VIOLATION"
+  error.backendKind; // "sql" | "prisma" | "mongo" | ...
+}
+```
+
 ## `pushSchema(...)`, `applySchema(...)`, and `bootstrapDatabase(...)`
 
 The runtime-aware setup flow lives on the Node-only setup subpath.
