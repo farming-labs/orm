@@ -712,7 +712,16 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
         supportsBooleans: true,
         supportsTransactions:
           state.inTransaction || typeof config.client.$transaction === "function",
+        supportsSchemaNamespaces: false,
+        supportsTransactionalDDL: false,
         nativeRelationLoading: "partial",
+        textComparison: "database-default",
+        upsert: "native",
+        returning: {
+          create: true,
+          update: true,
+          delete: false,
+        },
       },
     }),
     async findMany(schema, model, args) {

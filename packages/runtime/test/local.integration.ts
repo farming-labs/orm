@@ -3,7 +3,15 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
-import { createManifest, defineSchema, id, model, renderSafeSql, string } from "@farming-labs/orm";
+import {
+  createManifest,
+  defineSchema,
+  id,
+  isOrmError,
+  model,
+  renderSafeSql,
+  string,
+} from "@farming-labs/orm";
 import { createDriverFromRuntime, createOrmFromRuntime } from "../src";
 import { applySchema, bootstrapDatabase, pushSchema } from "../src/setup";
 
@@ -129,6 +137,29 @@ describe("runtime helper local integration", () => {
       expect(renderSafeSql(schema, { dialect: "sqlite" })).toContain(
         'create table if not exists "users"',
       );
+    } finally {
+      database.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("normalizes missing-table errors when the runtime client is used before schema setup", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "farm-orm-runtime-missing-table-"));
+    const databasePath = path.join(directory, "missing.sqlite");
+    const database = new DatabaseSync(databasePath);
+
+    try {
+      const orm = await createOrmFromRuntime({
+        schema,
+        client: database,
+      });
+
+      const error = await orm.user.count().catch((reason) => reason);
+
+      expect(isOrmError(error)).toBe(true);
+      expect(error.code).toBe("MISSING_TABLE");
+      expect(error.backendKind).toBe("sql");
+      expect(error.dialect).toBe("sqlite");
     } finally {
       database.close();
       await rm(directory, { recursive: true, force: true });

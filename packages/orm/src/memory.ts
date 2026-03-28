@@ -336,6 +336,13 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
         supportsDates: true,
         supportsBooleans: true,
         supportsTransactions: true,
+        textComparison: "case-sensitive",
+        upsert: "native",
+        returning: {
+          create: true,
+          update: true,
+          delete: false,
+        },
       },
     }),
     async findMany(

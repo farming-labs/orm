@@ -501,11 +501,21 @@ describe("local Kysely integration", () => {
             supportsDates: true,
             supportsBooleans: true,
             supportsTransactions: true,
+            supportsSchemaNamespaces: runtime.dialect === "postgres",
+            supportsTransactionalDDL: runtime.dialect !== "mysql",
             supportsJoin: false,
             nativeRelationLoading: "partial",
+            textComparison: "database-default",
+            upsert: "native",
+            returning: {
+              create: true,
+              update: true,
+              delete: false,
+            },
           });
           expect(Object.isFrozen(runtime.orm.$driver)).toBe(true);
           expect(Object.isFrozen(runtime.orm.$driver.capabilities)).toBe(true);
+          expect(Object.isFrozen(runtime.orm.$driver.capabilities.returning)).toBe(true);
         } finally {
           await runtime.close();
         }

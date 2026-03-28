@@ -62,7 +62,16 @@ export function createKyselyDriver<TSchema extends SchemaDefinition<any>>(
         supportsDates: true,
         supportsBooleans: true,
         supportsTransactions: true,
+        supportsSchemaNamespaces: config.dialect === "postgres",
+        supportsTransactionalDDL: config.dialect !== "mysql",
         nativeRelationLoading: "partial",
+        textComparison: "database-default",
+        upsert: "native",
+        returning: {
+          create: true,
+          update: true,
+          delete: false,
+        },
       },
     }),
   );

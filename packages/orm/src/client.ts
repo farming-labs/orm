@@ -1,3 +1,4 @@
+import { normalizeOrmError } from "./errors";
 import type { SchemaDefinition } from "./schema";
 import type {
   ModelName,
@@ -224,6 +225,14 @@ export type UpsertArgs<
 };
 
 export type NativeRelationLoading = "none" | "partial" | "full";
+export type MutationReturningCapabilities = Readonly<{
+  create: boolean;
+  update: boolean;
+  delete: boolean;
+}>;
+
+export type UpsertCapability = "none" | "emulated" | "native";
+export type TextComparisonBehavior = "database-default" | "case-sensitive" | "case-insensitive";
 
 export type OrmDriverCapabilities = Readonly<{
   supportsNumericIds: boolean;
@@ -231,9 +240,24 @@ export type OrmDriverCapabilities = Readonly<{
   supportsDates: boolean;
   supportsBooleans: boolean;
   supportsTransactions: boolean;
+  supportsSchemaNamespaces: boolean;
+  supportsTransactionalDDL: boolean;
   supportsJoin: boolean;
   nativeRelationLoading: NativeRelationLoading;
+  textComparison: TextComparisonBehavior;
+  upsert: UpsertCapability;
+  returning: MutationReturningCapabilities;
 }>;
+
+export type OrmDriverCapabilityInput = Partial<Omit<OrmDriverCapabilities, "returning">> & {
+  returning?: Partial<MutationReturningCapabilities>;
+};
+
+const defaultMutationReturningCapabilities: MutationReturningCapabilities = Object.freeze({
+  create: false,
+  update: false,
+  delete: false,
+});
 
 export const defaultDriverCapabilities: OrmDriverCapabilities = Object.freeze({
   supportsNumericIds: false,
@@ -241,9 +265,25 @@ export const defaultDriverCapabilities: OrmDriverCapabilities = Object.freeze({
   supportsDates: false,
   supportsBooleans: false,
   supportsTransactions: false,
+  supportsSchemaNamespaces: false,
+  supportsTransactionalDDL: false,
   supportsJoin: false,
   nativeRelationLoading: "none",
+  textComparison: "case-sensitive",
+  upsert: "none",
+  returning: defaultMutationReturningCapabilities,
 });
+
+function freezeDriverCapabilities(input?: OrmDriverCapabilityInput): OrmDriverCapabilities {
+  return Object.freeze({
+    ...defaultDriverCapabilities,
+    ...(input ?? {}),
+    returning: Object.freeze({
+      ...defaultDriverCapabilities.returning,
+      ...(input?.returning ?? {}),
+    }),
+  });
+}
 
 export type OrmDriverHandle<
   TKind extends string = string,
@@ -264,16 +304,13 @@ export function createDriverHandle<
   kind: TKind;
   client: TClient;
   dialect?: TDialect;
-  capabilities?: Partial<OrmDriverCapabilities>;
+  capabilities?: OrmDriverCapabilityInput;
 }): OrmDriverHandle<TKind, TClient, TDialect> {
   return Object.freeze({
     kind: input.kind,
     client: input.client,
     dialect: input.dialect,
-    capabilities: Object.freeze({
-      ...defaultDriverCapabilities,
-      ...input.capabilities,
-    }),
+    capabilities: freezeDriverCapabilities(input.capabilities),
   });
 }
 
@@ -427,42 +464,55 @@ function createModelClient<
   driver: OrmDriver<TSchema, any>,
   model: TModelName,
 ): ModelClient<TSchema, TModelName> {
+  const withNormalizedDriverErrors = <TResult>(run: () => Promise<TResult>) =>
+    Promise.resolve()
+      .then(run)
+      .catch((error) => {
+        throw normalizeOrmError(driver.handle, error) ?? error;
+      });
+
   return {
     findMany(args) {
-      return driver.findMany(schema, model, (args ?? {}) as any) as any;
+      return withNormalizedDriverErrors(
+        () => driver.findMany(schema, model, (args ?? {}) as any) as any,
+      );
     },
     findOne(args) {
-      return driver.findFirst(schema, model, (args ?? {}) as any) as any;
+      return withNormalizedDriverErrors(
+        () => driver.findFirst(schema, model, (args ?? {}) as any) as any,
+      );
     },
     findFirst(args) {
-      return driver.findFirst(schema, model, (args ?? {}) as any) as any;
+      return withNormalizedDriverErrors(
+        () => driver.findFirst(schema, model, (args ?? {}) as any) as any,
+      );
     },
     findUnique(args) {
-      return driver.findUnique(schema, model, args as any) as any;
+      return withNormalizedDriverErrors(() => driver.findUnique(schema, model, args as any) as any);
     },
     count(args) {
-      return driver.count(schema, model, args as any);
+      return withNormalizedDriverErrors(() => driver.count(schema, model, args as any));
     },
     create(args) {
-      return driver.create(schema, model, args as any) as any;
+      return withNormalizedDriverErrors(() => driver.create(schema, model, args as any) as any);
     },
     createMany(args) {
-      return driver.createMany(schema, model, args as any) as any;
+      return withNormalizedDriverErrors(() => driver.createMany(schema, model, args as any) as any);
     },
     update(args) {
-      return driver.update(schema, model, args as any) as any;
+      return withNormalizedDriverErrors(() => driver.update(schema, model, args as any) as any);
     },
     updateMany(args) {
-      return driver.updateMany(schema, model, args as any);
+      return withNormalizedDriverErrors(() => driver.updateMany(schema, model, args as any));
     },
     upsert(args) {
-      return driver.upsert(schema, model, args as any) as any;
+      return withNormalizedDriverErrors(() => driver.upsert(schema, model, args as any) as any);
     },
     delete(args) {
-      return driver.delete(schema, model, args as any) as any;
+      return withNormalizedDriverErrors(() => driver.delete(schema, model, args as any));
     },
     deleteMany(args) {
-      return driver.deleteMany(schema, model, args as any);
+      return withNormalizedDriverErrors(() => driver.deleteMany(schema, model, args as any));
     },
   };
 }
@@ -486,13 +536,17 @@ export function createOrm<
     enumerable: true,
   });
   orm.transaction = (run) =>
-    driver.transaction(schema, async (txDriver) => {
-      const tx = createOrm({
-        schema,
-        driver: txDriver,
+    driver
+      .transaction(schema, async (txDriver) => {
+        const tx = createOrm({
+          schema,
+          driver: txDriver,
+        });
+        return run(tx);
+      })
+      .catch((error) => {
+        throw normalizeOrmError(driver.handle, error) ?? error;
       });
-      return run(tx);
-    });
   orm.batch = async (tasks) =>
     orm.transaction(async (tx) => {
       const results: unknown[] = [];

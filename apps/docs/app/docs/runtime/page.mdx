@@ -40,6 +40,8 @@ const orm = createOrm({
 
 orm.$driver.kind; // "prisma"
 orm.$driver.client; // the same PrismaClient instance
+orm.$driver.capabilities.upsert; // "native" | "emulated" | "none"
+orm.$driver.capabilities.returning.update; // whether update returns records in this ORM layer
 ```
 
 The handle also exposes read-only capability metadata:
@@ -169,6 +171,24 @@ It also means unique lookups can be:
 - a generated `id`
 - a single `.unique()` field such as `email` or `token`
 - a declared compound unique constraint such as `provider + accountId`
+
+## Capabilities and Errors
+
+Every live ORM client exposes read-only capability metadata on `orm.$driver.capabilities`.
+
+That includes:
+
+- basic value support like JSON, dates, booleans, and transactions
+- namespace and transactional DDL support
+- mutation-returning support
+- upsert behavior
+- text comparison behavior
+- relation-loading capability
+
+Runtime failures are normalized too. Duplicate-key, foreign-key, missing-table,
+deadlock, and transaction-conflict failures are exposed as `OrmError` values
+through the unified ORM client, so higher-level integrations do not need to
+parse Prisma, SQL, MongoDB, or Mongoose error formats separately.
 
 ## Available drivers
 

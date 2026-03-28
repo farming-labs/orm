@@ -229,6 +229,8 @@ const orm = await createOrmFromRuntime({
 
 orm.$driver.kind; // "sql"
 orm.$driver.dialect; // "postgres"
+orm.$driver.capabilities.upsert; // "native"
+orm.$driver.capabilities.textComparison; // "database-default"
 ```
 
 If you want only the driver, use the lower-level helper:
@@ -261,6 +263,26 @@ const orm = await bootstrapDatabase({
 For SQL-family runtimes it applies generated DDL. For Prisma it runs a temporary
 `prisma db push --skip-generate`. For MongoDB and Mongoose it ensures
 collections and indexes from the schema manifest.
+
+Runtime errors are normalized too:
+
+```ts
+import { isOrmError } from "@farming-labs/orm";
+
+const error = await orm.user
+  .create({
+    data: {
+      email: "duplicate@farminglabs.dev",
+      name: "Ada",
+    },
+  })
+  .catch((reason) => reason);
+
+if (isOrmError(error)) {
+  error.code; // "UNIQUE_CONSTRAINT_VIOLATION"
+  error.backendKind; // "sql" | "prisma" | "mongo" | ...
+}
+```
 
 ## Local development
 

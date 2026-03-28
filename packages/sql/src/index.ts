@@ -900,6 +900,25 @@ function createMysqlPoolAdapter(pool: MysqlPoolLike): SqlAdapterLike {
   };
 }
 
+function sqlDriverCapabilities(dialect: SqlDialect) {
+  return {
+    supportsJSON: true,
+    supportsDates: true,
+    supportsBooleans: true,
+    supportsTransactions: true,
+    supportsSchemaNamespaces: dialect === "postgres",
+    supportsTransactionalDDL: dialect !== "mysql",
+    nativeRelationLoading: "partial" as const,
+    textComparison: "database-default" as const,
+    upsert: "native" as const,
+    returning: {
+      create: true,
+      update: true,
+      delete: false,
+    },
+  };
+}
+
 function createSqlDriver<
   TSchema extends SchemaDefinition<any>,
   THandle extends OrmDriverHandle = SqlDriverHandle<SqlAdapterLike>,
@@ -909,13 +928,7 @@ function createSqlDriver<
       kind: "sql",
       client: adapter,
       dialect: adapter.dialect,
-      capabilities: {
-        supportsJSON: true,
-        supportsDates: true,
-        supportsBooleans: true,
-        supportsTransactions: true,
-        nativeRelationLoading: "partial",
-      },
+      capabilities: sqlDriverCapabilities(adapter.dialect),
     })) as THandle;
 
   async function loadRows<
@@ -1714,13 +1727,7 @@ export function createSqliteDriver<TSchema extends SchemaDefinition<any>>(
       kind: "sql",
       client: database,
       dialect: "sqlite",
-      capabilities: {
-        supportsJSON: true,
-        supportsDates: true,
-        supportsBooleans: true,
-        supportsTransactions: true,
-        nativeRelationLoading: "partial",
-      },
+      capabilities: sqlDriverCapabilities("sqlite"),
     }),
   );
 }
@@ -1739,13 +1746,7 @@ export function createPgPoolDriver<TSchema extends SchemaDefinition<any>>(pool: 
       kind: "sql",
       client: pool,
       dialect: "postgres",
-      capabilities: {
-        supportsJSON: true,
-        supportsDates: true,
-        supportsBooleans: true,
-        supportsTransactions: true,
-        nativeRelationLoading: "partial",
-      },
+      capabilities: sqlDriverCapabilities("postgres"),
     }),
   );
 }
@@ -1757,13 +1758,7 @@ export function createPgClientDriver<TSchema extends SchemaDefinition<any>>(clie
       kind: "sql",
       client,
       dialect: "postgres",
-      capabilities: {
-        supportsJSON: true,
-        supportsDates: true,
-        supportsBooleans: true,
-        supportsTransactions: true,
-        nativeRelationLoading: "partial",
-      },
+      capabilities: sqlDriverCapabilities("postgres"),
     }),
   );
 }
@@ -1781,13 +1776,7 @@ export function createMysqlDriver<TSchema extends SchemaDefinition<any>>(
       kind: "sql",
       client: poolOrConnection,
       dialect: "mysql",
-      capabilities: {
-        supportsJSON: true,
-        supportsDates: true,
-        supportsBooleans: true,
-        supportsTransactions: true,
-        nativeRelationLoading: "partial",
-      },
+      capabilities: sqlDriverCapabilities("mysql"),
     }),
   );
 }
