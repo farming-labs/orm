@@ -14,6 +14,7 @@ import {
   assertMutationQueries,
   assertOneToOneAndHasManyQueries,
   createIsolatedName,
+  seedAuthData,
   schema,
 } from "../../mongoose/test/support/auth";
 
@@ -251,18 +252,16 @@ describe("mongo local integration", () => {
     "normalizes duplicate-key errors from a real local MongoDB instance",
     async () => {
       await withLocalOrm(async (orm) => {
-        await orm.user.create({
-          data: {
-            email: "duplicate@farminglabs.dev",
-            name: "First",
-          },
-        });
+        const { ada } = await seedAuthData(orm);
 
-        const error = await orm.user
+        const error = await orm.account
           .create({
             data: {
-              email: "duplicate@farminglabs.dev",
-              name: "Second",
+              userId: ada.id,
+              provider: "github",
+              accountId: "gh_ada",
+              planTier: "pro",
+              balance: "19.95",
             },
           })
           .catch((reason) => reason);
