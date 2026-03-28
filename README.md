@@ -319,6 +319,10 @@ Use `tableName(...)` instead of passing flat strings like `"auth.users"`. The
 ORM now rejects schema-qualified table strings so schema namespaces stay
 explicit and portable.
 
+Generated numeric IDs are currently first-class on the SQL-family runtimes,
+Prisma, and the in-memory driver. MongoDB and Mongoose still support manual
+numeric IDs only.
+
 ## Local development
 
 ```bash

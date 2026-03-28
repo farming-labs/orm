@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import mongoose from "mongoose";
-import { createOrm, detectDatabaseRuntime, isOrmError } from "@farming-labs/orm";
+import {
+  createOrm,
+  defineSchema,
+  detectDatabaseRuntime,
+  id,
+  isOrmError,
+  model,
+  string,
+} from "@farming-labs/orm";
 import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
 import { bootstrapDatabase, pushSchema } from "@farming-labs/orm-runtime/setup";
 import { createMongooseDriver } from "../src";
@@ -19,6 +27,16 @@ import {
 } from "./support/auth";
 
 const LOCAL_TIMEOUT_MS = 15_000;
+
+const generatedNumericIdSchema = defineSchema({
+  auditEvent: model({
+    table: "audit_events",
+    fields: {
+      id: id({ type: "integer", generated: "increment" }),
+      email: string().unique(),
+    },
+  }),
+});
 
 function formatLocalDbError(error: unknown, uri: string) {
   const message = error instanceof Error ? error.message : String(error);
@@ -253,6 +271,36 @@ describe("mongoose local integration", () => {
         expect(
           accountIndexes.some((index) => index.name === "accounts_provider_account_id_unique"),
         ).toBe(true);
+      } finally {
+        await closeLocalConnection(connection);
+      }
+    },
+    LOCAL_TIMEOUT_MS,
+  );
+
+  it(
+    "rejects generated integer ids in the Mongoose runtime with a clear error",
+    async () => {
+      const connection = await createLocalConnection();
+
+      try {
+        const orm = createOrm({
+          schema: generatedNumericIdSchema,
+          driver: createMongooseDriver({
+            models: {} as any,
+            connection,
+          }),
+        });
+
+        await expect(
+          orm.auditEvent.create({
+            data: {
+              email: "generated@farminglabs.dev",
+            },
+          }),
+        ).rejects.toThrow(
+          'The Mongoose runtime does not support generated integer ids for model "auditEvent". Use manual numeric ids or a string id instead.',
+        );
       } finally {
         await closeLocalConnection(connection);
       }

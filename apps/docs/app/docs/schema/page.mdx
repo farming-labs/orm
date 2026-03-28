@@ -149,6 +149,10 @@ Use the structured helper instead of passing `"auth.users"` as a flat string.
 Schema-qualified strings are rejected so the ORM can keep table names and
 namespaces unambiguous.
 
+Generated numeric IDs are currently first-class on the SQL-family runtimes,
+Prisma, and the in-memory driver. MongoDB and Mongoose keep manual numeric IDs
+only for now.
+
 ## Field builders
 
 ### Scalar field types
