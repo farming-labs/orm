@@ -421,6 +421,25 @@ function buildDefaultMongoTransforms<TSchema extends SchemaDefinition<any>>(sche
   return output;
 }
 
+function assertSupportedNumericIdGeneration<TSchema extends SchemaDefinition<any>>(
+  schema: TSchema,
+) {
+  const manifest = createManifest(schema);
+
+  for (const model of Object.values(manifest.models)) {
+    const idField = model.fields.id;
+    if (
+      idField?.kind === "id" &&
+      idField.idType === "integer" &&
+      idField.generated === "increment"
+    ) {
+      throw new Error(
+        `The Mongo runtime does not support generated integer ids for model "${model.name}". Use manual numeric ids or a string id instead.`,
+      );
+    }
+  }
+}
+
 export function createMongoDriver<TSchema extends SchemaDefinition<any>>(
   config: MongoDriverConfig<TSchema>,
 ): OrmDriver<TSchema, MongoDriverHandle<TSchema>> {
@@ -512,6 +531,7 @@ export function createMongoDriver<TSchema extends SchemaDefinition<any>>(
   }
 
   function getDelegate(schema: TSchema) {
+    assertSupportedNumericIdGeneration(schema);
     const cached = delegateCache.get(schema);
     if (cached) return cached;
 

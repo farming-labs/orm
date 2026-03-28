@@ -41,6 +41,22 @@ export type SchemaDefinition<
   readonly models: Models;
 };
 
+function validateTablePart(value: string, label: string) {
+  const normalized = value.trim();
+
+  if (!normalized.length) {
+    throw new Error(`tableName() requires a non-empty ${label}.`);
+  }
+
+  if (normalized.includes(".")) {
+    throw new Error(
+      `tableName() ${label} values cannot contain ".". Pass the table name and schema separately.`,
+    );
+  }
+
+  return normalized;
+}
+
 export function model<Fields extends FieldMap, Relations extends RelationMap = {}>(config: {
   table: TableInput;
   fields: Fields;
@@ -60,8 +76,8 @@ export function model<Fields extends FieldMap, Relations extends RelationMap = {
 
 export function tableName(name: string, options?: { schema?: string }): TableReference {
   return Object.freeze({
-    name,
-    schema: options?.schema,
+    name: validateTablePart(name, "table name"),
+    schema: options?.schema ? validateTablePart(options.schema, "schema name") : undefined,
   });
 }
 

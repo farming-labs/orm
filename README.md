@@ -231,7 +231,7 @@ orm.$driver.kind; // "sql"
 orm.$driver.dialect; // "postgres"
 orm.$driver.capabilities.upsert; // "native"
 orm.$driver.capabilities.textComparison; // "database-default"
-orm.$driver.capabilities.numericIds; // "manual"
+orm.$driver.capabilities.numericIds; // "generated"
 ```
 
 If you want only the driver, use the lower-level helper:
@@ -298,8 +298,8 @@ if (isOrmError(error)) {
 }
 ```
 
-The schema DSL also supports manual numeric IDs and Postgres-style namespaced
-tables:
+The schema DSL also supports manual or generated numeric IDs and Postgres-style
+namespaced tables:
 
 ```ts
 import { defineSchema, id, model, string, tableName } from "@farming-labs/orm";
@@ -308,12 +308,16 @@ const schema = defineSchema({
   user: model({
     table: tableName("users", { schema: "auth" }),
     fields: {
-      id: id({ type: "integer" }),
+      id: id({ type: "integer", generated: "increment" }),
       email: string().unique(),
     },
   }),
 });
 ```
+
+Use `tableName(...)` instead of passing flat strings like `"auth.users"`. The
+ORM now rejects schema-qualified table strings so schema namespaces stay
+explicit and portable.
 
 ## Local development
 

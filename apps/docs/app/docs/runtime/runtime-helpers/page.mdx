@@ -106,6 +106,33 @@ if (isOrmError(error)) {
 }
 ```
 
+Generated integer IDs are now first-class in the supporting runtimes too:
+
+```ts title="generated-numeric-id.ts"
+const schema = defineSchema({
+  auditEvent: model({
+    table: tableName("audit_events", { schema: "auth" }),
+    fields: {
+      id: id({ type: "integer", generated: "increment" }),
+      email: string().unique(),
+    },
+  }),
+});
+
+const orm = await bootstrapDatabase({
+  schema,
+  client: pool,
+});
+
+const created = await orm.auditEvent.create({
+  data: {
+    email: "ada@farminglabs.dev",
+  },
+});
+
+created.id; // 1, 2, 3, ...
+```
+
 If runtime detection fails, ask for the structured report:
 
 ```ts title="runtime-detection-report.ts"

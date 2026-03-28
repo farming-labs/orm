@@ -110,6 +110,16 @@ const numericIdSchema = defineSchema({
   }),
 });
 
+const generatedNumericIdSchema = defineSchema({
+  auditEvent: model({
+    table: "audit_events",
+    fields: {
+      id: id({ type: "integer", generated: "increment" }),
+      email: string().unique(),
+    },
+  }),
+});
+
 function assignDatabase(connectionString: string, databaseName: string) {
   const url = new URL(connectionString);
   url.pathname = `/${databaseName}`;
@@ -415,6 +425,44 @@ it("rejects malformed integer ids before issuing Prisma delegate queries", async
   expect(findFirst).not.toHaveBeenCalled();
 });
 
+it("omits generated integer ids from Prisma create payloads and returns the generated row", async () => {
+  const create = vi.fn(async ({ data }: { data: Record<string, unknown> }) => ({
+    id: 1,
+    email: data.email,
+  }));
+  const orm = createOrm({
+    schema: generatedNumericIdSchema,
+    driver: createPrismaDriver({
+      client: {
+        auditEvent: {
+          findMany: vi.fn(async () => []),
+          findFirst: vi.fn(async () => null),
+          count: vi.fn(async () => 0),
+          create,
+          updateMany: vi.fn(async () => ({ count: 0 })),
+          deleteMany: vi.fn(async () => ({ count: 0 })),
+        },
+      } as any,
+    }),
+  });
+
+  const created = await orm.auditEvent.create({
+    data: {
+      email: "generated@farminglabs.dev",
+    },
+  });
+
+  expect(create).toHaveBeenCalledWith({
+    data: {
+      email: "generated@farminglabs.dev",
+    },
+  });
+  expect(created).toEqual({
+    id: 1,
+    email: "generated@farminglabs.dev",
+  });
+});
+
 for (const [target, factory] of [
   ["sqlite", createLocalSqliteOrm],
   ["postgresql", createLocalPostgresOrm],
@@ -436,7 +484,7 @@ for (const [target, factory] of [
           });
           expect(orm.$driver.capabilities).toEqual({
             supportsNumericIds: true,
-            numericIds: "manual",
+            numericIds: "generated",
             supportsJSON: true,
             supportsDates: true,
             supportsBooleans: true,

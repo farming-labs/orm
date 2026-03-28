@@ -145,17 +145,22 @@ user: model({
 That keeps the logical model name as `user` while generators and the SQL runtime
 emit qualified identifiers like `"auth"."users"`.
 
+Use the structured helper instead of passing `"auth.users"` as a flat string.
+Schema-qualified strings are rejected so the ORM can keep table names and
+namespaces unambiguous.
+
 ## Field builders
 
 ### Scalar field types
 
-| Builder                   | Output type | Notes                                            |
-| ------------------------- | ----------- | ------------------------------------------------ |
-| `id()`                    | `string`    | Unique by default and generated as an id         |
-| `id({ type: "integer" })` | `number`    | Numeric primary key support                      |
-| `string()`                | `string`    | Plain string scalar                              |
-| `boolean()`               | `boolean`   | Boolean scalar                                   |
-| `datetime()`              | `Date`      | Represents a JavaScript `Date` in runtime typing |
+| Builder                                           | Output type | Notes                                            |
+| ------------------------------------------------- | ----------- | ------------------------------------------------ |
+| `id()`                                            | `string`    | Unique by default and generated as an id         |
+| `id({ type: "integer" })`                         | `number`    | Manual numeric primary key support               |
+| `id({ type: "integer", generated: "increment" })` | `number`    | Auto-generated numeric primary key support       |
+| `string()`                                        | `string`    | Plain string scalar                              |
+| `boolean()`                                       | `boolean`   | Boolean scalar                                   |
+| `datetime()`                                      | `Date`      | Represents a JavaScript `Date` in runtime typing |
 
 ### Field methods
 

@@ -129,6 +129,23 @@ function getManifest(schema: SchemaDefinition<any>) {
   return next;
 }
 
+function assertSupportedNumericIdGeneration(schema: SchemaDefinition<any>) {
+  const manifest = getManifest(schema);
+
+  for (const model of Object.values(manifest.models)) {
+    const idField = model.fields.id;
+    if (
+      idField?.kind === "id" &&
+      idField.idType === "integer" &&
+      idField.generated === "increment"
+    ) {
+      throw new Error(
+        `The Mongoose runtime does not support generated integer ids for model "${model.name}". Use manual numeric ids or a string id instead.`,
+      );
+    }
+  }
+}
+
 function identityField(model: ManifestModel) {
   if (model.fields.id) return model.fields.id;
   const uniqueField = Object.values(model.fields).find((field) => field.unique);
@@ -228,6 +245,11 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
       throw new Error(`No Mongoose model was provided for schema model "${modelName}".`);
     }
     return model;
+  }
+
+  function getSupportedManifest(schema: TSchema) {
+    assertSupportedNumericIdGeneration(schema);
+    return getManifest(schema);
   }
 
   function fieldTransform(modelName: string, fieldName: string) {
@@ -500,7 +522,7 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
       select?: TSelect;
     },
   ): Promise<Array<SelectedRecord<TSchema, TModelName, TSelect>>> {
-    const manifest = getManifest(schema);
+    const manifest = getSupportedManifest(schema);
     const model = manifest.models[modelName];
     const docs = await runFindMany(model, args);
     const rows = docs.map((doc) => decodeRow(model, doc));
@@ -534,7 +556,7 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
       orderBy?: Partial<Record<string, "asc" | "desc">>;
     },
   ) {
-    const manifest = getManifest(schema);
+    const manifest = getSupportedManifest(schema);
     const model = manifest.models[modelName];
     const doc = await runFindOne(model, args);
     return doc ? decodeRow(model, doc) : null;
@@ -549,7 +571,7 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
     row: MongoRow,
     select?: TSelect,
   ): Promise<SelectedRecord<TSchema, TModelName, TSelect>> {
-    const manifest = getManifest(schema);
+    const manifest = getSupportedManifest(schema);
     const model = manifest.models[modelName];
     const output: MongoRow = {};
 
@@ -592,7 +614,7 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
     row: MongoRow,
     value: true | FindManyArgs<TSchema, any, any>,
   ) {
-    const manifest = getManifest(schema);
+    const manifest = getSupportedManifest(schema);
     const relation = schema.models[modelName].relations[relationName];
     const relationArgs = value === true ? {} : value;
 
@@ -798,7 +820,7 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
       return loadOneRow(schema, model, args);
     },
     async findUnique(schema, model, args) {
-      const manifest = getManifest(schema);
+      const manifest = getSupportedManifest(schema);
       requireUniqueLookup(
         manifest.models[model],
         args.where as Record<string, unknown>,
@@ -807,7 +829,7 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
       return loadOneRow(schema, model, args);
     },
     async count(schema, model, args?: CountArgs<TSchema, ModelName<TSchema>>) {
-      const manifest = getManifest(schema);
+      const manifest = getSupportedManifest(schema);
       const result = await execute(
         getModel(model).countDocuments(
           compileWhere(manifest.models[model], args?.where as MongoWhere | undefined),
@@ -817,7 +839,7 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
       return Number(result);
     },
     async create(schema, model, args) {
-      const manifest = getManifest(schema);
+      const manifest = getSupportedManifest(schema);
       const document = buildDocument(
         manifest.models[model],
         args.data as Partial<Record<string, unknown>>,
@@ -846,7 +868,7 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
       return results as any;
     },
     async update(schema, model, args) {
-      const manifest = getManifest(schema);
+      const manifest = getSupportedManifest(schema);
       const updated = await getModel(model)
         .findOneAndUpdate(
           compileWhere(manifest.models[model], args.where as MongoWhere),
@@ -875,7 +897,7 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
       ) as Promise<any>;
     },
     async updateMany(schema, model, args) {
-      const manifest = getManifest(schema);
+      const manifest = getSupportedManifest(schema);
       const update = buildUpdate(
         manifest.models[model],
         args.data as Partial<Record<string, unknown>>,
@@ -894,7 +916,7 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
       return Number(result.modifiedCount ?? result.matchedCount ?? 0);
     },
     async upsert(schema, model, args) {
-      const manifest = getManifest(schema);
+      const manifest = getSupportedManifest(schema);
       const modelManifest = manifest.models[model];
       const lookup = requireUniqueLookup(
         modelManifest,
@@ -946,7 +968,7 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
       ) as Promise<any>;
     },
     async delete(schema, model, args) {
-      const manifest = getManifest(schema);
+      const manifest = getSupportedManifest(schema);
       const deleted = await getModel(model)
         .findOneAndDelete(
           compileWhere(manifest.models[model], args.where as MongoWhere),
@@ -957,7 +979,7 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
       return deleted ? 1 : 0;
     },
     async deleteMany(schema, model, args) {
-      const manifest = getManifest(schema);
+      const manifest = getSupportedManifest(schema);
       const result = await execute(
         getModel(model).deleteMany(
           compileWhere(manifest.models[model], args.where as MongoWhere),

@@ -39,6 +39,7 @@ type SqlWhere = Where<Record<string, unknown>>;
 type SqlQueryResult = {
   rows: SqlRow[];
   affectedRows: number;
+  insertId?: unknown;
 };
 
 export type SqlDriverHandle<
@@ -68,6 +69,7 @@ export type PgPoolLike = PgClientLike & {
 
 type MysqlExecuteResult = {
   affectedRows?: number;
+  insertId?: number | bigint;
 };
 
 export type MysqlConnectionLike = {
@@ -85,6 +87,7 @@ export type MysqlPoolLike = {
 
 type SqliteRunResult = {
   changes?: number | bigint;
+  lastInsertRowid?: number | bigint;
 };
 
 export type SqliteStatementLike = {
@@ -129,6 +132,10 @@ function quoteTableIdentifier(model: ManifestModel, dialect: SqlDialect) {
   return `${quoteIdentifier(model.schema, dialect)}.${quoteIdentifier(model.table, dialect)}`;
 }
 
+function hasSchemaNamespaces(manifest: SchemaManifest) {
+  return Object.values(manifest.models).some((model) => !!model.schema);
+}
+
 function defaultTableAlias(model: ManifestModel) {
   return model.name;
 }
@@ -162,6 +169,15 @@ function applyDefault(value: unknown, field: ManifestField) {
     return (field.defaultValue as () => unknown)();
   }
   return field.defaultValue;
+}
+
+function generatedIncrementIdField(model: ManifestModel) {
+  const idField = model.fields.id;
+  if (idField?.kind === "id" && idField.idType === "integer" && idField.generated === "increment") {
+    return idField;
+  }
+
+  return null;
 }
 
 function encodeValue(field: ManifestField, dialect: SqlDialect, value: unknown) {
@@ -577,15 +593,54 @@ function buildIdentityWhere(model: ManifestModel, row: SqlRow) {
 function buildInsertStatement(model: ManifestModel, dialect: SqlDialect, row: SqlRow) {
   const state: QueryState = { params: [] };
   const fields = Object.values(model.fields).filter((field) => row[field.name] !== undefined);
-  const columns = fields.map((field) => quoteIdentifier(field.column, dialect));
-  const values = fields.map((field) =>
-    createPlaceholder(dialect, state, encodeValue(field, dialect, row[field.name])),
-  );
+  const generatedIdField = generatedIncrementIdField(model);
+  const shouldReturnGeneratedId =
+    dialect === "postgres" &&
+    !!generatedIdField &&
+    (row[generatedIdField.name] === undefined || row[generatedIdField.name] === null);
+
+  let sql: string;
+
+  if (!fields.length) {
+    sql =
+      dialect === "mysql"
+        ? `insert into ${quoteTableIdentifier(model, dialect)} () values ()`
+        : `insert into ${quoteTableIdentifier(model, dialect)} default values`;
+  } else {
+    const columns = fields.map((field) => quoteIdentifier(field.column, dialect));
+    const values = fields.map((field) =>
+      createPlaceholder(dialect, state, encodeValue(field, dialect, row[field.name])),
+    );
+    sql = `insert into ${quoteTableIdentifier(model, dialect)} (${columns.join(", ")}) values (${values.join(", ")})`;
+  }
+
+  if (shouldReturnGeneratedId) {
+    sql += ` returning ${quoteIdentifier(generatedIdField.column, dialect)} as ${quoteIdentifier(generatedIdField.name, dialect)}`;
+  }
 
   return {
-    sql: `insert into ${quoteTableIdentifier(model, dialect)} (${columns.join(", ")}) values (${values.join(", ")})`,
+    sql,
     params: state.params,
   };
+}
+
+function resolveInsertedIdentityWhere(
+  model: ManifestModel,
+  dialect: SqlDialect,
+  row: SqlRow,
+  result: SqlQueryResult,
+) {
+  const generatedId = generatedIncrementIdField(model);
+  if (generatedId && (row[generatedId.name] === undefined || row[generatedId.name] === null)) {
+    const insertedId = result.rows[0]?.[generatedId.name] ?? result.insertId;
+    if (insertedId !== undefined && insertedId !== null) {
+      return {
+        [generatedId.name]: decodeValue(generatedId, dialect, insertedId),
+      } as SqlWhere;
+    }
+  }
+
+  return buildIdentityWhere(model, row);
 }
 
 function buildUpsertStatement(
@@ -721,6 +776,7 @@ function createSqliteAdapter(database: SqliteDatabaseLike): SqlAdapterLike {
       return {
         rows: [],
         affectedRows: Number(result?.changes ?? 0),
+        insertId: result?.lastInsertRowid,
       };
     },
     async transaction(run) {
@@ -853,6 +909,7 @@ function createMysqlTransactionalAdapter(connection: MysqlConnectionLike): SqlAd
       return {
         rows: [],
         affectedRows: Number((result as MysqlExecuteResult).affectedRows ?? 0),
+        insertId: (result as MysqlExecuteResult).insertId,
       };
     },
     async transaction(run) {
@@ -910,6 +967,7 @@ function createMysqlPoolAdapter(pool: MysqlPoolLike): SqlAdapterLike {
       return {
         rows: [],
         affectedRows: Number((result as MysqlExecuteResult).affectedRows ?? 0),
+        insertId: (result as MysqlExecuteResult).insertId,
       };
     },
     async transaction(run) {
@@ -925,7 +983,7 @@ function createMysqlPoolAdapter(pool: MysqlPoolLike): SqlAdapterLike {
 
 function sqlDriverCapabilities(dialect: SqlDialect) {
   return {
-    numericIds: "manual" as const,
+    numericIds: "generated" as const,
     supportsJSON: true,
     supportsDates: true,
     supportsBooleans: true,
@@ -973,6 +1031,18 @@ function createSqlDriver<
       capabilities: sqlDriverCapabilities(adapter.dialect),
     })) as THandle;
 
+  function getRuntimeManifest(schema: TSchema) {
+    const manifest = getManifest(schema);
+
+    if (adapter.dialect !== "postgres" && hasSchemaNamespaces(manifest)) {
+      throw new Error(
+        `The SQL ${adapter.dialect} runtime does not support schema-qualified tables. Use a PostgreSQL runtime for tableName(..., { schema }).`,
+      );
+    }
+
+    return manifest;
+  }
+
   async function loadRows<
     TModelName extends ModelName<TSchema>,
     TSelect extends SelectShape<TSchema, TModelName> | undefined,
@@ -987,12 +1057,13 @@ function createSqlDriver<
       select?: TSelect;
     },
   ): Promise<Array<SelectedRecord<TSchema, TModelName, TSelect>>> {
+    getRuntimeManifest(schema);
     const nativeRows = await loadRowsWithNativeJoins(schema, modelName, args);
     if (nativeRows) {
       return nativeRows;
     }
 
-    const manifest = getManifest(schema);
+    const manifest = getRuntimeManifest(schema);
     const model = manifest.models[modelName];
     const statement = buildSelectStatement(model, adapter.dialect, args);
     const result = await adapter.query(statement.sql, statement.params);
@@ -1028,7 +1099,7 @@ function createSqlDriver<
       orderBy?: Partial<Record<string, "asc" | "desc">>;
     },
   ) {
-    const manifest = getManifest(schema);
+    const manifest = getRuntimeManifest(schema);
     const model = manifest.models[modelName];
     const statement = buildSelectStatement(model, adapter.dialect, {
       ...args,
@@ -1092,7 +1163,7 @@ function createSqlDriver<
     select: TSelect,
     aliasState: { next: number },
   ): NativeJoinPlanNode | null {
-    const manifest = getManifest(schema);
+    const manifest = getRuntimeManifest(schema);
     const model = manifest.models[modelName];
     const alias = `t${aliasState.next++}`;
     const entries = select ? Object.entries(select) : [];
@@ -1444,7 +1515,7 @@ function createSqlDriver<
     row: SqlRow,
     select?: TSelect,
   ): Promise<SelectedRecord<TSchema, TModelName, TSelect>> {
-    const manifest = getManifest(schema);
+    const manifest = getRuntimeManifest(schema);
     const model = manifest.models[modelName];
     const output: SqlRow = {};
 
@@ -1487,7 +1558,7 @@ function createSqlDriver<
     row: SqlRow,
     value: true | FindManyArgs<TSchema, any, any>,
   ) {
-    const manifest = getManifest(schema);
+    const manifest = getRuntimeManifest(schema);
     const relation = schema.models[modelName].relations[relationName];
     const relationArgs = value === true ? {} : value;
 
@@ -1603,7 +1674,7 @@ function createSqlDriver<
       return loadOneRow(schema, model, args);
     },
     async findUnique(schema, model, args) {
-      const manifest = getManifest(schema);
+      const manifest = getRuntimeManifest(schema);
       requireUniqueLookup(
         manifest.models[model],
         args.where as Record<string, unknown>,
@@ -1612,7 +1683,7 @@ function createSqlDriver<
       return loadOneRow(schema, model, args);
     },
     async count(schema, model, args?: CountArgs<TSchema, ModelName<TSchema>>) {
-      const manifest = getManifest(schema);
+      const manifest = getRuntimeManifest(schema);
       const statement = buildCountStatement(
         manifest.models[model],
         adapter.dialect,
@@ -1624,14 +1695,19 @@ function createSqlDriver<
       return Number.parseInt(String(rawCount ?? 0), 10);
     },
     async create(schema, model, args) {
-      const manifest = getManifest(schema);
+      const manifest = getRuntimeManifest(schema);
       const row = buildInsertRow(
         manifest.models[model],
         args.data as Partial<Record<string, unknown>>,
       );
-      const identityWhere = buildIdentityWhere(manifest.models[model], row);
       const statement = buildInsertStatement(manifest.models[model], adapter.dialect, row);
-      await adapter.query(statement.sql, statement.params);
+      const result = await adapter.query(statement.sql, statement.params);
+      const identityWhere = resolveInsertedIdentityWhere(
+        manifest.models[model],
+        adapter.dialect,
+        row,
+        result,
+      );
       return loadOneRow(schema, model, {
         where: identityWhere,
         select: args.select,
@@ -1650,7 +1726,7 @@ function createSqlDriver<
       return results as any;
     },
     async update(schema, model, args) {
-      const manifest = getManifest(schema);
+      const manifest = getRuntimeManifest(schema);
       const current = await loadRawOneRow(schema, model, {
         where: args.where as SqlWhere,
       });
@@ -1674,7 +1750,7 @@ function createSqlDriver<
       }) as Promise<any>;
     },
     async updateMany(schema, model, args) {
-      const manifest = getManifest(schema);
+      const manifest = getRuntimeManifest(schema);
       const update = buildUpdateStatement(
         manifest.models[model],
         adapter.dialect,
@@ -1687,7 +1763,7 @@ function createSqlDriver<
       return result.affectedRows;
     },
     async upsert(schema, model, args) {
-      const manifest = getManifest(schema);
+      const manifest = getRuntimeManifest(schema);
       const modelManifest = manifest.models[model];
       const lookup = requireUniqueLookup(
         modelManifest,
@@ -1725,7 +1801,7 @@ function createSqlDriver<
       }) as Promise<any>;
     },
     async delete(schema, model, args) {
-      const manifest = getManifest(schema);
+      const manifest = getRuntimeManifest(schema);
       const current = await loadRawOneRow(schema, model, {
         where: args.where as SqlWhere,
       });
@@ -1741,7 +1817,7 @@ function createSqlDriver<
       return result.affectedRows;
     },
     async deleteMany(schema, model, args) {
-      const manifest = getManifest(schema);
+      const manifest = getRuntimeManifest(schema);
       const statement = buildDeleteStatement(
         manifest.models[model],
         adapter.dialect,

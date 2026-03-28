@@ -25,6 +25,7 @@ import {
   model,
   renderSafeSql,
   string,
+  tableName,
 } from "@farming-labs/orm";
 import {
   createMysqlDriver,
@@ -34,6 +35,7 @@ import {
 } from "../src";
 import type { MysqlConnectionLike, MysqlPoolLike } from "../src";
 import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+import { pushSchema } from "@farming-labs/orm-runtime/setup";
 
 const schema = defineSchema({
   user: model({
@@ -139,6 +141,16 @@ const schema = defineSchema({
     relations: {
       user: belongsTo("user", { foreignKey: "userId" }),
       organization: belongsTo("organization", { foreignKey: "organizationId" }),
+    },
+  }),
+});
+
+const namespacedGeneratedIdSchema = defineSchema({
+  auditEvent: model({
+    table: tableName("audit_events", { schema: "auth" }),
+    fields: {
+      id: id({ type: "integer", generated: "increment" }),
+      email: string().unique(),
     },
   }),
 });
@@ -1206,7 +1218,7 @@ for (const [target, factory] of [
         });
         expect(orm.$driver.capabilities).toEqual({
           supportsNumericIds: true,
-          numericIds: "manual",
+          numericIds: "generated",
           supportsJSON: true,
           supportsDates: true,
           supportsBooleans: true,
@@ -1286,6 +1298,55 @@ for (const [target, factory] of [
           email: "auto@farminglabs.dev",
         });
         expect(count).toBe(1);
+      } finally {
+        await close();
+      }
+    });
+
+    it("supports generated numeric ids on schema-qualified PostgreSQL tables", async () => {
+      const { driverClient, dialect, close } = await factory();
+
+      if (dialect !== "postgres") {
+        await close();
+        return;
+      }
+
+      try {
+        await pushSchema({
+          schema: namespacedGeneratedIdSchema,
+          client: driverClient,
+        });
+
+        const orm = await createOrmFromRuntime({
+          schema: namespacedGeneratedIdSchema,
+          client: driverClient,
+        });
+
+        const first = await orm.auditEvent.create({
+          data: {
+            email: "first@farminglabs.dev",
+          },
+        });
+        const second = await orm.auditEvent.create({
+          data: {
+            email: "second@farminglabs.dev",
+          },
+        });
+        const loaded = await orm.auditEvent.findUnique({
+          where: {
+            id: second.id,
+          },
+        });
+
+        expect(first).toEqual({
+          id: 1,
+          email: "first@farminglabs.dev",
+        });
+        expect(second).toEqual({
+          id: 2,
+          email: "second@farminglabs.dev",
+        });
+        expect(loaded).toEqual(second);
       } finally {
         await close();
       }

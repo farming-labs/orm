@@ -151,6 +151,18 @@ function applyDefault(value: unknown, field: { generated?: string; defaultValue?
   return field.defaultValue;
 }
 
+function nextGeneratedIntegerId(rows: Array<Record<string, unknown>>, fieldName: string) {
+  const max = rows.reduce((currentMax, row) => {
+    const value = row[fieldName];
+    if (typeof value === "number" && Number.isSafeInteger(value)) {
+      return Math.max(currentMax, value);
+    }
+    return currentMax;
+  }, 0);
+
+  return max + 1;
+}
+
 function sortRows(
   rows: Array<Record<string, unknown>>,
   orderBy?: Partial<Record<string, "asc" | "desc">>,
@@ -209,6 +221,7 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
     schema: TSchema,
     model: TModelName,
     data: Partial<Record<string, unknown>>,
+    existingRows: Array<Record<string, unknown>>,
   ) {
     const modelDefinition = schema.models[model];
     const nextRow: Record<string, unknown> = {};
@@ -216,6 +229,16 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
     for (const [fieldName, field] of Object.entries(modelDefinition.fields) as Array<
       [string, (typeof modelDefinition.fields)[string]]
     >) {
+      if (
+        data[fieldName] === undefined &&
+        field.config.kind === "id" &&
+        field.config.idType === "integer" &&
+        field.config.generated === "increment"
+      ) {
+        nextRow[fieldName] = nextGeneratedIntegerId(existingRows, fieldName);
+        continue;
+      }
+
       nextRow[fieldName] = applyDefault(data[fieldName], field.config);
     }
 
@@ -332,7 +355,7 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
       kind: "memory",
       client: state,
       capabilities: {
-        numericIds: "manual",
+        numericIds: "generated",
         supportsJSON: true,
         supportsDates: true,
         supportsBooleans: true,
@@ -407,8 +430,9 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
       model: ModelName<TSchema>,
       args: CreateArgs<TSchema, ModelName<TSchema>, any>,
     ) {
-      const nextRow = buildRow(schema, model, args.data);
-      getRows(model).push(nextRow);
+      const rows = getRows(model);
+      const nextRow = buildRow(schema, model, args.data, rows);
+      rows.push(nextRow);
       return projectRow(schema, model, nextRow, args.select);
     },
     async createMany(
@@ -416,9 +440,16 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
       model: ModelName<TSchema>,
       args: CreateManyArgs<TSchema, ModelName<TSchema>, any>,
     ) {
-      const rows = args.data.map((entry) => buildRow(schema, model, entry));
-      getRows(model).push(...rows);
-      return Promise.all(rows.map((row) => projectRow(schema, model, row, args.select)));
+      const rows = getRows(model);
+      const createdRows: Array<Record<string, unknown>> = [];
+
+      for (const entry of args.data) {
+        const row = buildRow(schema, model, entry, rows);
+        rows.push(row);
+        createdRows.push(row);
+      }
+
+      return Promise.all(createdRows.map((row) => projectRow(schema, model, row, args.select)));
     },
     async update(
       schema: TSchema,
@@ -472,6 +503,7 @@ export function createMemoryDriver<TSchema extends SchemaDefinition<any>>(
           lookup,
           "Upsert",
         ),
+        getRows(model),
       );
       getRows(model).push(created);
       return projectRow(schema, model, created, args.select);
