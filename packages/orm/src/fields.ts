@@ -1,4 +1,13 @@
-export type ScalarKind = "id" | "string" | "boolean" | "datetime" | "integer" | "json";
+export type ScalarKind =
+  | "id"
+  | "string"
+  | "boolean"
+  | "datetime"
+  | "integer"
+  | "json"
+  | "enum"
+  | "bigint"
+  | "decimal";
 
 export type JsonValue =
   | null
@@ -22,6 +31,7 @@ export type FieldConfig<
   mappedName?: string;
   references?: FieldReference;
   description?: string;
+  enumValues?: readonly string[];
 };
 
 export type ScalarValue<Kind extends ScalarKind> = Kind extends "id"
@@ -34,7 +44,13 @@ export type ScalarValue<Kind extends ScalarKind> = Kind extends "id"
         ? Date
         : Kind extends "integer"
           ? number
-          : JsonValue;
+          : Kind extends "json"
+            ? JsonValue
+            : Kind extends "enum"
+              ? string
+              : Kind extends "bigint"
+                ? bigint
+                : string;
 
 export type AnyFieldBuilder = FieldBuilder<ScalarKind, boolean, ScalarValue<ScalarKind>>;
 
@@ -134,6 +150,33 @@ export function string() {
   });
 }
 
+function normalizeEnumerationValues<TValues extends readonly [string, ...string[]]>(
+  values: TValues,
+) {
+  const normalized = values.map((value) => {
+    if (!value.length) {
+      throw new Error("enumeration() values must be non-empty strings.");
+    }
+
+    return value;
+  });
+
+  if (new Set(normalized).size !== normalized.length) {
+    throw new Error("enumeration() values must be unique.");
+  }
+
+  return normalized;
+}
+
+export function enumeration<const TValues extends readonly [string, ...string[]]>(values: TValues) {
+  return new FieldBuilder<"enum", false, TValues[number]>({
+    kind: "enum",
+    nullable: false,
+    unique: false,
+    enumValues: normalizeEnumerationValues(values),
+  });
+}
+
 export function boolean() {
   return new FieldBuilder({
     kind: "boolean",
@@ -153,6 +196,22 @@ export function datetime() {
 export function integer() {
   return new FieldBuilder({
     kind: "integer",
+    nullable: false,
+    unique: false,
+  });
+}
+
+export function bigint() {
+  return new FieldBuilder<"bigint", false, bigint>({
+    kind: "bigint",
+    nullable: false,
+    unique: false,
+  });
+}
+
+export function decimal() {
+  return new FieldBuilder<"decimal", false, string>({
+    kind: "decimal",
     nullable: false,
     unique: false,
   });

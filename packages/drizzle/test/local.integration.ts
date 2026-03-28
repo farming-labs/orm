@@ -11,6 +11,7 @@ import { Pool } from "pg";
 import { createOrm, detectDatabaseRuntime, renderSafeSql } from "@farming-labs/orm";
 import { createDrizzleDriver, type DrizzleDialect } from "../src";
 import {
+  assertEnumBigintAndDecimalQueries,
   assertBelongsToAndManyToManyQueries,
   assertCompoundUniqueQueries,
   assertIntegerAndJsonQueries,
@@ -70,6 +71,14 @@ function formatLocalDbError(label: string, error: unknown, hint: string) {
   );
 }
 
+function createMysqlPool(connectionString: string) {
+  return mysql.createPool({
+    uri: connectionString,
+    supportBigNumbers: true,
+    bigNumberStrings: true,
+  });
+}
+
 async function applyStatements(run: (sql: string) => Promise<unknown> | unknown, sql: string) {
   const statements = sql
     .split(";")
@@ -117,7 +126,7 @@ async function resolveMysqlAdminUrl() {
 
   let lastError: unknown;
   for (const candidate of candidates) {
-    const pool = mysql.createPool(candidate);
+    const pool = createMysqlPool(candidate);
     try {
       await pool.query("select 1");
       await pool.end();
@@ -138,12 +147,17 @@ async function resolveMysqlAdminUrl() {
 async function createLocalSqliteOrm() {
   const directory = await mkdtemp(path.join(tmpdir(), "farm-orm-drizzle-sqlite-"));
   const databasePath = path.join(directory, "drizzle.db");
-  const client = new DatabaseSync(databasePath);
+  const client = new DatabaseSync(databasePath, { readBigInts: true });
 
   await applyStatements(client.exec.bind(client), renderSafeSql(schema, { dialect: "sqlite" }));
 
   const db = drizzleSqlite(async (sql, params, method) => {
     const statement = client.prepare(sql);
+    (
+      statement as typeof statement & {
+        setReadBigInts?: (enabled: boolean) => void;
+      }
+    ).setReadBigInts?.(true);
 
     if (method === "run") {
       statement.run(...params);
@@ -242,7 +256,7 @@ async function createLocalPostgresOrm() {
 async function createLocalMysqlOrm() {
   const adminUrl = await resolveMysqlAdminUrl();
   const databaseName = createIsolatedName("farm_orm_drizzle_mysql");
-  const adminPool = mysql.createPool(adminUrl);
+  const adminPool = createMysqlPool(adminUrl);
 
   try {
     await adminPool.query(`create database \`${databaseName}\``);
@@ -258,7 +272,7 @@ async function createLocalMysqlOrm() {
   await adminPool.end();
 
   const databaseUrl = assignDatabase(adminUrl, databaseName);
-  const pool = mysql.createPool(databaseUrl);
+  const pool = createMysqlPool(databaseUrl);
 
   try {
     await applyStatements(
@@ -267,7 +281,7 @@ async function createLocalMysqlOrm() {
     );
   } catch (error) {
     await pool.end().catch(() => undefined);
-    const cleanupAdmin = mysql.createPool(adminUrl);
+    const cleanupAdmin = createMysqlPool(adminUrl);
     await cleanupAdmin.query(`drop database if exists \`${databaseName}\``);
     await cleanupAdmin.end();
     throw error;
@@ -288,7 +302,7 @@ async function createLocalMysqlOrm() {
     dialect: "mysql",
     close: async () => {
       await pool.end();
-      const cleanupAdmin = mysql.createPool(adminUrl);
+      const cleanupAdmin = createMysqlPool(adminUrl);
       await cleanupAdmin.query(`drop database if exists \`${databaseName}\``);
       await cleanupAdmin.end();
     },
@@ -438,6 +452,20 @@ describe("local Drizzle integration", () => {
 
         try {
           await assertIntegerAndJsonQueries(runtime.orm, expect);
+        } finally {
+          await runtime.close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
+
+    it(
+      `${target} local Drizzle integration > supports enum, bigint, and decimal fields against a real local database`,
+      async () => {
+        const runtime = await runtimeFactories[target]();
+
+        try {
+          await assertEnumBigintAndDecimalQueries(runtime.orm, expect);
         } finally {
           await runtime.close();
         }

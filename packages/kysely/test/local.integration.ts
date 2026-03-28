@@ -17,6 +17,7 @@ import {
 import { createOrm, detectDatabaseRuntime, renderSafeSql } from "@farming-labs/orm";
 import { createKyselyDriver, type KyselyDatabaseLike, type KyselyDialect } from "../src";
 import {
+  assertEnumBigintAndDecimalQueries,
   assertBelongsToAndManyToManyQueries,
   assertCompoundUniqueQueries,
   assertIntegerAndJsonQueries,
@@ -76,6 +77,14 @@ function formatLocalDbError(label: string, error: unknown, hint: string) {
   );
 }
 
+function mysqlPoolConfig(connectionString: string) {
+  return {
+    uri: connectionString,
+    supportBigNumbers: true,
+    bigNumberStrings: true,
+  } as const;
+}
+
 async function applyStatements(run: (sql: string) => Promise<unknown> | unknown, sql: string) {
   const statements = sql
     .split(";")
@@ -94,6 +103,11 @@ class NodeSqliteStatementAdapter implements SqliteStatement {
   constructor(statement: ReturnType<DatabaseSync["prepare"]>, sql: string) {
     this.#statement = statement;
     this.#sql = sql;
+    (
+      this.#statement as ReturnType<DatabaseSync["prepare"]> & {
+        setReadBigInts?: (enabled: boolean) => void;
+      }
+    ).setReadBigInts?.(true);
   }
 
   get reader() {
@@ -181,7 +195,7 @@ async function resolveMysqlAdminUrl() {
 
   let lastError: unknown;
   for (const candidate of candidates) {
-    const pool = mysql.createPool(candidate);
+    const pool = mysql.createPool(mysqlPoolConfig(candidate));
     try {
       await pool.query("select 1");
       await pool.end();
@@ -202,7 +216,7 @@ async function resolveMysqlAdminUrl() {
 async function createLocalSqliteOrm() {
   const directory = await mkdtemp(path.join(tmpdir(), "farm-orm-kysely-sqlite-"));
   const databasePath = path.join(directory, "kysely.db");
-  const client = new DatabaseSync(databasePath);
+  const client = new DatabaseSync(databasePath, { readBigInts: true });
 
   await applyStatements(client.exec.bind(client), renderSafeSql(schema, { dialect: "sqlite" }));
 
@@ -298,7 +312,7 @@ async function createLocalPostgresOrm() {
 async function createLocalMysqlOrm() {
   const adminUrl = await resolveMysqlAdminUrl();
   const databaseName = createIsolatedName("farm_orm_kysely_mysql");
-  const adminPool = mysql.createPool(adminUrl);
+  const adminPool = mysql.createPool(mysqlPoolConfig(adminUrl));
 
   try {
     await adminPool.query(`create database \`${databaseName}\``);
@@ -314,7 +328,7 @@ async function createLocalMysqlOrm() {
   await adminPool.end();
 
   const databaseUrl = assignDatabase(adminUrl, databaseName);
-  const setupPool = mysql.createPool(databaseUrl);
+  const setupPool = mysql.createPool(mysqlPoolConfig(databaseUrl));
 
   try {
     await applyStatements(
@@ -323,7 +337,7 @@ async function createLocalMysqlOrm() {
     );
   } catch (error) {
     await setupPool.end().catch(() => undefined);
-    const cleanupAdmin = mysql.createPool(adminUrl);
+    const cleanupAdmin = mysql.createPool(mysqlPoolConfig(adminUrl));
     await cleanupAdmin.query(`drop database if exists \`${databaseName}\``);
     await cleanupAdmin.end();
     throw error;
@@ -331,7 +345,7 @@ async function createLocalMysqlOrm() {
 
   await setupPool.end();
 
-  const pool = mysqlCore.createPool(databaseUrl);
+  const pool = mysqlCore.createPool(mysqlPoolConfig(databaseUrl));
   const db = new Kysely({
     dialect: new MysqlDialect({
       pool,
@@ -351,7 +365,7 @@ async function createLocalMysqlOrm() {
     dialect: "mysql",
     close: async () => {
       await db.destroy();
-      const cleanupAdmin = mysql.createPool(adminUrl);
+      const cleanupAdmin = mysql.createPool(mysqlPoolConfig(adminUrl));
       await cleanupAdmin.query(`drop database if exists \`${databaseName}\``);
       await cleanupAdmin.end();
     },
@@ -501,6 +515,20 @@ describe("local Kysely integration", () => {
 
         try {
           await assertIntegerAndJsonQueries(runtime.orm, expect);
+        } finally {
+          await runtime.close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
+
+    it(
+      `${target} local Kysely integration > supports enum, bigint, and decimal fields against a real local database`,
+      async () => {
+        const runtime = await runtimeFactories[target]();
+
+        try {
+          await assertEnumBigintAndDecimalQueries(runtime.orm, expect);
         } finally {
           await runtime.close();
         }

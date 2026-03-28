@@ -1,9 +1,12 @@
 import {
   belongsTo,
+  bigint,
   boolean,
   createOrm,
+  decimal,
   datetime,
   defineSchema,
+  enumeration,
   hasMany,
   hasOne,
   id,
@@ -23,6 +26,8 @@ export const schema = defineSchema({
       name: string(),
       emailVerified: boolean().default(false).map("email_verified"),
       loginCount: integer().default(0).map("login_count"),
+      tier: enumeration(["free", "pro", "enterprise"]).default("free"),
+      quota: bigint().default(0n).map("quota_bigint"),
       createdAt: datetime().defaultNow().map("created_at"),
       updatedAt: datetime().defaultNow().map("updated_at"),
     },
@@ -70,6 +75,8 @@ export const schema = defineSchema({
       userId: string().references("user.id").map("user_id"),
       provider: string(),
       accountId: string().map("account_id"),
+      planTier: enumeration(["oss", "pro", "enterprise"]).default("oss").map("plan_tier"),
+      balance: decimal().default("0.00"),
       metadata: json<{
         plan: string;
         scopes: string[];
@@ -131,11 +138,15 @@ export async function seedAuthData(orm: RuntimeOrm) {
         email: "ada@farminglabs.dev",
         name: "Ada",
         loginCount: 3,
+        tier: "pro",
+        quota: 9007199254740991n,
       },
       {
         email: "grace@farminglabs.dev",
         name: "Grace",
         loginCount: 1,
+        tier: "free",
+        quota: 128n,
       },
     ],
     select: {
@@ -157,6 +168,8 @@ export async function seedAuthData(orm: RuntimeOrm) {
       userId: ada.id,
       provider: "github",
       accountId: "gh_ada",
+      planTier: "oss",
+      balance: "12.50",
       metadata: {
         plan: "oss",
         scopes: ["repo:read", "repo:write"],
@@ -727,6 +740,124 @@ export async function assertIntegerAndJsonQueries(
         sync: false,
       },
     },
+  });
+}
+
+export async function assertEnumBigintAndDecimalQueries(
+  orm: RuntimeOrm,
+  expect: typeof import("vitest").expect,
+) {
+  const { ada } = await seedAuthData(orm);
+
+  const premiumUsers = await orm.user.findMany({
+    where: {
+      tier: "pro",
+      quota: {
+        gte: 1024n,
+      },
+    },
+    orderBy: {
+      email: "asc",
+    },
+    select: {
+      email: true,
+      tier: true,
+      quota: true,
+    },
+  });
+
+  const account = await orm.account.findUnique({
+    where: {
+      provider: "github",
+      accountId: "gh_ada",
+    },
+    select: {
+      planTier: true,
+      balance: true,
+    },
+  });
+
+  const matchedAccounts = await orm.account.findMany({
+    where: {
+      planTier: "oss",
+      balance: "12.50",
+    },
+    select: {
+      planTier: true,
+      balance: true,
+    },
+  });
+
+  const upgradedUser = await orm.user.update({
+    where: {
+      email: "ada@farminglabs.dev",
+    },
+    data: {
+      tier: "enterprise",
+      quota: 9007199254741991n,
+    },
+    select: {
+      tier: true,
+      quota: true,
+    },
+  });
+
+  const updatedAccount = await orm.account.update({
+    where: {
+      provider: "github",
+      accountId: "gh_ada",
+    },
+    data: {
+      planTier: "pro",
+      balance: "19.95",
+    },
+    select: {
+      planTier: true,
+      balance: true,
+    },
+  });
+
+  const reloadedAccount = await orm.account.findUnique({
+    where: {
+      provider: "github",
+      accountId: "gh_ada",
+    },
+    select: {
+      userId: true,
+      planTier: true,
+      balance: true,
+    },
+  });
+
+  expect(premiumUsers).toEqual([
+    {
+      email: "ada@farminglabs.dev",
+      tier: "pro",
+      quota: 9007199254740991n,
+    },
+  ]);
+  expect(account).toEqual({
+    planTier: "oss",
+    balance: "12.5",
+  });
+  expect(matchedAccounts).toEqual([
+    {
+      planTier: "oss",
+      balance: "12.5",
+    },
+  ]);
+  expect(upgradedUser).toEqual({
+    tier: "enterprise",
+    quota: 9007199254741991n,
+  });
+  expect(updatedAccount).toEqual({
+    planTier: "pro",
+    balance: "19.95",
+  });
+  expect(reloadedAccount).toEqual({
+    userId: ada.id,
+    planTier: "pro",
+    balance: "19.95",
   });
 }
 

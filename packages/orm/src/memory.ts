@@ -60,25 +60,53 @@ function evaluateFilter(value: unknown, filter: unknown) {
     if (!value.includes(record.contains)) return false;
   }
   if ("gt" in record && value !== undefined) {
-    if (!(value instanceof Date || typeof value === "number" || typeof value === "string")) {
+    if (
+      !(
+        value instanceof Date ||
+        typeof value === "number" ||
+        typeof value === "string" ||
+        typeof value === "bigint"
+      )
+    ) {
       return false;
     }
     if (!(value > record.gt!)) return false;
   }
   if ("gte" in record && value !== undefined) {
-    if (!(value instanceof Date || typeof value === "number" || typeof value === "string")) {
+    if (
+      !(
+        value instanceof Date ||
+        typeof value === "number" ||
+        typeof value === "string" ||
+        typeof value === "bigint"
+      )
+    ) {
       return false;
     }
     if (!(value >= record.gte!)) return false;
   }
   if ("lt" in record && value !== undefined) {
-    if (!(value instanceof Date || typeof value === "number" || typeof value === "string")) {
+    if (
+      !(
+        value instanceof Date ||
+        typeof value === "number" ||
+        typeof value === "string" ||
+        typeof value === "bigint"
+      )
+    ) {
       return false;
     }
     if (!(value < record.lt!)) return false;
   }
   if ("lte" in record && value !== undefined) {
-    if (!(value instanceof Date || typeof value === "number" || typeof value === "string")) {
+    if (
+      !(
+        value instanceof Date ||
+        typeof value === "number" ||
+        typeof value === "string" ||
+        typeof value === "bigint"
+      )
+    ) {
       return false;
     }
     if (!(value <= record.lte!)) return false;

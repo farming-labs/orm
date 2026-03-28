@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   belongsTo,
+  bigint,
   createManifest,
   createMemoryDriver,
   createOrm,
+  decimal,
   datetime,
   defineSchema,
+  enumeration,
   hasMany,
   hasOne,
   id,
@@ -29,6 +32,9 @@ const schema = defineSchema({
       id: id().map("user_id"),
       email: string().unique().map("email_address"),
       loginCount: integer().default(0).map("login_count"),
+      tier: enumeration(["free", "pro"]).default("free"),
+      quota: bigint().default(0n).map("quota_bigint"),
+      credit: decimal().default("0.00"),
       createdAt: datetime().defaultNow(),
     },
     relations: {
@@ -107,6 +113,10 @@ describe("@farming-labs/orm core", () => {
     expect(manifest.models.user.table).toBe("users");
     expect(manifest.models.user.fields.email.column).toBe("email_address");
     expect(manifest.models.user.fields.loginCount.kind).toBe("integer");
+    expect(manifest.models.user.fields.tier.kind).toBe("enum");
+    expect(manifest.models.user.fields.tier.enumValues).toEqual(["free", "pro"]);
+    expect(manifest.models.user.fields.quota.kind).toBe("bigint");
+    expect(manifest.models.user.fields.credit.kind).toBe("decimal");
     expect(manifest.models.session.fields.metadata.kind).toBe("json");
     expect(manifest.models.session.fields.userId.references).toBe("user.id");
     expect(manifest.models.user.relations.profile.kind).toBe("hasOne");
@@ -129,6 +139,10 @@ describe("@farming-labs/orm core", () => {
 
     expect(prisma).toContain("model User");
     expect(prisma).toContain('loginCount Int @default(0) @map("login_count")');
+    expect(prisma).toContain("enum UserTierEnum");
+    expect(prisma).toContain("tier UserTierEnum @default(FREE)");
+    expect(prisma).toContain('quota BigInt @default(0) @map("quota_bigint")');
+    expect(prisma).toContain("credit Decimal @default(0.00)");
     expect(prisma).toContain("metadata Json?");
     expect(prisma).toContain('@map("email_address")');
     expect(prisma).toContain("profile Profile?");
@@ -139,6 +153,16 @@ describe("@farming-labs/orm core", () => {
     expect(prisma).toContain("@@index([organizationId, role])");
     expect(drizzle).toContain('export const user = pgTable("users"');
     expect(drizzle).toContain('loginCount: integer("login_count").notNull().default(0)');
+    expect(drizzle).toContain(
+      'export const userTierEnum = pgEnum("users_tier_enum", ["free", "pro"]);',
+    );
+    expect(drizzle).toContain('tier: userTierEnum("tier").notNull().default("free")');
+    expect(drizzle).toContain(
+      'quota: bigint("quota_bigint", { mode: "bigint" }).notNull().default(0n)',
+    );
+    expect(drizzle).toContain(
+      'credit: numeric("credit", { precision: 65, scale: 30 }).notNull().default("0.00")',
+    );
     expect(drizzle).toContain('metadata: jsonb("metadata")');
     expect(drizzle).toContain('import { relations } from "drizzle-orm";');
     expect(drizzle).toContain('uniqueIndex("members_userid_organizationid_unique")');
@@ -151,6 +175,11 @@ describe("@farming-labs/orm core", () => {
     );
     expect(sql).toContain('create table if not exists "users"');
     expect(sql).toContain('"login_count" integer not null default 0');
+    expect(sql).toContain(
+      "\"tier\" text not null default 'free' check (\"tier\" in ('free', 'pro'))",
+    );
+    expect(sql).toContain('"quota_bigint" bigint not null default 0');
+    expect(sql).toContain("\"credit\" numeric(65, 30) not null default '0.00'");
     expect(sql).toContain('"metadata" jsonb');
     expect(sql).toContain('references "users"("user_id")');
     expect(sql).toContain('create table if not exists "members"');
@@ -162,6 +191,9 @@ describe("@farming-labs/orm core", () => {
     );
     expect(mysqlSql).toContain("`userId` varchar(191) not null references `users`(`user_id`)");
     expect(mysqlSql).toContain("`login_count` integer not null default 0");
+    expect(mysqlSql).toContain("`tier` enum('free', 'pro') not null default 'free'");
+    expect(mysqlSql).toContain("`quota_bigint` bigint not null default 0");
+    expect(mysqlSql).toContain("`credit` decimal(65, 30) not null default '0.00'");
     expect(mysqlSql).toContain("`metadata` json");
     expect(mysqlSql).toContain(
       "create unique index `members_userid_organizationid_unique` on `members`(`userId`, `organizationId`);",

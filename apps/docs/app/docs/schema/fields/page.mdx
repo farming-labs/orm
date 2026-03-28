@@ -53,6 +53,35 @@ loginCount: integer();
 
 - runtime output type: `number`
 
+### `enumeration()`
+
+```ts
+status: enumeration(["draft", "published"]);
+```
+
+- runtime output type: the string union from the values you pass in
+- generated as a real enum where the target supports it
+- TypeScript reserves the `enum` keyword, so the builder is named `enumeration()`
+
+### `bigint()`
+
+```ts
+quota: bigint();
+```
+
+- runtime output type: `bigint`
+- useful for 64-bit counters, quotas, and ids that should not round through `number`
+
+### `decimal()`
+
+```ts
+balance: decimal();
+```
+
+- runtime output type: `string`
+- keeps precision stable across runtimes instead of routing decimal math through JavaScript `number`
+- decoded values are normalized strings, so `"12.50"` may round-trip as `"12.5"`
+
 ### `json()`
 
 ```ts
@@ -95,9 +124,10 @@ role: string().default("member");
 
 Stores a literal default value.
 
-This works well for string, boolean, and integer fields today. JSON defaults can
-still be applied by runtime drivers, but generated schema support is more
-limited and should be treated as backend-specific for now.
+This works well for string, boolean, integer, bigint, decimal, and enum fields
+today. JSON defaults can still be applied by runtime drivers, but generated
+schema support is more limited and should be treated as backend-specific for
+now.
 
 ### `.defaultNow()`
 
@@ -143,6 +173,9 @@ user: model({
     name: string(),
     emailVerified: boolean().default(false),
     loginCount: integer().default(0).map("login_count"),
+    tier: enumeration(["free", "pro", "enterprise"]).default("free"),
+    quota: bigint().default(0n).map("quota_bigint"),
+    balance: decimal().default("0.00"),
     createdAt: datetime().defaultNow(),
     bio: string().nullable(),
   },
@@ -165,6 +198,13 @@ The current generators and live runtimes support:
 
 - `integer()` across Prisma, Drizzle, safe SQL, memory, Prisma runtime, SQL, Kysely, Drizzle, MongoDB, and Mongoose
 - `json()` across Prisma, Drizzle, safe SQL, memory, Prisma runtime, SQL, MongoDB, and Mongoose
+- `enumeration()` across Prisma, Drizzle, safe SQL, memory, Prisma runtime, SQL, Kysely, MongoDB, and Mongoose
+- `bigint()` across Prisma, Drizzle, safe SQL, memory, Prisma runtime, SQL, Kysely, MongoDB, and Mongoose
+- `decimal()` across Prisma, Drizzle, safe SQL, memory, Prisma runtime, SQL, Kysely, MongoDB, and Mongoose
+
+For SQLite-backed bigint tests, the local matrix enables the underlying
+`node:sqlite` big-int read mode so values do not get truncated back into
+JavaScript `number`.
 
 ## Mapping example
 

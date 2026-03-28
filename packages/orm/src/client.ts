@@ -12,7 +12,7 @@ type Direction = "asc" | "desc";
 type JsonPrimitive = null | string | number | boolean;
 type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
-type Comparable = string | number | Date;
+type Comparable = string | number | bigint | Date;
 
 type ValueFilter<T> = T extends string
   ? T | { eq?: T; contains?: string; in?: T[]; not?: T }

@@ -7,11 +7,14 @@ import mysql from "mysql2/promise";
 import { Pool } from "pg";
 import {
   belongsTo,
+  bigint,
   boolean,
   createOrm,
   detectDatabaseRuntime,
+  decimal,
   datetime,
   defineSchema,
+  enumeration,
   hasMany,
   hasOne,
   id,
@@ -39,6 +42,8 @@ const schema = defineSchema({
       name: string(),
       emailVerified: boolean().default(false).map("email_verified"),
       loginCount: integer().default(0).map("login_count"),
+      tier: enumeration(["free", "pro", "enterprise"]).default("free"),
+      quota: bigint().default(0n).map("quota_bigint"),
       createdAt: datetime().defaultNow().map("created_at"),
       updatedAt: datetime().defaultNow().map("updated_at"),
     },
@@ -86,6 +91,8 @@ const schema = defineSchema({
       userId: string().references("user.id").map("user_id"),
       provider: string(),
       accountId: string().map("account_id"),
+      planTier: enumeration(["oss", "pro", "enterprise"]).default("oss").map("plan_tier"),
+      balance: decimal().default("0.00"),
       metadata: json<{
         plan: string;
         scopes: string[];
@@ -204,6 +211,14 @@ function asMysqlPoolLike(pool: mysql.Pool): MysqlPoolLike {
   };
 }
 
+function createMysqlPool(connectionString: string) {
+  return mysql.createPool({
+    uri: connectionString,
+    supportBigNumbers: true,
+    bigNumberStrings: true,
+  });
+}
+
 async function applyStatements(run: (sql: string) => Promise<unknown> | unknown, sql: string) {
   const statements = sql
     .split(";")
@@ -222,11 +237,15 @@ async function seedAuthData(orm: RuntimeOrm) {
         email: "ada@farminglabs.dev",
         name: "Ada",
         loginCount: 3,
+        tier: "pro",
+        quota: 9007199254740991n,
       },
       {
         email: "grace@farminglabs.dev",
         name: "Grace",
         loginCount: 1,
+        tier: "free",
+        quota: 128n,
       },
     ],
     select: {
@@ -248,6 +267,8 @@ async function seedAuthData(orm: RuntimeOrm) {
       userId: ada.id,
       provider: "github",
       accountId: "gh_ada",
+      planTier: "oss",
+      balance: "12.50",
       metadata: {
         plan: "oss",
         scopes: ["repo:read", "repo:write"],
@@ -568,6 +589,121 @@ async function assertIntegerAndJsonQueries(orm: RuntimeOrm) {
   });
 }
 
+async function assertEnumBigintAndDecimalQueries(orm: RuntimeOrm) {
+  const { ada } = await seedAuthData(orm);
+
+  const premiumUsers = await orm.user.findMany({
+    where: {
+      tier: "pro",
+      quota: {
+        gte: 1024n,
+      },
+    },
+    orderBy: {
+      email: "asc",
+    },
+    select: {
+      email: true,
+      tier: true,
+      quota: true,
+    },
+  });
+
+  const account = await orm.account.findUnique({
+    where: {
+      provider: "github",
+      accountId: "gh_ada",
+    },
+    select: {
+      planTier: true,
+      balance: true,
+    },
+  });
+
+  const matchedAccounts = await orm.account.findMany({
+    where: {
+      planTier: "oss",
+      balance: "12.50",
+    },
+    select: {
+      planTier: true,
+      balance: true,
+    },
+  });
+
+  const upgradedUser = await orm.user.update({
+    where: {
+      email: "ada@farminglabs.dev",
+    },
+    data: {
+      tier: "enterprise",
+      quota: 9007199254741991n,
+    },
+    select: {
+      tier: true,
+      quota: true,
+    },
+  });
+
+  const updatedAccount = await orm.account.update({
+    where: {
+      provider: "github",
+      accountId: "gh_ada",
+    },
+    data: {
+      planTier: "pro",
+      balance: "19.95",
+    },
+    select: {
+      planTier: true,
+      balance: true,
+    },
+  });
+
+  const reloadedAccount = await orm.account.findUnique({
+    where: {
+      provider: "github",
+      accountId: "gh_ada",
+    },
+    select: {
+      userId: true,
+      planTier: true,
+      balance: true,
+    },
+  });
+
+  expect(premiumUsers).toEqual([
+    {
+      email: "ada@farminglabs.dev",
+      tier: "pro",
+      quota: 9007199254740991n,
+    },
+  ]);
+  expect(account).toEqual({
+    planTier: "oss",
+    balance: "12.5",
+  });
+  expect(matchedAccounts).toEqual([
+    {
+      planTier: "oss",
+      balance: "12.5",
+    },
+  ]);
+  expect(upgradedUser).toEqual({
+    tier: "enterprise",
+    quota: 9007199254741991n,
+  });
+  expect(updatedAccount).toEqual({
+    planTier: "pro",
+    balance: "19.95",
+  });
+  expect(reloadedAccount).toEqual({
+    userId: ada.id,
+    planTier: "pro",
+    balance: "19.95",
+  });
+}
+
 async function exerciseRuntime(orm: RuntimeOrm) {
   const { ada, grace } = await seedAuthData(orm);
 
@@ -749,7 +885,7 @@ async function exerciseRuntime(orm: RuntimeOrm) {
 async function createLocalSqliteOrm() {
   const directory = await mkdtemp(path.join(tmpdir(), "farm-orm-sqlite-"));
   const databasePath = path.join(directory, "local.db");
-  const database = new DatabaseSync(databasePath);
+  const database = new DatabaseSync(databasePath, { readBigInts: true });
 
   await applyStatements(
     (statement) => database.exec(statement),
@@ -934,7 +1070,7 @@ async function createLocalPostgresClientOrm() {
 async function createLocalMysqlPoolOrm() {
   const adminUrl = process.env.FARM_ORM_LOCAL_MYSQL_ADMIN_URL ?? "mysql://root@127.0.0.1:3306";
   const databaseName = createIsolatedName("farm_orm_mysql");
-  const adminPool = mysql.createPool(adminUrl);
+  const adminPool = createMysqlPool(adminUrl);
 
   try {
     await adminPool.query(`CREATE DATABASE \`${databaseName}\``);
@@ -950,7 +1086,7 @@ async function createLocalMysqlPoolOrm() {
   await adminPool.end();
 
   const databaseUrl = assignDatabase(adminUrl, databaseName);
-  const pool = mysql.createPool(databaseUrl);
+  const pool = createMysqlPool(databaseUrl);
 
   try {
     await applyStatements(
@@ -959,7 +1095,7 @@ async function createLocalMysqlPoolOrm() {
     );
   } catch (error) {
     await pool.end();
-    const cleanupAdmin = mysql.createPool(adminUrl);
+    const cleanupAdmin = createMysqlPool(adminUrl);
     await cleanupAdmin.query(`DROP DATABASE IF EXISTS \`${databaseName}\``);
     await cleanupAdmin.end();
     throw error;
@@ -976,7 +1112,7 @@ async function createLocalMysqlPoolOrm() {
     dialect: "mysql",
     close: async () => {
       await pool.end();
-      const cleanupAdmin = mysql.createPool(adminUrl);
+      const cleanupAdmin = createMysqlPool(adminUrl);
       await cleanupAdmin.query(`DROP DATABASE IF EXISTS \`${databaseName}\``);
       await cleanupAdmin.end();
     },
@@ -986,7 +1122,7 @@ async function createLocalMysqlPoolOrm() {
 async function createLocalMysqlConnectionOrm() {
   const adminUrl = process.env.FARM_ORM_LOCAL_MYSQL_ADMIN_URL ?? "mysql://root@127.0.0.1:3306";
   const databaseName = createIsolatedName("farm_orm_mysql_conn");
-  const adminPool = mysql.createPool(adminUrl);
+  const adminPool = createMysqlPool(adminUrl);
 
   try {
     await adminPool.query(`CREATE DATABASE \`${databaseName}\``);
@@ -1002,7 +1138,7 @@ async function createLocalMysqlConnectionOrm() {
   await adminPool.end();
 
   const databaseUrl = assignDatabase(adminUrl, databaseName);
-  const pool = mysql.createPool(databaseUrl);
+  const pool = createMysqlPool(databaseUrl);
   const connection = await pool.getConnection();
 
   try {
@@ -1013,7 +1149,7 @@ async function createLocalMysqlConnectionOrm() {
   } catch (error) {
     connection.release();
     await pool.end();
-    const cleanupAdmin = mysql.createPool(adminUrl);
+    const cleanupAdmin = createMysqlPool(adminUrl);
     await cleanupAdmin.query(`DROP DATABASE IF EXISTS \`${databaseName}\``);
     await cleanupAdmin.end();
     throw error;
@@ -1031,7 +1167,7 @@ async function createLocalMysqlConnectionOrm() {
     close: async () => {
       connection.release();
       await pool.end();
-      const cleanupAdmin = mysql.createPool(adminUrl);
+      const cleanupAdmin = createMysqlPool(adminUrl);
       await cleanupAdmin.query(`DROP DATABASE IF EXISTS \`${databaseName}\``);
       await cleanupAdmin.end();
     },
@@ -1134,6 +1270,16 @@ for (const [target, factory] of [
 
       try {
         await assertIntegerAndJsonQueries(orm);
+      } finally {
+        await close();
+      }
+    });
+
+    it("supports enum, bigint, and decimal fields against a real local database", async () => {
+      const { orm, close } = await factory();
+
+      try {
+        await assertEnumBigintAndDecimalQueries(orm);
       } finally {
         await close();
       }

@@ -38,6 +38,9 @@ layer while the app keeps its own database stack.
   - `datetime()`
   - `integer()`
   - `json()`
+  - `enumeration()`
+  - `bigint()`
+  - `decimal()`
   - defaults
   - field-level uniques
   - model-level compound uniques and indexes
@@ -66,6 +69,7 @@ layer while the app keeps its own database stack.
   - Prisma delegate translation for supported nested relation branches and simple explicit join-table traversal
 - compound-unique runtime lookups and upserts
 - integer comparison filters and raw JSON equality filters across the live runtimes
+- enum, bigint, and decimal support across the live runtimes and generated outputs
 
 ## Quick example
 
@@ -236,10 +240,16 @@ That local matrix now includes real coverage for:
 
 - `integer()` fields
 - `json()` fields
+- `enumeration()` fields
+- `bigint()` fields
+- `decimal()` fields
 - compound-unique lookups and upserts
 - relation traversal and mutation flows
 
 across Prisma, Drizzle, Kysely, direct SQL, MongoDB, and Mongoose.
+
+For SQLite bigint coverage, the local matrix enables the underlying
+`node:sqlite` big-int read mode so values stay as real `bigint` outputs.
 
 Demo:
 

@@ -156,6 +156,10 @@ function encodeValue(field: ManifestField, dialect: SqlDialect, value: unknown) 
   if (value === undefined) return value;
   if (value === null) return null;
 
+  if (field.kind === "enum") {
+    return String(value);
+  }
+
   if (field.kind === "boolean") {
     if (dialect === "postgres") return Boolean(value);
     return value ? 1 : 0;
@@ -163,6 +167,16 @@ function encodeValue(field: ManifestField, dialect: SqlDialect, value: unknown) 
 
   if (field.kind === "integer") {
     return Number(value);
+  }
+
+  if (field.kind === "bigint") {
+    return typeof value === "bigint"
+      ? value.toString()
+      : BigInt(value as string | number).toString();
+  }
+
+  if (field.kind === "decimal") {
+    return typeof value === "string" ? value : String(value);
   }
 
   if (field.kind === "datetime") {
@@ -211,13 +225,34 @@ function parseSqlDateString(value: string) {
   return new Date(trimmed);
 }
 
+function normalizeDecimalString(value: string) {
+  const trimmed = value.trim();
+  const match = /^(-?\d+)(?:\.(\d+))?$/.exec(trimmed);
+  if (!match) {
+    return trimmed;
+  }
+
+  const [, integerPart, fractionalPart] = match;
+  if (!fractionalPart) {
+    return integerPart;
+  }
+
+  const normalizedFraction = fractionalPart.replace(/0+$/g, "");
+  return normalizedFraction.length ? `${integerPart}.${normalizedFraction}` : integerPart;
+}
+
 function decodeValue(field: ManifestField, dialect: SqlDialect, value: unknown) {
   if (value === undefined) return value;
   if (value === null) return null;
 
+  if (field.kind === "enum") {
+    return typeof value === "string" ? value : String(value);
+  }
+
   if (field.kind === "boolean") {
     if (typeof value === "boolean") return value;
     if (typeof value === "number") return value !== 0;
+    if (typeof value === "bigint") return value !== 0n;
     if (typeof value === "string") {
       return value === "1" || value.toLowerCase() === "true" || value.toLowerCase() === "t";
     }
@@ -235,6 +270,16 @@ function decodeValue(field: ManifestField, dialect: SqlDialect, value: unknown) 
 
   if (field.kind === "integer") {
     return typeof value === "number" ? value : Number(value);
+  }
+
+  if (field.kind === "bigint") {
+    if (typeof value === "bigint") return value;
+    if (typeof value === "number") return BigInt(Math.trunc(value));
+    return BigInt(String(value));
+  }
+
+  if (field.kind === "decimal") {
+    return normalizeDecimalString(typeof value === "string" ? value : String(value));
   }
 
   if (field.kind === "json") {
@@ -637,6 +682,10 @@ function createSqliteAdapter(database: SqliteDatabaseLike): SqlAdapterLike {
     dialect: "sqlite",
     async query(sql, params) {
       const statement = database.prepare(sql);
+      const readBigInts = statement as SqliteStatementLike & {
+        setReadBigInts?: (enabled: boolean) => void;
+      };
+      readBigInts.setReadBigInts?.(true);
       if (/^\s*(select|with)\b/i.test(sql)) {
         const rows = statement.all(...params) as SqlRow[];
         return {

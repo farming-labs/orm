@@ -4,6 +4,7 @@ import { createOrm, detectDatabaseRuntime } from "@farming-labs/orm";
 import { createMongoDriver } from "../src";
 import type { RuntimeOrm } from "../../mongoose/test/support/auth";
 import {
+  assertEnumBigintAndDecimalQueries,
   assertBelongsToAndManyToManyQueries,
   assertCompoundUniqueQueries,
   assertIntegerAndJsonQueries,
@@ -150,6 +151,14 @@ describe("mongo local integration", () => {
     "supports integer and json fields against a real local MongoDB instance",
     async () => {
       await withLocalOrm((orm) => assertIntegerAndJsonQueries(orm, expect));
+    },
+    LOCAL_TIMEOUT_MS,
+  );
+
+  it(
+    "supports enum, bigint, and decimal fields against a real local MongoDB instance",
+    async () => {
+      await withLocalOrm((orm) => assertEnumBigintAndDecimalQueries(orm, expect));
     },
     LOCAL_TIMEOUT_MS,
   );
