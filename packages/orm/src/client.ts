@@ -326,7 +326,9 @@ export const defaultDriverCapabilities: OrmDriverCapabilities = Object.freeze({
 });
 
 function freezeDriverCapabilities(input?: OrmDriverCapabilityInput): OrmDriverCapabilities {
-  const numericIds = input?.numericIds ?? defaultDriverCapabilities.numericIds;
+  const numericIds =
+    input?.numericIds ??
+    (input?.supportsNumericIds ? "manual" : defaultDriverCapabilities.numericIds);
   const supportsNumericIds = input?.supportsNumericIds ?? numericIds !== "none";
   return Object.freeze({
     ...defaultDriverCapabilities,

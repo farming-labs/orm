@@ -134,7 +134,25 @@ function encodeScalarValue(field: ManifestField, value: unknown) {
   }
 
   if (field.kind === "id" && field.idType === "integer") {
-    return Number(value);
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!/^-?\d+$/.test(trimmed)) {
+        throw new Error(`Expected integer id for field "${field.name}", received "${value}".`);
+      }
+
+      const parsed = Number(trimmed);
+      if (!Number.isSafeInteger(parsed)) {
+        throw new Error(`Expected integer id for field "${field.name}", received "${value}".`);
+      }
+
+      return parsed;
+    }
+
+    if (typeof value === "number" && Number.isSafeInteger(value)) {
+      return value;
+    }
+
+    throw new Error(`Expected integer id for field "${field.name}".`);
   }
 
   if (field.kind === "enum") {

@@ -4,10 +4,18 @@ import { userInfo } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import mysql from "mysql2/promise";
 import { Pool } from "pg";
-import { createOrm, detectDatabaseRuntime, isOrmError } from "@farming-labs/orm";
+import {
+  createOrm,
+  defineSchema,
+  detectDatabaseRuntime,
+  id,
+  isOrmError,
+  model,
+  string,
+} from "@farming-labs/orm";
 import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
 import { bootstrapDatabase, pushSchema } from "@farming-labs/orm-runtime/setup";
 import { createPrismaDriver } from "../src";
@@ -91,6 +99,16 @@ function shouldRunTarget(target: PrismaTarget) {
 function createIsolatedName(prefix: string) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`.replace(/-/g, "_");
 }
+
+const numericIdSchema = defineSchema({
+  auditEvent: model({
+    table: "audit_events",
+    fields: {
+      id: id({ type: "integer" }),
+      email: string().unique(),
+    },
+  }),
+});
 
 function assignDatabase(connectionString: string, databaseName: string) {
   const url = new URL(connectionString);
@@ -367,6 +385,35 @@ async function createLocalMysqlOrm() {
     },
   } satisfies Awaited<ReturnType<RuntimeFactory>>;
 }
+
+it("rejects malformed integer ids before issuing Prisma delegate queries", async () => {
+  const findFirst = vi.fn(async () => null);
+  const orm = createOrm({
+    schema: numericIdSchema,
+    driver: createPrismaDriver({
+      client: {
+        auditEvent: {
+          findMany: vi.fn(async () => []),
+          findFirst,
+          count: vi.fn(async () => 0),
+          create: vi.fn(async () => ({ id: 1, email: "ada@farminglabs.dev" })),
+          updateMany: vi.fn(async () => ({ count: 0 })),
+          deleteMany: vi.fn(async () => ({ count: 0 })),
+        },
+      } as any,
+    }),
+  });
+
+  await expect(
+    orm.auditEvent.findUnique({
+      where: {
+        id: "" as any,
+      },
+    }),
+  ).rejects.toThrow('Expected integer id for field "id", received "".');
+
+  expect(findFirst).not.toHaveBeenCalled();
+});
 
 for (const [target, factory] of [
   ["sqlite", createLocalSqliteOrm],

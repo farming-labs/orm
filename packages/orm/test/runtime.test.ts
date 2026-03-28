@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   belongsTo,
   boolean,
+  createDriverHandle,
   createMemoryDriver,
   createOrm,
   detectDatabaseRuntime,
@@ -218,6 +219,19 @@ describe("runtime contract", () => {
     expect(detectDatabaseRuntime(orm.$driver.client)).toBe(null);
     expect(detectDatabaseRuntime({})).toBe(null);
     expect(detectDatabaseRuntime(null)).toBe(null);
+  });
+
+  it("derives numericIds from supportsNumericIds when only the boolean flag is provided", () => {
+    const handle = createDriverHandle({
+      kind: "test",
+      client: {},
+      capabilities: {
+        supportsNumericIds: true,
+      },
+    });
+
+    expect(handle.capabilities.supportsNumericIds).toBe(true);
+    expect(handle.capabilities.numericIds).toBe("manual");
   });
 
   it("explains why unsupported runtime detection failed", () => {
