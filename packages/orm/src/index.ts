@@ -1,4 +1,5 @@
 export * from "./client";
+export * from "./errors";
 export * from "./fields";
 export * from "./generators";
 export * from "./manifest";

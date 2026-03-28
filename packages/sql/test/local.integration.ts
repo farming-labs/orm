@@ -19,6 +19,7 @@ import {
   hasOne,
   id,
   integer,
+  isOrmError,
   json,
   manyToMany,
   model,
@@ -1209,11 +1210,21 @@ for (const [target, factory] of [
           supportsDates: true,
           supportsBooleans: true,
           supportsTransactions: true,
+          supportsSchemaNamespaces: dialect === "postgres",
+          supportsTransactionalDDL: dialect !== "mysql",
           supportsJoin: false,
           nativeRelationLoading: "partial",
+          textComparison: "database-default",
+          upsert: "native",
+          returning: {
+            create: true,
+            update: true,
+            delete: false,
+          },
         });
         expect(Object.isFrozen(orm.$driver)).toBe(true);
         expect(Object.isFrozen(orm.$driver.capabilities)).toBe(true);
+        expect(Object.isFrozen(orm.$driver.capabilities.returning)).toBe(true);
       } finally {
         await close();
       }
@@ -1269,6 +1280,7 @@ for (const [target, factory] of [
           expect(tx.$driver.capabilities.nativeRelationLoading).toBe("partial");
           expect(Object.isFrozen(tx.$driver)).toBe(true);
           expect(Object.isFrozen(tx.$driver.capabilities)).toBe(true);
+          expect(Object.isFrozen(tx.$driver.capabilities.returning)).toBe(true);
         });
       } finally {
         await close();
@@ -1290,6 +1302,35 @@ for (const [target, factory] of [
 
       try {
         await assertModelLevelConstraints(orm);
+      } finally {
+        await close();
+      }
+    });
+
+    it("normalizes duplicate-key errors from a real local database", async () => {
+      const { orm, close, dialect } = await factory();
+
+      try {
+        await orm.user.create({
+          data: {
+            email: "duplicate@farminglabs.dev",
+            name: "First",
+          },
+        });
+
+        const error = await orm.user
+          .create({
+            data: {
+              email: "duplicate@farminglabs.dev",
+              name: "Second",
+            },
+          })
+          .catch((reason) => reason);
+
+        expect(isOrmError(error)).toBe(true);
+        expect(error.code).toBe("UNIQUE_CONSTRAINT_VIOLATION");
+        expect(error.backendKind).toBe("sql");
+        expect(error.dialect).toBe(dialect);
       } finally {
         await close();
       }

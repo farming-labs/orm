@@ -758,6 +758,13 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
         supportsDates: true,
         supportsBooleans: true,
         supportsTransactions: Boolean(config.startSession ?? config.connection?.startSession),
+        textComparison: "case-sensitive",
+        upsert: "native",
+        returning: {
+          create: true,
+          update: true,
+          delete: false,
+        },
       },
     }),
     async findMany(schema, model, args) {

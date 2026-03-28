@@ -437,6 +437,13 @@ export function createMongoDriver<TSchema extends SchemaDefinition<any>>(
       supportsDates: true,
       supportsBooleans: true,
       supportsTransactions: Boolean(config.startSession ?? config.client?.startSession),
+      textComparison: "case-sensitive",
+      upsert: "native",
+      returning: {
+        create: true,
+        update: true,
+        delete: false,
+      },
     },
   });
   const delegateCache = new WeakMap<object, OrmDriver<TSchema, any>>();

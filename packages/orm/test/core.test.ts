@@ -4,6 +4,7 @@ import {
   bigint,
   createManifest,
   createMemoryDriver,
+  createDriverHandle,
   createOrm,
   decimal,
   datetime,
@@ -18,6 +19,8 @@ import {
   mergeUniqueLookupCreateData,
   manyToMany,
   model,
+  normalizeOrmError,
+  isOrmError,
   renderDrizzleSchema,
   renderPrismaSchema,
   renderSafeSql,
@@ -227,6 +230,47 @@ describe("@farming-labs/orm core", () => {
     expect(() => renderPrismaSchema(invalidSchema, { provider: "postgresql" })).toThrow(
       'Invalid default value "enterprise" for enum field "user.tier". Expected one of: free, pro.',
     );
+  });
+
+  it("normalizes backend-specific duplicate and transaction errors into OrmError", () => {
+    const sqlHandle = createDriverHandle({
+      kind: "sql",
+      client: {},
+      dialect: "postgres",
+    });
+    const prismaHandle = createDriverHandle({
+      kind: "prisma",
+      client: {},
+    });
+    const mongoHandle = createDriverHandle({
+      kind: "mongo",
+      client: {},
+    });
+
+    const sqlDuplicate = normalizeOrmError(sqlHandle, {
+      code: "23505",
+      message: 'duplicate key value violates unique constraint "users_email_key"',
+      constraint: "users_email_key",
+    });
+    const prismaConflict = normalizeOrmError(prismaHandle, {
+      code: "P2034",
+      message: "Transaction failed due to a write conflict.",
+    });
+    const mongoDuplicate = normalizeOrmError(mongoHandle, {
+      code: 11000,
+      message: "E11000 duplicate key error collection: app.users",
+    });
+
+    expect(isOrmError(sqlDuplicate)).toBe(true);
+    expect(sqlDuplicate?.code).toBe("UNIQUE_CONSTRAINT_VIOLATION");
+    expect(sqlDuplicate?.meta.constraint).toBe("users_email_key");
+
+    expect(isOrmError(prismaConflict)).toBe(true);
+    expect(prismaConflict?.code).toBe("TRANSACTION_CONFLICT");
+    expect(prismaConflict?.retryable).toBe(true);
+
+    expect(isOrmError(mongoDuplicate)).toBe(true);
+    expect(mongoDuplicate?.code).toBe("UNIQUE_CONSTRAINT_VIOLATION");
   });
 
   it("supports nested relation selection in the memory driver", async () => {

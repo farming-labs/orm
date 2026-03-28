@@ -168,11 +168,21 @@ describe("runtime contract", () => {
       supportsDates: true,
       supportsBooleans: true,
       supportsTransactions: true,
+      supportsSchemaNamespaces: false,
+      supportsTransactionalDDL: false,
       supportsJoin: false,
       nativeRelationLoading: "none",
+      textComparison: "case-sensitive",
+      upsert: "native",
+      returning: {
+        create: true,
+        update: true,
+        delete: false,
+      },
     });
     expect(Object.isFrozen(orm.$driver)).toBe(true);
     expect(Object.isFrozen(orm.$driver.capabilities)).toBe(true);
+    expect(Object.isFrozen(orm.$driver.capabilities.returning)).toBe(true);
 
     expect(() => {
       (orm.$driver as { kind: string }).kind = "mutated";

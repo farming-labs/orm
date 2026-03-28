@@ -7,7 +7,7 @@ import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 import mysql from "mysql2/promise";
 import { Pool } from "pg";
-import { createOrm, detectDatabaseRuntime } from "@farming-labs/orm";
+import { createOrm, detectDatabaseRuntime, isOrmError } from "@farming-labs/orm";
 import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
 import { bootstrapDatabase, pushSchema } from "@farming-labs/orm-runtime/setup";
 import { createPrismaDriver } from "../src";
@@ -393,11 +393,21 @@ for (const [target, factory] of [
             supportsDates: true,
             supportsBooleans: true,
             supportsTransactions: true,
+            supportsSchemaNamespaces: false,
+            supportsTransactionalDDL: false,
             supportsJoin: false,
             nativeRelationLoading: "partial",
+            textComparison: "database-default",
+            upsert: "native",
+            returning: {
+              create: true,
+              update: true,
+              delete: false,
+            },
           });
           expect(Object.isFrozen(orm.$driver)).toBe(true);
           expect(Object.isFrozen(orm.$driver.capabilities)).toBe(true);
+          expect(Object.isFrozen(orm.$driver.capabilities.returning)).toBe(true);
         } finally {
           await close();
         }
@@ -526,6 +536,7 @@ for (const [target, factory] of [
             expect(tx.$driver.capabilities).toEqual(orm.$driver.capabilities);
             expect(Object.isFrozen(tx.$driver)).toBe(true);
             expect(Object.isFrozen(tx.$driver.capabilities)).toBe(true);
+            expect(Object.isFrozen(tx.$driver.capabilities.returning)).toBe(true);
           });
         } finally {
           await close();
@@ -552,6 +563,37 @@ for (const [target, factory] of [
               } as any,
             }),
           ).rejects.toThrow('Unknown field "notInSchema" on model "user".');
+        } finally {
+          await close();
+        }
+      },
+      LOCAL_TIMEOUT_MS,
+    );
+
+    it(
+      "normalizes duplicate-key errors from the live Prisma runtime",
+      async () => {
+        const { orm, close } = await factory();
+        try {
+          await orm.user.create({
+            data: {
+              email: "duplicate@farminglabs.dev",
+              name: "First",
+            },
+          });
+
+          const error = await orm.user
+            .create({
+              data: {
+                email: "duplicate@farminglabs.dev",
+                name: "Second",
+              },
+            })
+            .catch((reason) => reason);
+
+          expect(isOrmError(error)).toBe(true);
+          expect(error.code).toBe("UNIQUE_CONSTRAINT_VIOLATION");
+          expect(error.backendKind).toBe("prisma");
         } finally {
           await close();
         }

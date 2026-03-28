@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MongoClient } from "mongodb";
-import { createOrm, detectDatabaseRuntime } from "@farming-labs/orm";
+import { createOrm, detectDatabaseRuntime, isOrmError } from "@farming-labs/orm";
 import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
 import { bootstrapDatabase, pushSchema } from "@farming-labs/orm-runtime/setup";
 import { createMongoDriver } from "../src";
@@ -155,11 +155,21 @@ describe("mongo local integration", () => {
           supportsDates: true,
           supportsBooleans: true,
           supportsTransactions: true,
+          supportsSchemaNamespaces: false,
+          supportsTransactionalDDL: false,
           supportsJoin: false,
           nativeRelationLoading: "none",
+          textComparison: "case-sensitive",
+          upsert: "native",
+          returning: {
+            create: true,
+            update: true,
+            delete: false,
+          },
         });
         expect(Object.isFrozen(orm.$driver)).toBe(true);
         expect(Object.isFrozen(orm.$driver.capabilities)).toBe(true);
+        expect(Object.isFrozen(orm.$driver.capabilities.returning)).toBe(true);
       } finally {
         await close();
       }
@@ -233,6 +243,34 @@ describe("mongo local integration", () => {
           expectTransactionRollback: process.env.FARM_ORM_LOCAL_MONGODB_TRANSACTIONS === "1",
         }),
       );
+    },
+    LOCAL_TIMEOUT_MS,
+  );
+
+  it(
+    "normalizes duplicate-key errors from a real local MongoDB instance",
+    async () => {
+      await withLocalOrm(async (orm) => {
+        await orm.user.create({
+          data: {
+            email: "duplicate@farminglabs.dev",
+            name: "First",
+          },
+        });
+
+        const error = await orm.user
+          .create({
+            data: {
+              email: "duplicate@farminglabs.dev",
+              name: "Second",
+            },
+          })
+          .catch((reason) => reason);
+
+        expect(isOrmError(error)).toBe(true);
+        expect(error.code).toBe("UNIQUE_CONSTRAINT_VIOLATION");
+        expect(error.backendKind).toBe("mongo");
+      });
     },
     LOCAL_TIMEOUT_MS,
   );

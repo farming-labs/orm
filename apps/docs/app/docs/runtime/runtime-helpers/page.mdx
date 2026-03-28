@@ -66,6 +66,10 @@ It does four things:
 3. calls `createOrm(...)`
 4. returns the normal typed ORM client
 
+The returned client still exposes the same generic capability and normalized
+error surface as any other Farming ORM client through `orm.$driver.capabilities`
+and `OrmError`.
+
 ## `pushSchema(...)`, `applySchema(...)`, and `bootstrapDatabase(...)`
 
 The runtime-aware setup flow lives on the Node-only setup subpath.
