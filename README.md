@@ -369,3 +369,5 @@ pnpm --filter demo demo -- mongoose
 ```bash
 pnpm release:latest
 ```
+
+The version bump flow is configured in `bump.config.ts`.

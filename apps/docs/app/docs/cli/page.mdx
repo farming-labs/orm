@@ -244,7 +244,8 @@ create table if not exists "users" (
 
 ## Release and publish flow
 
-The repo’s package release flow is also `bumpp`-driven now:
+The repo’s package release flow is `bumpp`-driven through a checked-in
+`bump.config.ts`:
 
 ```bash title="terminal"
 pnpm release:latest
@@ -263,10 +264,10 @@ pnpm publish:latest:dry-run
 pnpm publish:beta:dry-run
 ```
 
-The current `release` script creates a version commit like `chore: release v0.0.x`
-and a matching git tag. `release:latest` now runs that bump flow and then publishes
-the new version to npm. `publish:*` is still useful when you need to retry a publish
-without bumping again.
+The `bump.config.ts` file is the source of truth for the release files, commit
+message, and git tag shape. `release:latest` runs that bump flow and then
+publishes the new version to npm. `publish:*` is still useful when you need to
+retry a publish without bumping again.
 
 ## Where each target fits
 

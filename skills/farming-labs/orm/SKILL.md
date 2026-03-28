@@ -116,6 +116,9 @@ Current release flow:
 pnpm release:latest
 ```
 
+The release files, commit message, and tag pattern are configured in
+`bump.config.ts`.
+
 Beta flow:
 
 ```bash

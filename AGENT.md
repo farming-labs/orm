@@ -64,6 +64,8 @@ pnpm test:local:prisma
 pnpm release:latest
 ```
 
+The repo release wiring lives in `bump.config.ts`.
+
 Beta:
 
 ```bash
