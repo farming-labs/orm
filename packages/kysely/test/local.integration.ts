@@ -14,7 +14,15 @@ import {
   type SqliteDatabase,
   type SqliteStatement,
 } from "kysely";
-import { createOrm, detectDatabaseRuntime, renderSafeSql } from "@farming-labs/orm";
+import {
+  createOrm,
+  defineSchema,
+  detectDatabaseRuntime,
+  id,
+  model,
+  renderSafeSql,
+  string,
+} from "@farming-labs/orm";
 import { bootstrapDatabase, createOrmFromRuntime, pushSchema } from "@farming-labs/orm-runtime";
 import { createKyselyDriver, type KyselyDatabaseLike, type KyselyDialect } from "../src";
 import {
@@ -40,6 +48,16 @@ const LOCAL_TIMEOUT_MS = 30_000;
 const kyselyTargets = ["sqlite", "postgresql", "mysql"] as const;
 
 type KyselyTarget = (typeof kyselyTargets)[number];
+
+const semicolonDefaultSchema = defineSchema({
+  note: model({
+    table: "notes",
+    fields: {
+      id: id(),
+      body: string().default("hello;world"),
+    },
+  }),
+});
 
 const requestedTargetValues = (process.env.FARM_ORM_LOCAL_KYSELY_TARGETS ?? "")
   .split(",")
@@ -380,6 +398,38 @@ const runtimeFactories: Record<KyselyTarget, RuntimeFactory> = {
 };
 
 describe("local Kysely integration", () => {
+  it(
+    "sqlite local Kysely integration > pushSchema handles semicolons inside string defaults",
+    async () => {
+      const directory = await mkdtemp(path.join(tmpdir(), "farm-orm-kysely-splitter-"));
+      const databasePath = path.join(directory, "splitter.db");
+      const client = new DatabaseSync(databasePath, { readBigInts: true });
+      const db = new Kysely({
+        dialect: new SqliteDialect({
+          database: new NodeSqliteDatabaseAdapter(client),
+        }),
+      });
+
+      try {
+        await pushSchema({
+          schema: semicolonDefaultSchema,
+          client: db,
+        });
+
+        const columns = client.prepare("pragma table_info('notes')").all() as Array<{
+          name: string;
+          dflt_value: string | null;
+        }>;
+
+        expect(columns.find((column) => column.name === "body")?.dflt_value).toBe("'hello;world'");
+      } finally {
+        await db.destroy();
+        await rm(directory, { recursive: true, force: true });
+      }
+    },
+    LOCAL_TIMEOUT_MS,
+  );
+
   it(
     "sqlite local Kysely integration > pushes and bootstraps schema through @farming-labs/orm-runtime",
     async () => {

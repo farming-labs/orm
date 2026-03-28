@@ -225,11 +225,90 @@ function renderRuntimePrismaSchema(schema: SchemaDefinition<any>, provider: Pris
 }
 
 function splitSqlStatements(sql: string) {
-  return sql
-    .split(";")
-    .map((statement) => statement.trim())
-    .filter(Boolean)
-    .map((statement) => `${statement};`);
+  const statements: string[] = [];
+  let current = "";
+  let quote: "'" | '"' | "`" | null = null;
+
+  for (let index = 0; index < sql.length; index += 1) {
+    const char = sql[index]!;
+    const next = sql[index + 1];
+
+    current += char;
+
+    if (quote === "'") {
+      if (char === "'" && next === "'") {
+        current += next;
+        index += 1;
+        continue;
+      }
+
+      if (char === "\\" && next === "'") {
+        current += next;
+        index += 1;
+        continue;
+      }
+
+      if (char === "'") {
+        quote = null;
+      }
+
+      continue;
+    }
+
+    if (quote === '"') {
+      if (char === '"' && next === '"') {
+        current += next;
+        index += 1;
+        continue;
+      }
+
+      if (char === '"') {
+        quote = null;
+      }
+
+      continue;
+    }
+
+    if (quote === "`") {
+      if (char === "`" && next === "`") {
+        current += next;
+        index += 1;
+        continue;
+      }
+
+      if (char === "\\" && next === "`") {
+        current += next;
+        index += 1;
+        continue;
+      }
+
+      if (char === "`") {
+        quote = null;
+      }
+
+      continue;
+    }
+
+    if (char === "'" || char === '"' || char === "`") {
+      quote = char;
+      continue;
+    }
+
+    if (char === ";") {
+      const statement = current.trim();
+      if (statement) {
+        statements.push(statement);
+      }
+      current = "";
+    }
+  }
+
+  const trailing = current.trim();
+  if (trailing) {
+    statements.push(trailing.endsWith(";") ? trailing : `${trailing};`);
+  }
+
+  return statements.map((statement) => (statement.endsWith(";") ? statement : `${statement};`));
 }
 
 async function runSqlStatements(
