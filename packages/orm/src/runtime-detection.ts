@@ -9,6 +9,20 @@ export type DetectedDatabaseRuntime<TClient = unknown> = Readonly<{
   source: DetectedDatabaseSource;
 }>;
 
+export type DatabaseRuntimeDetectionCandidate = Readonly<{
+  kind: DetectedDatabaseRuntime["kind"];
+  matched: boolean;
+  reasons: readonly string[];
+}>;
+
+export type DatabaseRuntimeDetectionReport<TClient = unknown> = Readonly<{
+  runtime: DetectedDatabaseRuntime<TClient> | null;
+  constructorName: string;
+  candidates: readonly DatabaseRuntimeDetectionCandidate[];
+  summary: string;
+  hint?: string;
+}>;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object";
 }
@@ -24,6 +38,24 @@ function getConstructorName(value: unknown) {
   if (!isRecord(value)) return "";
   const constructor = value.constructor;
   return typeof constructor?.name === "string" ? constructor.name : "";
+}
+
+function missingFunctions(value: unknown, names: readonly string[]) {
+  if (!isRecord(value)) {
+    return names.map((name) => `missing function "${name}"`);
+  }
+
+  return names
+    .filter((name) => typeof value[name] !== "function")
+    .map((name) => `missing function "${name}"`);
+}
+
+function missingKeys(value: unknown, keys: readonly string[]) {
+  if (!isRecord(value)) {
+    return keys.map((key) => `missing property "${key}"`);
+  }
+
+  return keys.filter((key) => !(key in value)).map((key) => `missing property "${key}"`);
 }
 
 function normalizeDialect(value: unknown): DetectedDatabaseDialect | undefined {
@@ -256,10 +288,115 @@ export function detectDatabaseRuntime<TClient>(
   return null;
 }
 
+export function inspectDatabaseRuntime<TClient>(
+  client: TClient,
+): DatabaseRuntimeDetectionReport<TClient> {
+  const constructorName = getConstructorName(client);
+  const runtime = detectDatabaseRuntime(client);
+  const candidates: DatabaseRuntimeDetectionCandidate[] = [
+    {
+      kind: "prisma",
+      matched: isPrismaClient(client),
+      reasons: missingFunctions(client, ["$connect", "$disconnect", "$transaction"]).concat(
+        hasFunction(client, "$queryRawUnsafe") ||
+          hasFunction(client, "$queryRaw") ||
+          hasFunction(client, "$executeRaw")
+          ? []
+          : ['missing one of "$queryRawUnsafe", "$queryRaw", or "$executeRaw"'],
+      ),
+    },
+    {
+      kind: "drizzle",
+      matched: isDrizzleDatabase(client),
+      reasons: missingFunctions(client, ["select", "transaction"]).concat(
+        isRecord(client) && isRecord(client.query) ? [] : ['missing object property "query"'],
+        isRecord(client) && isRecord(client.dialect) ? [] : ['missing object property "dialect"'],
+      ),
+    },
+    {
+      kind: "kysely",
+      matched: isKyselyDatabase(client),
+      reasons: missingFunctions(client, [
+        "executeQuery",
+        "selectFrom",
+        "transaction",
+        "getExecutor",
+      ]),
+    },
+    {
+      kind: "mongoose",
+      matched: isMongooseConnection(client),
+      reasons: missingFunctions(client, ["collection", "model", "startSession"]).concat(
+        hasFunction(client, "asPromise") ||
+          (isRecord(client) && typeof client.readyState === "number")
+          ? []
+          : ['missing "asPromise()" or numeric "readyState"'],
+      ),
+    },
+    {
+      kind: "mongo",
+      matched: isMongoDb(client) || isMongoClient(client),
+      reasons:
+        isMongoDb(client) || isMongoClient(client)
+          ? []
+          : missingFunctions(client, ["collection"]).concat([
+              'expected either a Mongo Db ("command", "admin") or MongoClient ("db", "connect", "close", "startSession") shape',
+            ]),
+    },
+    {
+      kind: "sql",
+      matched:
+        isSqliteDatabase(client) ||
+        isMysqlPool(client) ||
+        isMysqlConnection(client) ||
+        isPgPool(client) ||
+        isPgClient(client),
+      reasons:
+        isSqliteDatabase(client) ||
+        isMysqlPool(client) ||
+        isMysqlConnection(client) ||
+        isPgPool(client) ||
+        isPgClient(client)
+          ? []
+          : ["expected a supported SQL runtime such as node:sqlite, pg, or mysql2"],
+    },
+  ];
+
+  if (runtime) {
+    return Object.freeze({
+      runtime,
+      constructorName,
+      candidates: Object.freeze(candidates),
+      summary: `Detected ${runtime.kind}${runtime.dialect ? ` (${runtime.dialect})` : ""} runtime from ${runtime.source}.`,
+    });
+  }
+
+  const topReason =
+    candidates.find((candidate) => candidate.reasons.length)?.reasons[0] ??
+    "unsupported client shape";
+
+  return Object.freeze({
+    runtime: null,
+    constructorName,
+    candidates: Object.freeze(candidates),
+    summary: constructorName
+      ? `Could not detect a supported runtime from constructor "${constructorName}".`
+      : "Could not detect a supported runtime from the provided client.",
+    hint: `Pass a detected "runtime" override directly or provide a supported raw client. First failing check: ${topReason}.`,
+  });
+}
+
+/**
+ * @deprecated Use inspectDatabaseRuntime() instead.
+ */
+export function explainDatabaseRuntimeDetection<TClient>(
+  client: TClient,
+): DatabaseRuntimeDetectionReport<TClient> {
+  return inspectDatabaseRuntime(client);
+}
+
 export function requireDatabaseRuntime<TClient>(client: TClient): DetectedDatabaseRuntime<TClient> {
-  const detected = detectDatabaseRuntime(client);
-  if (detected) return detected;
-  throw new Error(
-    "Unsupported database client. Expected a Prisma client, Drizzle database, Kysely instance, supported SQL client, MongoDB Db/MongoClient, or Mongoose connection.",
-  );
+  const report = inspectDatabaseRuntime(client);
+  if (report.runtime) return report.runtime;
+  throw new Error(`${report.summary} ${report.hint ?? ""}`.trim());
 }

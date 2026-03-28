@@ -55,6 +55,9 @@ const orm = createOrm({
 orm.$driver.capabilities.supportsJSON; // true
 orm.$driver.capabilities.supportsTransactions; // true
 orm.$driver.capabilities.nativeRelationLoading; // "partial"
+orm.$driver.capabilities.numericIds; // "none" | "manual" | "generated"
+orm.$driver.capabilities.textMatching.equality; // "database-default" | "case-sensitive" | "case-insensitive"
+orm.$driver.capabilities.nativeRelations.hasMany; // true | false
 ```
 
 That metadata is derived from the driver, not passed in manually through
@@ -77,6 +80,19 @@ detected?.kind; // "prisma"
 detected?.dialect; // "postgres" | "mysql" | "sqlite" when detectable
 detected?.source; // "client" | "db" | "connection" | "pool" | "database"
 detected?.client; // the same instance you passed in
+```
+
+If detection fails, use the diagnostic report instead of guessing:
+
+```ts title="explain-runtime-detection.ts"
+import { inspectDatabaseRuntime } from "@farming-labs/orm";
+
+const report = inspectDatabaseRuntime(client);
+
+report.runtime; // detected runtime or null
+report.summary; // human-readable summary
+report.hint; // recommended next step or override
+report.candidates; // heuristics that almost matched
 ```
 
 If you want the same fallback behavior in one step, use
@@ -179,6 +195,7 @@ Every live ORM client exposes read-only capability metadata on `orm.$driver.capa
 That includes:
 
 - basic value support like JSON, dates, booleans, and transactions
+- numeric ID support
 - namespace and transactional DDL support
 - mutation-returning support
 - upsert behavior
@@ -189,6 +206,10 @@ Runtime failures are normalized too. Duplicate-key, foreign-key, missing-table,
 deadlock, and transaction-conflict failures are exposed as `OrmError` values
 through the unified ORM client, so higher-level integrations do not need to
 parse Prisma, SQL, MongoDB, or Mongoose error formats separately.
+
+Runtime-aware schema setup failures from `@farming-labs/orm-runtime/setup` are
+exposed separately as `RuntimeSetupError`, so bootstrap and push failures keep
+the stage, runtime kind, dialect, and underlying cause available.
 
 ## Available drivers
 

@@ -7,7 +7,9 @@ import {
   createManifest,
   defineSchema,
   id,
+  inspectDatabaseRuntime,
   isOrmError,
+  tableName,
   model,
   renderSafeSql,
   string,
@@ -22,6 +24,16 @@ const schema = defineSchema({
       id: id(),
       email: string().unique(),
       name: string(),
+    },
+  }),
+});
+
+const numericSchema = defineSchema({
+  auditEvent: model({
+    table: tableName("audit_events"),
+    fields: {
+      id: id({ type: "integer" }),
+      email: string().unique(),
     },
   }),
 });
@@ -108,6 +120,10 @@ describe("runtime helper local integration", () => {
         schema,
         client: database,
       });
+      await pushSchema({
+        schema,
+        client: database,
+      });
 
       const tables = database
         .prepare("select name from sqlite_master where type = 'table' and name = ?")
@@ -164,5 +180,59 @@ describe("runtime helper local integration", () => {
       database.close();
       await rm(directory, { recursive: true, force: true });
     }
+  });
+
+  it("supports manual numeric ids against a real SQLite database", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "farm-orm-runtime-numeric-"));
+    const databasePath = path.join(directory, "numeric.sqlite");
+    const database = new DatabaseSync(databasePath);
+
+    try {
+      await pushSchema({
+        schema: numericSchema,
+        client: database,
+      });
+
+      const orm = await createOrmFromRuntime({
+        schema: numericSchema,
+        client: database,
+      });
+
+      const created = await orm.auditEvent.create({
+        data: {
+          id: 101,
+          email: "numeric@farminglabs.dev",
+        },
+      });
+
+      const loaded = await orm.auditEvent.findUnique({
+        where: {
+          id: 101,
+        },
+      });
+
+      expect(created).toEqual({
+        id: 101,
+        email: "numeric@farminglabs.dev",
+      });
+      expect(loaded).toEqual({
+        id: 101,
+        email: "numeric@farminglabs.dev",
+      });
+      expect(createManifest(numericSchema).models.auditEvent.fields.id.idType).toBe("integer");
+    } finally {
+      database.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("explains runtime detection failures with a structured report", () => {
+    const report = inspectDatabaseRuntime({
+      execute: () => undefined,
+    });
+
+    expect(report.runtime).toBe(null);
+    expect(report.summary).toContain("Could not detect");
+    expect(report.hint).toContain("supported raw client");
   });
 });

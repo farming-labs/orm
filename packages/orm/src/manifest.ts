@@ -1,15 +1,16 @@
 import { isDeepStrictEqual } from "node:util";
 import type { ScalarKind } from "./fields";
 import type { AnyRelation } from "./relations";
-import type { AnyModelDefinition, ModelConstraints, SchemaDefinition } from "./schema";
+import type { AnyModelDefinition, ModelConstraints, SchemaDefinition, TableInput } from "./schema";
 
 export type ManifestField = {
   name: string;
   column: string;
   kind: ScalarKind;
+  idType?: "string" | "integer";
   nullable: boolean;
   unique: boolean;
-  generated?: "id" | "now";
+  generated?: "id" | "now" | "increment";
   defaultValue?: unknown;
   references?: string;
   description?: string;
@@ -26,6 +27,8 @@ export type ManifestConstraint = {
 export type ManifestModel = {
   name: string;
   table: string;
+  schema?: string;
+  qualifiedTable: string;
   description?: string;
   fields: Record<string, ManifestField>;
   relations: Record<string, AnyRelation>;
@@ -266,8 +269,13 @@ export function validateUniqueLookupUpdateData(
   }
 }
 
-function createConstraintName(table: string, columns: string[], suffix: "unique" | "idx") {
-  const base = [table, ...columns]
+function createConstraintName(
+  table: string,
+  schema: string | undefined,
+  columns: string[],
+  suffix: "unique" | "idx",
+) {
+  const base = [schema, table, ...columns]
     .join("_")
     .replace(/[^a-zA-Z0-9_]+/g, "_")
     .replace(/_+/g, "_")
@@ -280,6 +288,7 @@ function createConstraintName(table: string, columns: string[], suffix: "unique"
 function normalizeConstraints(
   modelName: string,
   table: string,
+  schema: string | undefined,
   fields: Record<string, ManifestField>,
   constraints: ModelConstraints<any>,
 ) {
@@ -302,7 +311,7 @@ function normalizeConstraints(
       });
 
       return {
-        name: createConstraintName(table, columns, unique ? "unique" : "idx"),
+        name: createConstraintName(table, schema, columns, unique ? "unique" : "idx"),
         fields: [...entry],
         columns,
         unique,
@@ -315,12 +324,29 @@ function normalizeConstraints(
   };
 }
 
+function normalizeTableReference(table: TableInput) {
+  if (typeof table === "string") {
+    return {
+      name: table,
+      schema: undefined,
+      qualifiedTable: table,
+    };
+  }
+
+  return {
+    name: table.name,
+    schema: table.schema,
+    qualifiedTable: table.schema ? `${table.schema}.${table.name}` : table.name,
+  };
+}
+
 export function createManifest<
   TSchema extends SchemaDefinition<Record<string, AnyModelDefinition>>,
 >(schema: TSchema): SchemaManifest {
   const models = Object.fromEntries(
     (Object.entries(schema.models) as Array<[string, AnyModelDefinition]>).map(
       ([name, definition]) => {
+        const table = normalizeTableReference(definition.table);
         const fields = Object.fromEntries(
           (
             Object.entries(definition.fields) as Array<
@@ -332,6 +358,7 @@ export function createManifest<
               name: fieldName,
               column: field.config.mappedName ?? fieldName,
               kind: field.config.kind,
+              idType: field.config.idType,
               nullable: field.config.nullable,
               unique: field.config.unique,
               generated: field.config.generated,
@@ -347,13 +374,16 @@ export function createManifest<
           name,
           {
             name,
-            table: definition.table,
+            table: table.name,
+            schema: table.schema,
+            qualifiedTable: table.qualifiedTable,
             description: definition.description,
             fields,
             relations: definition.relations,
             constraints: normalizeConstraints(
               name,
-              definition.table,
+              table.name,
+              table.schema,
               fields,
               definition.constraints,
             ),

@@ -225,17 +225,38 @@ export type UpsertArgs<
 };
 
 export type NativeRelationLoading = "none" | "partial" | "full";
+export type NumericIdCapability = "none" | "manual" | "generated";
 export type MutationReturningCapabilities = Readonly<{
   create: boolean;
   update: boolean;
   delete: boolean;
 }>;
+export type MutationReturningMode = "none" | "record";
+export type MutationReturningModes = Readonly<{
+  create: MutationReturningMode;
+  update: MutationReturningMode;
+  delete: MutationReturningMode;
+}>;
 
 export type UpsertCapability = "none" | "emulated" | "native";
 export type TextComparisonBehavior = "database-default" | "case-sensitive" | "case-insensitive";
+export type TextMatchingCapabilities = Readonly<{
+  equality: TextComparisonBehavior;
+  contains: TextComparisonBehavior;
+  ordering: TextComparisonBehavior;
+}>;
+export type NativeRelationCapabilities = Readonly<{
+  singularChains: boolean;
+  hasMany: boolean;
+  manyToMany: boolean;
+  filtered: boolean;
+  ordered: boolean;
+  paginated: boolean;
+}>;
 
 export type OrmDriverCapabilities = Readonly<{
   supportsNumericIds: boolean;
+  numericIds: NumericIdCapability;
   supportsJSON: boolean;
   supportsDates: boolean;
   supportsBooleans: boolean;
@@ -245,12 +266,20 @@ export type OrmDriverCapabilities = Readonly<{
   supportsJoin: boolean;
   nativeRelationLoading: NativeRelationLoading;
   textComparison: TextComparisonBehavior;
+  textMatching: TextMatchingCapabilities;
   upsert: UpsertCapability;
   returning: MutationReturningCapabilities;
+  returningMode: MutationReturningModes;
+  nativeRelations: NativeRelationCapabilities;
 }>;
 
-export type OrmDriverCapabilityInput = Partial<Omit<OrmDriverCapabilities, "returning">> & {
+export type OrmDriverCapabilityInput = Partial<
+  Omit<OrmDriverCapabilities, "returning" | "returningMode" | "textMatching" | "nativeRelations">
+> & {
   returning?: Partial<MutationReturningCapabilities>;
+  returningMode?: Partial<MutationReturningModes>;
+  textMatching?: Partial<TextMatchingCapabilities>;
+  nativeRelations?: Partial<NativeRelationCapabilities>;
 };
 
 const defaultMutationReturningCapabilities: MutationReturningCapabilities = Object.freeze({
@@ -258,9 +287,28 @@ const defaultMutationReturningCapabilities: MutationReturningCapabilities = Obje
   update: false,
   delete: false,
 });
+const defaultMutationReturningModes: MutationReturningModes = Object.freeze({
+  create: "none",
+  update: "none",
+  delete: "none",
+});
+const defaultTextMatchingCapabilities: TextMatchingCapabilities = Object.freeze({
+  equality: "case-sensitive",
+  contains: "case-sensitive",
+  ordering: "case-sensitive",
+});
+const defaultNativeRelationCapabilities: NativeRelationCapabilities = Object.freeze({
+  singularChains: false,
+  hasMany: false,
+  manyToMany: false,
+  filtered: false,
+  ordered: false,
+  paginated: false,
+});
 
 export const defaultDriverCapabilities: OrmDriverCapabilities = Object.freeze({
   supportsNumericIds: false,
+  numericIds: "none",
   supportsJSON: false,
   supportsDates: false,
   supportsBooleans: false,
@@ -270,17 +318,36 @@ export const defaultDriverCapabilities: OrmDriverCapabilities = Object.freeze({
   supportsJoin: false,
   nativeRelationLoading: "none",
   textComparison: "case-sensitive",
+  textMatching: defaultTextMatchingCapabilities,
   upsert: "none",
   returning: defaultMutationReturningCapabilities,
+  returningMode: defaultMutationReturningModes,
+  nativeRelations: defaultNativeRelationCapabilities,
 });
 
 function freezeDriverCapabilities(input?: OrmDriverCapabilityInput): OrmDriverCapabilities {
+  const numericIds = input?.numericIds ?? defaultDriverCapabilities.numericIds;
+  const supportsNumericIds = input?.supportsNumericIds ?? numericIds !== "none";
   return Object.freeze({
     ...defaultDriverCapabilities,
     ...(input ?? {}),
+    supportsNumericIds,
+    numericIds,
+    textMatching: Object.freeze({
+      ...defaultDriverCapabilities.textMatching,
+      ...(input?.textMatching ?? {}),
+    }),
     returning: Object.freeze({
       ...defaultDriverCapabilities.returning,
       ...(input?.returning ?? {}),
+    }),
+    returningMode: Object.freeze({
+      ...defaultDriverCapabilities.returningMode,
+      ...(input?.returningMode ?? {}),
+    }),
+    nativeRelations: Object.freeze({
+      ...defaultDriverCapabilities.nativeRelations,
+      ...(input?.nativeRelations ?? {}),
     }),
   });
 }

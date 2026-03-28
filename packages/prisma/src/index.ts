@@ -133,6 +133,10 @@ function encodeScalarValue(field: ManifestField, value: unknown) {
     return value;
   }
 
+  if (field.kind === "id" && field.idType === "integer") {
+    return Number(value);
+  }
+
   if (field.kind === "enum") {
     const identifiers = prismaEnumIdentifiers(field);
     return identifiers[String(value)] ?? String(value);
@@ -707,6 +711,7 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
       kind: "prisma",
       client: config.client,
       capabilities: {
+        numericIds: "manual",
         supportsJSON: true,
         supportsDates: true,
         supportsBooleans: true,
@@ -716,11 +721,29 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
         supportsTransactionalDDL: false,
         nativeRelationLoading: "partial",
         textComparison: "database-default",
+        textMatching: {
+          equality: "database-default",
+          contains: "database-default",
+          ordering: "database-default",
+        },
         upsert: "native",
         returning: {
           create: true,
           update: true,
           delete: false,
+        },
+        returningMode: {
+          create: "record",
+          update: "record",
+          delete: "none",
+        },
+        nativeRelations: {
+          singularChains: true,
+          hasMany: true,
+          manyToMany: true,
+          filtered: false,
+          ordered: false,
+          paginated: false,
         },
       },
     }),

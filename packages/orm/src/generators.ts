@@ -33,6 +33,22 @@ const pascalize = (value: string) => {
   return camel.length ? camel.charAt(0).toUpperCase() + camel.slice(1) : "Value";
 };
 
+function hasSchemaNamespaces(manifest: SchemaManifest) {
+  return Object.values(manifest.models).some((model) => !!model.schema);
+}
+
+function requireSchemaNamespaceSupport(
+  manifest: SchemaManifest,
+  supported: boolean,
+  consumer: string,
+) {
+  if (supported || !hasSchemaNamespaces(manifest)) {
+    return;
+  }
+
+  throw new Error(`${consumer} does not support schema-qualified tables in this configuration.`);
+}
+
 function renderTsLiteral(value: unknown) {
   if (typeof value === "bigint") {
     return `${value}n`;
@@ -143,6 +159,7 @@ function hasExplicitInverseRelation(
 function prismaType(field: ManifestField) {
   switch (field.kind) {
     case "id":
+      return field.idType === "integer" ? "Int" : "String";
     case "string":
       return "String";
     case "boolean":
@@ -176,6 +193,7 @@ function constrainedFields(model: ManifestModel) {
 
 function drizzleImports(dialect: DrizzleGenerationOptions["dialect"], manifest: SchemaManifest) {
   const models = Object.values(manifest.models) as ManifestModel[];
+  const needsSchemaNamespaces = hasSchemaNamespaces(manifest);
   const needsBoolean = models.some((model) =>
     Object.values(model.fields).some((field) => field.kind === "boolean"),
   );
@@ -204,6 +222,7 @@ function drizzleImports(dialect: DrizzleGenerationOptions["dialect"], manifest: 
   if (dialect === "pg") {
     return [
       "pgTable",
+      needsSchemaNamespaces ? "pgSchema" : null,
       needsEnum ? "pgEnum" : null,
       "text",
       needsBoolean ? "boolean" : null,
@@ -254,6 +273,13 @@ function drizzleColumn(
   };
 
   if (field.kind === "id") {
+    if (field.idType === "integer") {
+      if (dialect === "mysql") {
+        return `int("${field.column}").primaryKey()`;
+      }
+      return `integer("${field.column}").primaryKey()`;
+    }
+
     if (dialect === "mysql") {
       return `varchar("${field.column}", { length: 191 }).primaryKey()`;
     }
@@ -337,6 +363,9 @@ function sqlType(
   options: { indexed?: boolean } = {},
 ) {
   if (field.kind === "id") {
+    if (field.idType === "integer") {
+      return "integer";
+    }
     return dialect === "mysql" ? "varchar(191)" : "text";
   }
   if (field.kind === "string") {
@@ -388,13 +417,25 @@ function sqlIdentifier(dialect: SqlGenerationOptions["dialect"], value: string) 
   return `"${value}"`;
 }
 
+function sqlTableIdentifier(dialect: SqlGenerationOptions["dialect"], model: ManifestModel) {
+  if (!model.schema) {
+    return sqlIdentifier(dialect, model.table);
+  }
+
+  return `${sqlIdentifier(dialect, model.schema)}.${sqlIdentifier(dialect, model.table)}`;
+}
+
+function drizzleSchemaSymbolName(schema: string) {
+  return camelize(`${schema}_schema`) || "dbSchema";
+}
+
 function sqlCreateIndexStatement(
   dialect: SqlGenerationOptions["dialect"],
-  table: string,
+  model: ManifestModel,
   constraint: ManifestConstraint,
 ) {
   const indexName = sqlIdentifier(dialect, constraint.name);
-  const tableName = sqlIdentifier(dialect, table);
+  const tableName = sqlTableIdentifier(dialect, model);
   const columns = constraint.columns.map((column) => sqlIdentifier(dialect, column)).join(", ");
   const createKeyword = constraint.unique ? "create unique index" : "create index";
   const ifNotExists = dialect === "mysql" ? "" : " if not exists";
@@ -407,8 +448,20 @@ export function renderPrismaSchema(
 ) {
   const manifest = createManifest(schema);
   const provider = options.provider ?? "postgresql";
+  requireSchemaNamespaceSupport(
+    manifest,
+    provider === "postgresql",
+    `renderPrismaSchema(provider: "${provider}")`,
+  );
   const generatorName = options.generatorName ?? "client";
   const datasourceName = options.datasourceName ?? "db";
+  const schemas = [
+    ...new Set(
+      (Object.values(manifest.models) as ManifestModel[])
+        .map((model) => model.schema)
+        .filter((value): value is string => !!value),
+    ),
+  ];
   const reverseRelations = new Map<
     string,
     Array<{ sourceModel: string; foreignKey: string; many: boolean }>
@@ -456,6 +509,7 @@ export function renderPrismaSchema(
       const modifiers: string[] = [];
       if (field.kind === "id") modifiers.push("@id");
       if (field.generated === "id") modifiers.push("@default(cuid())");
+      if (field.generated === "increment") modifiers.push("@default(autoincrement())");
       if (field.generated === "now") modifiers.push("@default(now())");
       if (
         field.defaultValue !== undefined &&
@@ -543,17 +597,31 @@ export function renderPrismaSchema(
         (constraint) => `  @@index([${constraint.fields.join(", ")}])`,
       ),
       ...(model.table !== modelName ? [`  @@map("${model.table}")`] : []),
+      ...(model.schema ? [`  @@schema("${model.schema}")`] : []),
     ];
 
     return `model ${modelName} {\n${modelLines.join("\n")}\n}`;
   });
 
-  return (
-    `generator ${generatorName} {\n  provider = "prisma-client-js"\n}\n\n` +
-    `datasource ${datasourceName} {\n  provider = "${provider}"\n  url      = ${
-      provider === "sqlite" ? '"file:./dev.db"' : 'env("DATABASE_URL")'
-    }\n}\n\n${[...enumBlocks, ...blocks].join("\n\n")}\n`
-  );
+  const generatorLines = [`generator ${generatorName} {`, '  provider = "prisma-client-js"'];
+  if (schemas.length) {
+    generatorLines.push('  previewFeatures = ["multiSchema"]');
+  }
+  generatorLines.push("}");
+
+  const datasourceLines = [
+    `datasource ${datasourceName} {`,
+    `  provider = "${provider}"`,
+    `  url      = ${provider === "sqlite" ? '"file:./dev.db"' : 'env("DATABASE_URL")'}`,
+  ];
+  if (schemas.length) {
+    datasourceLines.push(
+      `  schemas  = [${schemas.map((value) => JSON.stringify(value)).join(", ")}]`,
+    );
+  }
+  datasourceLines.push("}");
+
+  return `${generatorLines.join("\n")}\n\n${datasourceLines.join("\n")}\n\n${[...enumBlocks, ...blocks].join("\n\n")}\n`;
 }
 
 export function renderDrizzleSchema(
@@ -561,6 +629,11 @@ export function renderDrizzleSchema(
   options: DrizzleGenerationOptions,
 ) {
   const manifest = createManifest(schema);
+  requireSchemaNamespaceSupport(
+    manifest,
+    options.dialect === "pg",
+    `renderDrizzleSchema(dialect: "${options.dialect}")`,
+  );
   const coreImports = drizzleImports(options.dialect, manifest).join(", ");
   const tableFactory =
     options.dialect === "pg"
@@ -579,8 +652,21 @@ export function renderDrizzleSchema(
                 .map((value) => JSON.stringify(value))
                 .join(", ");
               const factory = options.dialect === "pg" ? "pgEnum" : "mysqlEnum";
-              return `export const ${drizzleEnumSymbolName(model.name, field.name)} = ${factory}("${model.table}_${field.column}_enum", [${values}]);`;
+              return `export const ${drizzleEnumSymbolName(model.name, field.name)} = ${factory}("${model.qualifiedTable.replace(/\./g, "_")}_${field.column}_enum", [${values}]);`;
             }),
+        );
+  const schemaBlocks =
+    options.dialect !== "pg"
+      ? []
+      : [
+          ...new Set(
+            (Object.values(manifest.models) as ManifestModel[])
+              .map((model) => model.schema)
+              .filter((value): value is string => !!value),
+          ),
+        ].map(
+          (schemaName) =>
+            `const ${drizzleSchemaSymbolName(schemaName)} = pgSchema(${JSON.stringify(schemaName)});`,
         );
 
   const modelBlocks = (Object.values(manifest.models) as ManifestModel[]).map((model) => {
@@ -612,11 +698,16 @@ export function renderDrizzleSchema(
       ),
     ];
 
+    const target =
+      options.dialect === "pg" && model.schema
+        ? `${drizzleSchemaSymbolName(model.schema)}.table`
+        : tableFactory;
+
     if (!constraintLines.length) {
-      return `export const ${model.name} = ${tableFactory}("${model.table}", {\n${lines.join(",\n")}\n});`;
+      return `export const ${model.name} = ${target}("${model.table}", {\n${lines.join(",\n")}\n});`;
     }
 
-    return `export const ${model.name} = ${tableFactory}("${model.table}", {\n${lines.join(",\n")}\n}, (table) => ({\n${constraintLines.join(",\n")}\n}));`;
+    return `export const ${model.name} = ${target}("${model.table}", {\n${lines.join(",\n")}\n}, (table) => ({\n${constraintLines.join(",\n")}\n}));`;
   });
 
   const relationBlocks = (Object.values(manifest.models) as ManifestModel[])
@@ -666,11 +757,29 @@ export function renderDrizzleSchema(
     .filter(Boolean)
     .join("\n");
 
-  return `${imports}\n\n${[...enumBlocks, ...modelBlocks, ...relationBlocks].join("\n\n")}\n`;
+  return `${imports}\n\n${[...schemaBlocks, ...enumBlocks, ...modelBlocks, ...relationBlocks].join("\n\n")}\n`;
 }
 
 export function renderSafeSql(schema: SchemaDefinition<any>, options: SqlGenerationOptions) {
   const manifest = createManifest(schema);
+  requireSchemaNamespaceSupport(
+    manifest,
+    options.dialect === "postgres",
+    `renderSafeSql(dialect: "${options.dialect}")`,
+  );
+  const schemaStatements =
+    options.dialect !== "postgres"
+      ? []
+      : [
+          ...new Set(
+            (Object.values(manifest.models) as ManifestModel[])
+              .map((model) => model.schema)
+              .filter((value): value is string => !!value),
+          ),
+        ].map(
+          (schemaName) =>
+            `create schema if not exists ${sqlIdentifier(options.dialect, schemaName)};`,
+        );
   const statements = (Object.values(manifest.models) as ManifestModel[]).flatMap((model) => {
     const indexedFields = constrainedFields(model);
     const columns = Object.values(model.fields).map((field) => {
@@ -693,14 +802,18 @@ export function renderSafeSql(schema: SchemaDefinition<any>, options: SqlGenerat
       }
       if (field.references) {
         const [targetModel, targetField] = field.references.split(".");
-        const targetTable = manifest.models[targetModel]?.table ?? targetModel;
-        const targetColumn =
-          manifest.models[targetModel]?.fields[targetField]?.column ?? targetField;
+        const targetManifestModel = manifest.models[targetModel];
+        const targetTable = targetManifestModel?.table ?? targetModel;
+        const targetColumn = targetManifestModel?.fields[targetField]?.column ?? targetField;
+        const targetTableIdentifier =
+          targetManifestModel?.schema && options.dialect === "postgres"
+            ? `${sqlIdentifier(options.dialect, targetManifestModel.schema)}.${sqlIdentifier(
+                options.dialect,
+                targetTable,
+              )}`
+            : sqlIdentifier(options.dialect, targetTable);
         parts.push(
-          `references ${sqlIdentifier(options.dialect, targetTable)}(${sqlIdentifier(
-            options.dialect,
-            targetColumn,
-          )})`,
+          `references ${targetTableIdentifier}(${sqlIdentifier(options.dialect, targetColumn)})`,
         );
       }
       const enumCheck = sqlEnumCheck(field, options.dialect);
@@ -711,17 +824,17 @@ export function renderSafeSql(schema: SchemaDefinition<any>, options: SqlGenerat
     });
 
     return [
-      `create table if not exists ${sqlIdentifier(options.dialect, model.table)} (\n${columns.join(",\n")}\n);`,
+      `create table if not exists ${sqlTableIdentifier(options.dialect, model)} (\n${columns.join(",\n")}\n);`,
       ...model.constraints.unique.map((constraint) =>
-        sqlCreateIndexStatement(options.dialect, model.table, constraint),
+        sqlCreateIndexStatement(options.dialect, model, constraint),
       ),
       ...model.constraints.indexes.map((constraint) =>
-        sqlCreateIndexStatement(options.dialect, model.table, constraint),
+        sqlCreateIndexStatement(options.dialect, model, constraint),
       ),
     ];
   });
 
-  return `${statements.join("\n\n")}\n`;
+  return `${[...schemaStatements, ...statements].join("\n\n")}\n`;
 }
 
 export function replaceGeneratedBlock(input: { current: string; label: string; content: string }) {

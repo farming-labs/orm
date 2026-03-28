@@ -13,12 +13,19 @@ export type ModelConstraints<Fields extends FieldMap = FieldMap> = {
   readonly indexes?: readonly ConstraintFieldSet<Fields>[];
 };
 
+export type TableReference = Readonly<{
+  name: string;
+  schema?: string;
+}>;
+
+export type TableInput = string | TableReference;
+
 export type ModelDefinition<
   Fields extends FieldMap = FieldMap,
   Relations extends RelationMap = RelationMap,
 > = {
   readonly _tag: "model";
-  readonly table: string;
+  readonly table: TableInput;
   readonly fields: Fields;
   readonly relations: Relations;
   readonly constraints: ModelConstraints<Fields>;
@@ -35,7 +42,7 @@ export type SchemaDefinition<
 };
 
 export function model<Fields extends FieldMap, Relations extends RelationMap = {}>(config: {
-  table: string;
+  table: TableInput;
   fields: Fields;
   relations?: Relations;
   constraints?: ModelConstraints<Fields>;
@@ -49,6 +56,13 @@ export function model<Fields extends FieldMap, Relations extends RelationMap = {
     constraints: (config.constraints ?? {}) as ModelConstraints<Fields>,
     description: config.description,
   };
+}
+
+export function tableName(name: string, options?: { schema?: string }): TableReference {
+  return Object.freeze({
+    name,
+    schema: options?.schema,
+  });
 }
 
 export function defineSchema<Models extends Record<string, AnyModelDefinition>>(

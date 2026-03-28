@@ -433,16 +433,35 @@ export function createMongoDriver<TSchema extends SchemaDefinition<any>>(
       startSession: config.startSession,
     },
     capabilities: {
+      numericIds: "manual",
       supportsJSON: true,
       supportsDates: true,
       supportsBooleans: true,
       supportsTransactions: Boolean(config.startSession ?? config.client?.startSession),
       textComparison: "case-sensitive",
+      textMatching: {
+        equality: "case-sensitive",
+        contains: "case-sensitive",
+        ordering: "case-sensitive",
+      },
       upsert: "native",
       returning: {
         create: true,
         update: true,
         delete: false,
+      },
+      returningMode: {
+        create: "record",
+        update: "record",
+        delete: "none",
+      },
+      nativeRelations: {
+        singularChains: false,
+        hasMany: false,
+        manyToMany: false,
+        filtered: false,
+        ordered: false,
+        paginated: false,
       },
     },
   });

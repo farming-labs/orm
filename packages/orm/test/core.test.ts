@@ -26,6 +26,7 @@ import {
   renderSafeSql,
   requireUniqueLookup,
   string,
+  tableName,
   validateUniqueLookupUpdateData,
 } from "../src";
 
@@ -230,6 +231,40 @@ describe("@farming-labs/orm core", () => {
     expect(() => renderPrismaSchema(invalidSchema, { provider: "postgresql" })).toThrow(
       'Invalid default value "enterprise" for enum field "user.tier". Expected one of: free, pro.',
     );
+  });
+
+  it("supports numeric ids and schema-qualified tables in the manifest and generators", () => {
+    const namespacedSchema = defineSchema({
+      auditEvent: model({
+        table: tableName("audit_events", { schema: "auth" }),
+        fields: {
+          id: id({ type: "integer" }),
+          email: string().unique(),
+        },
+      }),
+    });
+
+    const manifest = createManifest(namespacedSchema);
+    const prisma = renderPrismaSchema(namespacedSchema, { provider: "postgresql" });
+    const drizzle = renderDrizzleSchema(namespacedSchema, { dialect: "pg" });
+    const sql = renderSafeSql(namespacedSchema, { dialect: "postgres" });
+
+    expect(manifest.models.auditEvent.table).toBe("audit_events");
+    expect(manifest.models.auditEvent.schema).toBe("auth");
+    expect(manifest.models.auditEvent.qualifiedTable).toBe("auth.audit_events");
+    expect(manifest.models.auditEvent.fields.id.idType).toBe("integer");
+    expect(prisma).toContain('previewFeatures = ["multiSchema"]');
+    expect(prisma).toContain('schemas  = ["auth"]');
+    expect(prisma).toContain("id Int @id");
+    expect(prisma).toContain('@@map("audit_events")');
+    expect(prisma).toContain('@@schema("auth")');
+    expect(drizzle).toContain("import { pgTable, pgSchema, text");
+    expect(drizzle).toContain('const authSchema = pgSchema("auth");');
+    expect(drizzle).toContain('export const auditEvent = authSchema.table("audit_events"');
+    expect(drizzle).toContain('id: integer("id").primaryKey()');
+    expect(sql).toContain('create schema if not exists "auth";');
+    expect(sql).toContain('create table if not exists "auth"."audit_events"');
+    expect(sql).toContain('"id" integer primary key not null');
   });
 
   it("normalizes backend-specific duplicate and transaction errors into OrmError", () => {

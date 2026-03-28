@@ -21,6 +21,16 @@ id: id();
 - unique by default
 - generated as an id by default
 
+For numeric primary keys, pass an explicit type:
+
+```ts
+id: id({ type: "integer" });
+```
+
+- runtime output type: `number`
+- useful when an app or integration needs integer-shaped identifiers
+- current live runtime coverage is first-class for manually assigned numeric IDs
+
 ### `string()`
 
 ```ts
@@ -178,6 +188,18 @@ user: model({
     balance: decimal().default("0.00"),
     createdAt: datetime().defaultNow(),
     bio: string().nullable(),
+  },
+});
+```
+
+Numeric IDs use the same DSL:
+
+```ts
+auditEvent: model({
+  table: "audit_events",
+  fields: {
+    id: id({ type: "integer" }),
+    email: string().unique(),
   },
 });
 ```
