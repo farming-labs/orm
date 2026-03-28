@@ -16,6 +16,7 @@ import {
   json,
   model,
   string,
+  tableName,
 } from "../src";
 
 const authSchema = defineSchema({
@@ -166,7 +167,7 @@ describe("runtime contract", () => {
 
     expect(orm.$driver.capabilities).toEqual({
       supportsNumericIds: true,
-      numericIds: "manual",
+      numericIds: "generated",
       supportsJSON: true,
       supportsDates: true,
       supportsBooleans: true,
@@ -243,6 +244,38 @@ describe("runtime contract", () => {
     expect(report.summary).toContain("Could not detect");
     expect(report.hint).toContain("supported raw client");
     expect(report.candidates.some((candidate) => candidate.kind === "prisma")).toBe(true);
+  });
+
+  it("auto-generates numeric ids in the memory runtime when increment ids are requested", async () => {
+    const numericSchema = defineSchema({
+      auditEvent: model({
+        table: tableName("audit_events"),
+        fields: {
+          id: id({ type: "integer", generated: "increment" }),
+          email: string().unique(),
+        },
+      }),
+    });
+
+    const orm = createOrm({
+      schema: numericSchema,
+      driver: createMemoryDriver(),
+    });
+
+    const first = await orm.auditEvent.create({
+      data: {
+        email: "ada@farminglabs.dev",
+      },
+    });
+    const second = await orm.auditEvent.create({
+      data: {
+        email: "grace@farminglabs.dev",
+      },
+    });
+
+    expect(first.id).toBe(1);
+    expect(second.id).toBe(2);
+    expect(orm.$driver.capabilities.numericIds).toBe("generated");
   });
 
   it("supports auth-style reads with findOne, findUnique, count, and nested relations", async () => {

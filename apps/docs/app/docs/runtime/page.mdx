@@ -132,6 +132,11 @@ The runtime also understands declared model-level compound unique keys. If a
 schema says `account(provider, accountId)` is unique, live drivers can use that
 same shape in `findUnique(...)` and `upsert(...)`.
 
+Numeric IDs are first-class now too. `id({ type: "integer" })` gives you manual
+numeric IDs, while `id({ type: "integer", generated: "increment" })` enables
+auto-generated numeric IDs on the supporting SQL-family, Prisma, and memory
+runtimes.
+
 ## Query surface
 
 The runtime client supports:

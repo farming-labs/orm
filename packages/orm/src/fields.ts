@@ -14,9 +14,11 @@ export type IdValueType = "string" | "integer";
 export type IdOptions =
   | {
       type?: "string";
+      generated?: "id";
     }
   | {
       type: "integer";
+      generated?: "increment";
     };
 
 export type JsonValue =
@@ -147,12 +149,17 @@ export type FieldOutput<TField> = TField extends {
 export function id(): FieldBuilder<"id", false, string>;
 export function id(options: { type?: "string" }): FieldBuilder<"id", false, string>;
 export function id(options: { type: "integer" }): FieldBuilder<"id", false, number>;
+export function id(options: {
+  type: "integer";
+  generated: "increment";
+}): FieldBuilder<"id", false, number>;
 export function id(options?: IdOptions) {
   if (options?.type === "integer") {
     return new FieldBuilder<"id", false, number>({
       kind: "id",
       nullable: false,
       unique: true,
+      generated: options.generated,
       idType: "integer",
     });
   }
@@ -166,11 +173,14 @@ export function id(options?: IdOptions) {
   });
 }
 
-export function numericId() {
+export function numericId(): FieldBuilder<"id", false, number>;
+export function numericId(options: { generated: "increment" }): FieldBuilder<"id", false, number>;
+export function numericId(options?: { generated?: "increment" }) {
   return new FieldBuilder<"id", false, number>({
     kind: "id",
     nullable: false,
     unique: true,
+    generated: options?.generated,
     idType: "integer",
   });
 }

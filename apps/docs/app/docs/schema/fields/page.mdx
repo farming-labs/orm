@@ -29,7 +29,18 @@ id: id({ type: "integer" });
 
 - runtime output type: `number`
 - useful when an app or integration needs integer-shaped identifiers
-- current live runtime coverage is first-class for manually assigned numeric IDs
+- works well for manually assigned numeric IDs
+
+If you want the runtime or database to generate integer IDs for you, opt into
+increment semantics:
+
+```ts
+id: id({ type: "integer", generated: "increment" });
+```
+
+- runtime output type: `number`
+- SQL, Drizzle, Kysely, Prisma, and the memory driver can generate the value
+- MongoDB and Mongoose still require manual numeric IDs today
 
 ### `string()`
 
@@ -199,6 +210,18 @@ auditEvent: model({
   table: "audit_events",
   fields: {
     id: id({ type: "integer" }),
+    email: string().unique(),
+  },
+});
+```
+
+Generated numeric IDs use the same builder:
+
+```ts
+auditEvent: model({
+  table: "audit_events",
+  fields: {
+    id: id({ type: "integer", generated: "increment" }),
     email: string().unique(),
   },
 });

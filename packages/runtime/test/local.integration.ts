@@ -38,6 +38,16 @@ const numericSchema = defineSchema({
   }),
 });
 
+const generatedNumericSchema = defineSchema({
+  auditEvent: model({
+    table: "audit_events",
+    fields: {
+      id: id({ type: "integer", generated: "increment" }),
+      email: string().unique(),
+    },
+  }),
+});
+
 describe("runtime helper local integration", () => {
   it("keeps setup helpers on the dedicated setup subpath", async () => {
     const core = await import("../src");
@@ -220,6 +230,45 @@ describe("runtime helper local integration", () => {
         email: "numeric@farminglabs.dev",
       });
       expect(createManifest(numericSchema).models.auditEvent.fields.id.idType).toBe("integer");
+    } finally {
+      database.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("supports generated numeric ids against a real SQLite database", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "farm-orm-runtime-generated-numeric-"));
+    const databasePath = path.join(directory, "generated-numeric.sqlite");
+    const database = new DatabaseSync(databasePath);
+
+    try {
+      const orm = await bootstrapDatabase({
+        schema: generatedNumericSchema,
+        client: database,
+      });
+
+      const first = await orm.auditEvent.create({
+        data: {
+          email: "first@farminglabs.dev",
+        },
+      });
+      const second = await orm.auditEvent.create({
+        data: {
+          email: "second@farminglabs.dev",
+        },
+      });
+
+      expect(first).toEqual({
+        id: 1,
+        email: "first@farminglabs.dev",
+      });
+      expect(second).toEqual({
+        id: 2,
+        email: "second@farminglabs.dev",
+      });
+      expect(createManifest(generatedNumericSchema).models.auditEvent.fields.id.generated).toBe(
+        "increment",
+      );
     } finally {
       database.close();
       await rm(directory, { recursive: true, force: true });

@@ -12,7 +12,7 @@ export type KyselyDialect = "sqlite" | "mysql" | "postgres";
 export type KyselyDatabaseLike = {
   executeQuery<R>(
     query: Readonly<ReturnType<typeof CompiledQuery.raw>> | Compilable<R>,
-  ): Promise<Pick<QueryResult<R>, "rows" | "numAffectedRows" | "numChangedRows">>;
+  ): Promise<Pick<QueryResult<R>, "rows" | "numAffectedRows" | "numChangedRows" | "insertId">>;
   transaction(): {
     execute<TResult>(run: (trx: KyselyDatabaseLike) => Promise<TResult>): Promise<TResult>;
   };
@@ -40,6 +40,7 @@ function createKyselyAdapter(db: KyselyDatabaseLike, dialect: KyselyDialect): Sq
       return {
         rows: (result.rows ?? []) as Record<string, unknown>[],
         affectedRows: toAffectedRows(result.numAffectedRows ?? result.numChangedRows),
+        insertId: result.insertId,
       };
     },
     async transaction(run) {
@@ -58,7 +59,7 @@ export function createKyselyDriver<TSchema extends SchemaDefinition<any>>(
       client: config.db,
       dialect: config.dialect,
       capabilities: {
-        numericIds: "manual",
+        numericIds: "generated",
         supportsJSON: true,
         supportsDates: true,
         supportsBooleans: true,

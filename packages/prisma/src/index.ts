@@ -729,7 +729,7 @@ function createPrismaDriverInternal<TSchema extends SchemaDefinition<any>>(
       kind: "prisma",
       client: config.client,
       capabilities: {
-        numericIds: "manual",
+        numericIds: "generated",
         supportsJSON: true,
         supportsDates: true,
         supportsBooleans: true,

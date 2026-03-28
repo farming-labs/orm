@@ -326,6 +326,12 @@ function normalizeConstraints(
 
 function normalizeTableReference(table: TableInput) {
   if (typeof table === "string") {
+    if (table.includes(".")) {
+      throw new Error(
+        `Schema-qualified table strings are not supported. Use tableName("${table.split(".").pop()}", { schema: "${table.split(".").slice(0, -1).join(".")}" }) instead.`,
+      );
+    }
+
     return {
       name: table,
       schema: undefined,

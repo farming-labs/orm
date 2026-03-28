@@ -171,7 +171,7 @@ export function createDrizzleDriver<TSchema extends SchemaDefinition<any>>(
     client: config.db ?? config.client ?? runtimeClient,
     dialect: config.dialect,
     capabilities: {
-      numericIds: "manual",
+      numericIds: "generated",
       supportsJSON: true,
       supportsDates: true,
       supportsBooleans: true,

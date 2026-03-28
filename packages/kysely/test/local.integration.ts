@@ -497,7 +497,7 @@ describe("local Kysely integration", () => {
           });
           expect(runtime.orm.$driver.capabilities).toEqual({
             supportsNumericIds: true,
-            numericIds: "manual",
+            numericIds: "generated",
             supportsJSON: true,
             supportsDates: true,
             supportsBooleans: true,
