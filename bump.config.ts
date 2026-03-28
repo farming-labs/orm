@@ -3,7 +3,7 @@ import { defineConfig } from "bumpp";
 export default defineConfig({
   commit: "chore: release v%s",
   tag: "v%s",
-  push: false,
+  push: true,
   files: [
     "package.json",
     "packages/orm/package.json",
