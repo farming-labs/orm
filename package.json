@@ -1,6 +1,6 @@
 {
   "name": "farming-labs-orm",
-  "version": "0.0.29",
+  "version": "0.0.25",
   "private": true,
   "scripts": {
     "build": "pnpm --filter './packages/*' run build",
@@ -23,9 +23,9 @@
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
     "check": "pnpm lint && pnpm format:check && pnpm typecheck",
-    "release": "pnpm exec bumpp --configFilePath bump.config.ts",
-    "release:latest": "pnpm exec bumpp --configFilePath bump.config.ts --release patch --yes && pnpm publish:latest",
-    "release:beta": "pnpm exec bumpp --configFilePath bump.config.ts --release prerelease --preid beta --yes && pnpm publish:beta",
+    "release": "tsx ./scripts/release.ts",
+    "release:latest": "bumpp --tag latest && pnpm --filter './packages/*' publish --access public --tag latest --no-git-checks",
+    "release:beta": "bumpp --tag beta && pnpm --filter './packages/*' publish --access public --tag beta --no-git-checks",
     "publish:latest": "pnpm --filter './packages/*' run build && pnpm --filter './packages/*' publish --access public --no-git-checks",
     "publish:latest:dry-run": "pnpm --filter './packages/*' run build && pnpm --filter './packages/*' publish --access public --no-git-checks --dry-run",
     "publish:beta": "pnpm --filter './packages/*' run build && pnpm --filter './packages/*' publish --access public --tag beta --no-git-checks",
