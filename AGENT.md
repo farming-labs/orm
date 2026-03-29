@@ -64,13 +64,13 @@ pnpm test:local:prisma
 pnpm release:latest
 ```
 
-The repo release wiring lives in `bump.config.ts`.
+That is the full stable release flow now: bump the package manifests listed in
+`bump.config.ts`, commit, tag, and publish.
 
 Beta:
 
 ```bash
 pnpm release:beta
-pnpm publish:beta
 ```
 
 ## Notes

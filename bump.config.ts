@@ -5,7 +5,6 @@ export default defineConfig({
   tag: "v%s",
   push: true,
   files: [
-    "package.json",
     "packages/orm/package.json",
     "packages/cli/package.json",
     "packages/sql/package.json",
@@ -16,4 +15,5 @@ export default defineConfig({
     "packages/prisma/package.json",
     "packages/runtime/package.json",
   ],
+  execute: "pnpm build",
 });

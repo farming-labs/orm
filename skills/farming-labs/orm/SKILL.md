@@ -116,6 +116,10 @@ Current release flow:
 pnpm release:latest
 ```
 
+That command now runs the full stable release flow, including npm publish.
+`bump.config.ts` explicitly lists the publishable package manifests under
+`packages/*`.
+
 The release files, commit message, and tag pattern are configured in
 `bump.config.ts`.
 

@@ -378,4 +378,27 @@ pnpm --filter demo demo -- mongoose
 pnpm release:latest
 ```
 
-The version bump flow is configured in `bump.config.ts`.
+That command now does the full stable flow:
+
+1. bumps versions with `bumpp`
+2. uses the explicit package manifest list in `bump.config.ts`
+3. creates the release commit and tag from `bump.config.ts`
+4. publishes the packages to npm
+
+The version source of truth for release lives in these package manifests:
+
+- `packages/orm/package.json`
+- `packages/cli/package.json`
+- `packages/sql/package.json`
+- `packages/drizzle/package.json`
+- `packages/kysely/package.json`
+- `packages/mongo/package.json`
+- `packages/mongoose/package.json`
+- `packages/prisma/package.json`
+- `packages/runtime/package.json`
+
+For a beta release:
+
+```bash
+pnpm release:beta
+```
