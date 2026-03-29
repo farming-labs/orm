@@ -398,7 +398,7 @@ article p {
 #nd-page .grid.gap-4 > a.rounded-lg.border.p-4.text-sm > p {
   font-family: inherit !important;
 }
- 
+
 #nd-page .grid.gap-4 > a.rounded-lg.border.p-4.text-sm > p {
   font-family: var(--app-font-mono), ui-monospace, SFMono-Regular, Menlo, monospace !important;
   font-weight: 130 !important;
