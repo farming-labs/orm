@@ -7,37 +7,80 @@ icon: rocket
 
 # Full-Stack Frameworks
 
-Full-stack frameworks often need a storage layer for:
+Full-stack frameworks usually end up owning more storage-facing behavior than
+they planned.
 
-- auth
-- billing
-- teams and permissions
+Even when the framework does not call itself an ORM or a database layer, it
+often still needs a durable place for:
+
+- auth and identity
+- teams, organizations, and permissions
+- billing and plan state
 - CMS-like content
-- framework-owned metadata
-- starter kits and example apps
+- route caches and render metadata
+- background job state
+- webhook logs and retries
+- feature flags and rollout state
+- environments, tenants, and project settings
+- starter templates and example apps
 
-The problem is rarely just query syntax. The real problem is usually that the
-framework has to explain or maintain the same storage story across several
-backends.
+The hard part is usually not query syntax. The hard part is having to explain,
+support, and maintain the same storage story across several different runtime
+stacks.
 
-## Where Farming Labs ORM fits
+## Why frameworks drift so quickly
+
+Frameworks often end up owning a surprising number of storage surfaces at once:
+
+- framework core modules
+- official add-ons
+- starter kits
+- example applications
+- CLI setup flows
+- test fixtures
+- docs snippets
+
+If each surface assumes a different backend shape, the framework slowly drifts
+into:
+
+- Prisma-only assumptions in one package
+- Drizzle-specific examples in docs
+- raw SQL helpers in workers
+- duplicated migrations or setup stories
+- plugin modules that only work with one storage style
+
+Farming Labs ORM helps by letting the framework define and consume one
+storage-facing contract while still letting the application choose the final
+runtime.
+
+## Where Farming Labs ORM fits inside a framework
 
 For framework authors, the most useful pattern is:
 
-1. define the shared schema contract once
+1. define the framework-owned schema contract once
 2. accept a raw runtime client from the app
 3. create the ORM from that runtime
-4. write framework-owned data helpers once against the unified runtime
+4. expose framework modules that talk to the unified runtime
+5. use runtime-aware setup helpers in tests, templates, and examples
 
-That lets the framework avoid hardcoding Prisma-only or SQL-only assumptions in
-its core logic.
+That keeps the framework focused on product behavior instead of backend
+plumbing.
 
 ## A practical framework architecture
 
 ### 1. Keep the schema in a shared package
 
 ```ts title="framework-schema.ts"
-import { datetime, defineSchema, id, model, string } from "@farming-labs/orm";
+import {
+  datetime,
+  defineSchema,
+  enumeration,
+  hasMany,
+  id,
+  model,
+  string,
+  belongsTo,
+} from "@farming-labs/orm";
 
 export const frameworkSchema = defineSchema({
   user: model({
@@ -48,18 +91,98 @@ export const frameworkSchema = defineSchema({
       name: string(),
       createdAt: datetime().defaultNow(),
     },
+    relations: {
+      projects: hasMany("projectMembership", { foreignKey: "userId" }),
+    },
   }),
+
+  project: model({
+    table: "projects",
+    fields: {
+      id: id(),
+      slug: string().unique(),
+      name: string(),
+      environment: enumeration(["development", "preview", "production"]),
+      createdAt: datetime().defaultNow(),
+    },
+    relations: {
+      memberships: hasMany("projectMembership", { foreignKey: "projectId" }),
+      routeCaches: hasMany("routeCache", { foreignKey: "projectId" }),
+      webhooks: hasMany("webhookDelivery", { foreignKey: "projectId" }),
+      jobs: hasMany("jobRun", { foreignKey: "projectId" }),
+    },
+  }),
+
+  projectMembership: model({
+    table: "project_memberships",
+    fields: {
+      id: id(),
+      userId: string().references("user.id"),
+      projectId: string().references("project.id"),
+      role: string().default("member"),
+      createdAt: datetime().defaultNow(),
+    },
+    relations: {
+      user: belongsTo("user", { foreignKey: "userId" }),
+      project: belongsTo("project", { foreignKey: "projectId" }),
+    },
+  }),
+
   routeCache: model({
     table: "route_cache",
     fields: {
       id: id(),
+      projectId: string().references("project.id"),
       key: string().unique(),
       payload: string(),
       createdAt: datetime().defaultNow(),
     },
+    relations: {
+      project: belongsTo("project", { foreignKey: "projectId" }),
+    },
+  }),
+
+  webhookDelivery: model({
+    table: "webhook_deliveries",
+    fields: {
+      id: id(),
+      projectId: string().references("project.id"),
+      endpoint: string(),
+      eventType: string(),
+      status: string(),
+      createdAt: datetime().defaultNow(),
+    },
+    relations: {
+      project: belongsTo("project", { foreignKey: "projectId" }),
+    },
+  }),
+
+  jobRun: model({
+    table: "job_runs",
+    fields: {
+      id: id(),
+      projectId: string().references("project.id"),
+      jobType: string(),
+      status: string(),
+      createdAt: datetime().defaultNow(),
+    },
+    relations: {
+      project: belongsTo("project", { foreignKey: "projectId" }),
+    },
   }),
 });
 ```
+
+This does not mean the framework must own every model in one giant schema file.
+In practice, many frameworks will compose several schema packages:
+
+- auth schema
+- billing schema
+- organization schema
+- cache or job schema
+
+The important part is that the framework defines those contracts once instead of
+rewriting them per backend.
 
 ### 2. Accept the raw client at the framework boundary
 
@@ -75,26 +198,28 @@ export async function createFrameworkOrm(database: unknown) {
 }
 ```
 
-This is the simplest high-level integration model because the framework does
-not have to ask the app to create an ORM manually first.
+This is one of the most valuable integration points because the framework does
+not need to force the app to manually build the ORM first.
 
-### 3. Write framework storage helpers against the unified runtime
+The framework can simply say:
+
+1. pass your raw Prisma, Drizzle, Kysely, SQL, Mongo, or Mongoose client
+2. let the framework normalize it through Farming Labs ORM
+3. use the framework modules on top of that normalized runtime
+
+### 3. Write framework storage helpers once
 
 ```ts title="framework-store.ts"
 export function createFrameworkStore(orm: Awaited<ReturnType<typeof createFrameworkOrm>>) {
   return {
-    getCachedRoute(key: string) {
-      return orm.routeCache.findUnique({
-        where: { key },
-      });
-    },
-
-    putCachedRoute(input: { key: string; payload: string }) {
-      return orm.routeCache.upsert({
-        where: { key: input.key },
-        create: input,
-        update: {
-          payload: input.payload,
+    findProjectBySlug(slug: string) {
+      return orm.project.findUnique({
+        where: { slug },
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          environment: true,
         },
       });
     },
@@ -104,6 +229,33 @@ export function createFrameworkStore(orm: Awaited<ReturnType<typeof createFramew
         where: { email },
       });
     },
+
+    putCachedRoute(input: { projectId: string; key: string; payload: string }) {
+      return orm.routeCache.upsert({
+        where: { key: input.key },
+        create: input,
+        update: {
+          payload: input.payload,
+        },
+      });
+    },
+
+    recordWebhookAttempt(input: {
+      projectId: string;
+      endpoint: string;
+      eventType: string;
+      status: string;
+    }) {
+      return orm.webhookDelivery.create({
+        data: input,
+      });
+    },
+
+    createJobRun(input: { projectId: string; jobType: string; status: string }) {
+      return orm.jobRun.create({
+        data: input,
+      });
+    },
   };
 }
 ```
@@ -111,13 +263,127 @@ export function createFrameworkStore(orm: Awaited<ReturnType<typeof createFramew
 That keeps the framework code focused on framework behavior instead of backend
 plumbing.
 
-## When to use generation vs runtime-only integration
+## Concrete places a full-stack framework can use the ORM
 
-There are two common framework patterns.
+This is where the ORM tends to fit naturally.
+
+### Framework auth package
+
+A framework can own:
+
+- users
+- sessions
+- linked accounts
+- organization membership
+
+while still accepting a raw Prisma, SQL, Mongo, or Drizzle runtime from the
+application.
+
+### Framework billing package
+
+A framework can ship:
+
+- plans
+- subscriptions
+- invoices
+- usage events
+
+as one shared billing contract across starter apps and self-hosted
+deployments.
+
+### Framework teams and permissions module
+
+Many frameworks eventually need:
+
+- projects
+- organizations
+- memberships
+- roles
+- feature ownership
+
+Those are classic shared-contract models that benefit from one schema source of
+truth.
+
+### Framework route cache or render metadata module
+
+A framework that owns route output caching, prerender metadata, or invalidation
+state can keep one portable record shape instead of documenting it differently
+for every backend.
+
+### Framework CMS or admin module
+
+If the framework wants to ship content, admin, or internal tooling modules, it
+can define content entities once while still letting each app choose where those
+records live.
+
+### Framework jobs and workflows module
+
+If the framework ships background jobs or workflow state, a unified runtime
+surface is useful for:
+
+- job creation
+- status transitions
+- retries
+- dead-letter handling
+- operator dashboards
+
+### Framework webhooks and integration logs
+
+Frameworks that coordinate external services usually need durable storage for:
+
+- delivery attempts
+- retry state
+- payload metadata
+- endpoint configuration
+
+Those records are a good fit for one shared framework contract.
+
+### Framework feature flags and environments module
+
+If a framework owns environment variables, rollout flags, or preview-deployment
+state, those are exactly the kinds of cross-cutting records that drift when each
+backend gets its own interpretation.
+
+### Framework starter kits and example apps
+
+Even if the framework does not expose all of its internal models to users,
+starter kits still benefit from one shared schema contract. That keeps:
+
+- docs snippets
+- demo apps
+- test fixtures
+- CLI templates
+
+closer to the real product surface.
+
+## How full-stack frameworks should structure the integration
+
+The cleanest approach is usually to split responsibilities like this:
+
+### Framework package responsibilities
+
+- own the reusable schema contracts
+- own the storage helpers for framework modules
+- own runtime inspection and capability-driven branching
+- own example and test bootstrap flows
+
+### Application responsibilities
+
+- choose the raw database client
+- choose the final runtime stack
+- choose whether to generate artifacts or stay runtime-first
+- decide whether the framework schema is merged with app-owned schemas
+
+That separation keeps the framework portable without taking runtime choice away
+from the app.
+
+## Runtime-first, generation-first, and hybrid integration
+
+There are three common patterns.
 
 ### Runtime-first
 
-Use this when the framework mostly needs a runtime contract and wants the app to
+Use this when the framework mostly wants a runtime contract and wants the app to
 provide a raw client directly.
 
 ```ts
@@ -129,16 +395,16 @@ const orm = await createOrmFromRuntime({
 
 This is a great fit when:
 
-- the framework wants a simple integration API
+- the framework wants a small integration API
 - the app already owns its database client
 - the framework does not need to own migrations directly
 
 ### Generation-first
 
-Use this when the framework also wants to ship schema artifacts or starter
+Use this when the framework also wants to ship generated artifacts or starter
 projects.
 
-```ts
+```ts title="farm-orm.config.ts"
 export default defineConfig({
   schemas: [frameworkSchema],
   targets: {
@@ -153,22 +419,33 @@ export default defineConfig({
 This is a great fit when:
 
 - the framework ships official app templates
-- the framework wants generated Prisma/Drizzle/SQL artifacts
-- the app wants its own migration flow from generated files
+- the framework wants generated Prisma, Drizzle, or SQL output
+- the app wants to keep its own migration workflow
+
+### Hybrid
 
 Many frameworks will want both:
 
-- generation for starter apps and docs
-- runtime helpers for direct integration
+- generation for starter apps, docs, and templates
+- runtime helpers for direct integration APIs
 
-## Setup flows in dev, tests, and examples
+That is often the best long-term story for a full-stack framework because it
+supports:
+
+- framework-owned examples
+- application-owned runtime choice
+- package-level reuse
+- docs that stay aligned with the actual schema
+
+## Setup flows in dev, tests, and templates
 
 Frameworks often need to bootstrap a real database for:
 
-- e2e tests
+- e2e suites
 - example apps
-- dev servers
+- local dev servers
 - preview deployments
+- template validation in CI
 
 Use the runtime-aware setup helpers for that:
 
@@ -181,10 +458,10 @@ const orm = await bootstrapDatabase({
 });
 ```
 
-That gives the framework one runtime-aware setup story instead of one setup path
-per backend family.
+That gives the framework one runtime-aware setup story instead of one setup
+path per backend family.
 
-## Capabilities matter for frameworks
+## Capabilities matter for framework authors
 
 Frameworks usually need to branch on behavior more carefully than app code.
 
@@ -197,19 +474,22 @@ caps.supportsTransactions;
 caps.upsert;
 caps.returningMode.update;
 caps.nativeRelations.filtered;
+caps.textMatching;
 ```
 
 That helps a framework choose:
 
 - whether generated numeric IDs are available
-- whether a Postgres schema namespace is usable
+- whether Postgres schema namespaces are usable
 - whether a transaction-backed flow is safe
 - whether relation-heavy framework helpers need a fallback path
+- whether setup/bootstrap should be exposed publicly or kept framework-owned
+- whether a given runtime is suitable for a specific framework module
 
-## Error handling for framework boundaries
+## Error handling at the framework boundary
 
 Frameworks should usually convert ORM failures into framework-facing errors at
-the boundary.
+the integration boundary.
 
 ```ts title="framework-errors.ts"
 import { isOrmError } from "@farming-labs/orm";
@@ -230,6 +510,9 @@ try {
       case "MISSING_TABLE":
         // return setup/configuration error
         break;
+      case "TRANSACTION_CONFLICT":
+        // optional retry or queue handoff
+        break;
     }
   }
 
@@ -237,30 +520,34 @@ try {
 }
 ```
 
-That keeps the framework from learning every backend’s native error format.
+That keeps the framework from learning every backend's native error format and
+lets it expose stable framework-facing error semantics instead.
 
-## Examples of good full-stack framework fits
+## When this is especially valuable
 
-- auth layers
-- billing kits
-- team/org modules
-- starter kits that want one shared schema contract
-- platform features that many apps consume
+Farming Labs ORM is especially useful for frameworks that:
+
+- ship official modules across several backends
+- maintain starter kits or example apps
+- want to support both hosted and self-hosted installs
+- own storage-facing product features, not just UI helpers
+- want one documentation story for many runtime choices
 
 ## When this is less useful
 
 Farming Labs ORM is less compelling when a framework:
 
 - only supports one backend forever
-- wants to be deeply tied to one ORM-specific schema language
-- never needs to share storage-facing contracts across packages or starter apps
+- wants to stay deeply tied to one ORM-native schema language
+- never needs to share storage-facing contracts across packages or templates
 
 ## Practical rule of thumb
 
-If your framework’s pain sounds like:
+If your framework pain sounds like:
 
-- “we keep rewriting the same storage docs”
-- “we keep branching on backend details in core code”
-- “our starter templates drift across stacks”
+- "we keep rewriting the same storage docs"
+- "we keep branching on backend details in core code"
+- "our starter templates drift across stacks"
+- "our platform modules assume one database wrapper"
 
 then Farming Labs ORM is a strong fit.

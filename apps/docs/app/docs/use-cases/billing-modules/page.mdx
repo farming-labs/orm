@@ -1,77 +1,501 @@
 ---
 title: "Billing Modules"
-description: "Reusable plans, subscriptions, invoices, and org billing models."
+description: "How reusable billing packages can ship one storage contract across many apps and runtime stacks."
 order: 2
 icon: card
 ---
 
 # Billing Modules
 
-Billing packages often need to travel across many apps and customer stacks.
+Billing packages are one of the clearest fits for Farming Labs ORM because the
+commercial model usually changes more slowly than the consuming app stack.
 
-## Typical shared models
+The same billing package often needs to work across:
+
+- product applications
+- admin dashboards
+- background workers
+- webhook processors
+- self-hosted installs
+- starter kits
+- multiple ORM or database preferences
+
+That means billing teams often end up repeating the same storage contract in too
+many places.
+
+## What billing packages usually need
+
+Most reusable billing systems eventually model some combination of:
 
 - plans
+- prices
 - subscriptions
+- customers
 - invoices
-- credits
-- seats
-- organizations
+- payment attempts
 - entitlements
+- usage events
+- seats
+- organization billing state
 
-## Example
+The drift usually shows up in three places:
 
-```ts
+1. every stack gets its own schema flavor
+2. every backend gets its own storage helpers
+3. docs examples slowly stop matching the real billing model
+
+Farming Labs ORM helps by letting the billing package own the domain contract
+once while the consuming application still chooses the final runtime or
+generated output.
+
+## Recommended billing-package architecture
+
+The cleanest pattern usually looks like this:
+
+1. the billing package owns the billing schema
+2. the app decides what it wants to generate or execute
+3. the billing package writes its data helpers once against the unified runtime
+4. tests, demos, and examples bootstrap the same schema through runtime helpers
+
+That means the billing package does **not** need separate Prisma-only, SQL-only,
+and Mongo-only business logic just to load subscriptions and issue invoices.
+
+## Step 1: define the billing schema once
+
+```ts title="billing-schema.ts"
+import {
+  belongsTo,
+  datetime,
+  decimal,
+  defineSchema,
+  enumeration,
+  hasMany,
+  id,
+  integer,
+  model,
+  string,
+} from "@farming-labs/orm";
+
 export const billingSchema = defineSchema({
+  customer: model({
+    table: "customers",
+    fields: {
+      id: id(),
+      ownerId: string().unique(),
+      providerCustomerId: string().unique(),
+      email: string(),
+      createdAt: datetime().defaultNow(),
+    },
+    relations: {
+      subscriptions: hasMany("subscription", { foreignKey: "customerId" }),
+      invoices: hasMany("invoice", { foreignKey: "customerId" }),
+    },
+  }),
+
   plan: model({
     table: "plans",
     fields: {
       id: id(),
       slug: string().unique(),
       name: string(),
+      interval: enumeration(["monthly", "yearly"]),
+      price: decimal(),
+      createdAt: datetime().defaultNow(),
+    },
+    relations: {
+      subscriptions: hasMany("subscription", { foreignKey: "planId" }),
     },
   }),
+
   subscription: model({
     table: "subscriptions",
     fields: {
       id: id(),
-      userId: string(),
+      customerId: string().references("customer.id"),
       planId: string().references("plan.id"),
-      status: string(),
+      status: enumeration(["trialing", "active", "past_due", "canceled"]),
+      seatCount: integer().default(1),
+      currentPeriodStart: datetime(),
+      currentPeriodEnd: datetime(),
       createdAt: datetime().defaultNow(),
     },
+    relations: {
+      customer: belongsTo("customer", { foreignKey: "customerId" }),
+      plan: belongsTo("plan", { foreignKey: "planId" }),
+      invoices: hasMany("invoice", { foreignKey: "subscriptionId" }),
+      entitlements: hasMany("entitlement", { foreignKey: "subscriptionId" }),
+      usageEvents: hasMany("usageEvent", { foreignKey: "subscriptionId" }),
+    },
   }),
+
   invoice: model({
     table: "invoices",
     fields: {
       id: id(),
+      customerId: string().references("customer.id"),
       subscriptionId: string().references("subscription.id"),
-      status: string(),
+      status: enumeration(["draft", "open", "paid", "void"]),
+      total: decimal(),
       issuedAt: datetime().defaultNow(),
+    },
+    relations: {
+      customer: belongsTo("customer", { foreignKey: "customerId" }),
+      subscription: belongsTo("subscription", { foreignKey: "subscriptionId" }),
+    },
+  }),
+
+  entitlement: model({
+    table: "entitlements",
+    fields: {
+      id: id(),
+      subscriptionId: string().references("subscription.id"),
+      key: string(),
+      limit: integer(),
+      createdAt: datetime().defaultNow(),
+    },
+    constraints: {
+      unique: [["subscriptionId", "key"]],
+    },
+    relations: {
+      subscription: belongsTo("subscription", { foreignKey: "subscriptionId" }),
+    },
+  }),
+
+  usageEvent: model({
+    table: "usage_events",
+    fields: {
+      id: id(),
+      subscriptionId: string().references("subscription.id"),
+      metric: string(),
+      quantity: integer(),
+      recordedAt: datetime().defaultNow(),
+    },
+    relations: {
+      subscription: belongsTo("subscription", { foreignKey: "subscriptionId" }),
     },
   }),
 });
 ```
 
-## Why this works well
+This gives the package one durable business contract instead of asking every
+consumer to reinterpret billing tables in its own dialect.
 
-- the business shape is stable
-- consumers often differ in ORM preference
-- documentation drift is expensive
-- test fixtures benefit from a shared schema contract
+If a Postgres deployment wants a dedicated namespace, the package can also move
+those tables into `billing.*` later with `tableName(...)` without changing the
+rest of the billing model.
 
-## Typical outcome
+```ts title="optional-postgres-namespace.ts"
+import { tableName } from "@farming-labs/orm";
 
-The billing package owns:
+table: tableName("subscriptions", { schema: "billing" });
+```
 
-- one schema
-- one set of runtime helpers
-- one docs story
+## Step 2: let the app choose its generation or runtime path
 
-The app chooses:
+If a consuming app wants Prisma artifacts:
 
-- Prisma generation
-- Drizzle generation
-- safe SQL generation
+```ts title="farm-orm.config.ts"
+import { defineConfig } from "@farming-labs/orm-cli";
+import { billingSchema } from "@acme/billing";
 
-That separation is exactly where this project tends to feel useful.
+export default defineConfig({
+  schemas: [billingSchema],
+  targets: {
+    prisma: {
+      out: "./generated/prisma/schema.prisma",
+      provider: "postgresql",
+    },
+  },
+});
+```
+
+If another app wants Drizzle, safe SQL, or runtime-only execution, the billing
+package does not have to change its data model.
+
+That split is a big deal for reusable billing kits because billing packages
+often need to serve:
+
+- SaaS apps using Prisma
+- internal tools using Drizzle or Kysely
+- workers using direct SQL
+- self-hosted installs that want generated SQL artifacts
+
+## Step 3: write billing helpers once against the unified runtime
+
+```ts title="billing-store.ts"
+import type { OrmClient } from "@farming-labs/orm";
+import { billingSchema } from "./billing-schema";
+
+export function createBillingStore(orm: OrmClient<typeof billingSchema>) {
+  return {
+    findPlanBySlug(slug: string) {
+      return orm.plan.findUnique({
+        where: { slug },
+      });
+    },
+
+    findActiveSubscriptionForOwner(ownerId: string) {
+      return orm.customer.findUnique({
+        where: { ownerId },
+        select: {
+          id: true,
+          ownerId: true,
+          providerCustomerId: true,
+          subscriptions: {
+            where: {
+              status: "active",
+            },
+            select: {
+              id: true,
+              status: true,
+              seatCount: true,
+              currentPeriodEnd: true,
+              plan: {
+                select: {
+                  slug: true,
+                  interval: true,
+                  price: true,
+                },
+              },
+              entitlements: {
+                select: {
+                  key: true,
+                  limit: true,
+                },
+              },
+            },
+          },
+        },
+      });
+    },
+
+    async createCustomer(input: { ownerId: string; providerCustomerId: string; email: string }) {
+      return orm.customer.create({
+        data: input,
+        select: {
+          id: true,
+          ownerId: true,
+          providerCustomerId: true,
+        },
+      });
+    },
+
+    async changePlan(input: { subscriptionId: string; nextPlanId: string; nextPeriodEnd: Date }) {
+      return orm.transaction(async (tx) => {
+        const subscription = await tx.subscription.update({
+          where: { id: input.subscriptionId },
+          data: {
+            planId: input.nextPlanId,
+            currentPeriodEnd: input.nextPeriodEnd,
+          },
+          select: {
+            id: true,
+            customerId: true,
+            planId: true,
+            status: true,
+          },
+        });
+
+        await tx.invoice.create({
+          data: {
+            customerId: subscription.customerId,
+            subscriptionId: subscription.id,
+            total: "0",
+            status: "draft",
+          },
+        });
+
+        return subscription;
+      });
+    },
+
+    async replaceEntitlements(input: {
+      subscriptionId: string;
+      entries: Array<{ key: string; limit: number }>;
+    }) {
+      return orm.transaction(async (tx) => {
+        await tx.entitlement.deleteMany({
+          where: { subscriptionId: input.subscriptionId },
+        });
+
+        for (const entry of input.entries) {
+          await tx.entitlement.create({
+            data: {
+              subscriptionId: input.subscriptionId,
+              key: entry.key,
+              limit: entry.limit,
+            },
+          });
+        }
+      });
+    },
+
+    recordUsage(input: { subscriptionId: string; metric: string; quantity: number }) {
+      return orm.usageEvent.create({
+        data: input,
+      });
+    },
+
+    issueInvoice(input: { customerId: string; subscriptionId: string; total: string }) {
+      return orm.invoice.create({
+        data: {
+          customerId: input.customerId,
+          subscriptionId: input.subscriptionId,
+          total: input.total,
+          status: "open",
+        },
+      });
+    },
+  };
+}
+```
+
+That gives the billing package one place to implement:
+
+- active-subscription reads
+- plan changes
+- invoice creation
+- entitlement management
+- usage recording
+- provider customer reconciliation
+
+without duplicating the logic per backend.
+
+## Step 4: accept raw clients when the integration needs to
+
+If your billing package or commerce framework wants to accept a raw database
+client directly, it should lean on the runtime helpers instead of rebuilding
+runtime detection and driver creation itself.
+
+```ts title="create-billing-runtime.ts"
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+import { billingSchema } from "./billing-schema";
+
+export async function createBillingOrm(database: unknown) {
+  return createOrmFromRuntime({
+    schema: billingSchema,
+    client: database,
+  });
+}
+```
+
+That gives the consumer a small integration surface:
+
+1. pass the raw client
+2. let Farming Labs ORM normalize it
+3. run shared billing helpers against the normalized runtime
+
+## Step 5: use capabilities for billing behavior
+
+Billing systems often need to branch on runtime behavior more carefully than a
+typical app.
+
+```ts title="billing-capabilities.ts"
+const caps = orm.$driver.capabilities;
+
+caps.supportsTransactions;
+caps.numericIds;
+caps.supportsSchemaNamespaces;
+caps.upsert;
+caps.returning.create;
+caps.textMatching;
+```
+
+That can influence decisions like:
+
+- whether checkout and invoice writes should be wrapped in one transaction
+- whether generated numeric IDs are available
+- whether a dedicated `billing.*` Postgres namespace is usable
+- whether idempotent provider syncs should prefer native upsert or fallback logic
+- whether a post-write read is needed after invoice or subscription mutations
+
+## Step 6: normalize storage failures at the boundary
+
+Billing systems usually need to convert backend failures into product-facing
+behavior.
+
+```ts title="billing-errors.ts"
+import { isOrmError } from "@farming-labs/orm";
+
+try {
+  await orm.customer.create({
+    data: {
+      ownerId: "org_123",
+      providerCustomerId: "cus_123",
+      email: "billing@farminglabs.dev",
+    },
+  });
+} catch (error) {
+  if (isOrmError(error)) {
+    switch (error.code) {
+      case "UNIQUE_CONSTRAINT_VIOLATION":
+        // customer already linked
+        break;
+      case "FOREIGN_KEY_VIOLATION":
+        // bad plan or subscription reference
+        break;
+      case "TRANSACTION_CONFLICT":
+        // safe place for retry logic
+        break;
+    }
+  }
+
+  throw error;
+}
+```
+
+That keeps the billing package from learning Prisma, Postgres, MySQL, and Mongo
+error formats separately.
+
+## Step 7: bootstrap billing databases in tests, demos, and webhooks
+
+Billing modules often need a real database in:
+
+- integration tests
+- example apps
+- webhook replay tooling
+- self-hosted setup flows
+- local development
+
+Use the runtime-aware setup helpers for that:
+
+```ts title="billing-bootstrap.ts"
+import { bootstrapDatabase } from "@farming-labs/orm-runtime/setup";
+import { billingSchema } from "./billing-schema";
+
+const orm = await bootstrapDatabase({
+  schema: billingSchema,
+  client,
+});
+```
+
+That gives the package a single runtime-aware setup path instead of one
+Prisma-specific setup story, one SQL-specific story, and one Mongo-specific
+story.
+
+## Good places for a billing package to use this
+
+- SaaS billing kits shared across many products
+- framework-owned billing modules
+- commerce engines that need to accept many runtimes
+- admin consoles and workers that share the same billing schema
+- starter kits that want one durable billing contract
+
+## When this approach is less useful
+
+Farming Labs ORM is less compelling when a billing package:
+
+- only supports one stack forever
+- wants to be tightly coupled to one ORM-native schema language
+- never needs to publish or share a storage-facing billing contract
+
+## Practical rule of thumb
+
+If your billing problem sounds like:
+
+- "we keep rewriting plan and subscription models per stack"
+- "our invoice docs drift from our actual schema"
+- "our workers and apps disagree on billing tables"
+- "we want one billing kit to work across many products"
+
+then Farming Labs ORM is a strong fit.
