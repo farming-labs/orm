@@ -386,3 +386,24 @@ article p {
   letter-spacing: 0.04em !important;
   text-transform: uppercase !important;
 }
+#nd-page .grid.gap-4 > a.rounded-lg.border.p-4.text-sm {
+  font-family: var(--app-font-mono), ui-monospace, SFMono-Regular, Menlo, monospace !important;
+  font-weight: 130 !important;
+  font-size: 10px !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+}
+
+#nd-page .grid.gap-4 > a.rounded-lg.border.p-4.text-sm > div,
+#nd-page .grid.gap-4 > a.rounded-lg.border.p-4.text-sm > p {
+  font-family: inherit !important;
+}
+ 
+#nd-page .grid.gap-4 > a.rounded-lg.border.p-4.text-sm > p {
+  font-family: var(--app-font-mono), ui-monospace, SFMono-Regular, Menlo, monospace !important;
+  font-weight: 130 !important;
+  font-size: 11px !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em;
+}
