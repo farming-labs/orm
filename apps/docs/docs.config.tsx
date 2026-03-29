@@ -161,6 +161,7 @@ export default defineDocs({
       children: [
         { slug: "auth-libraries" },
         { slug: "billing-modules" },
+        { slug: "fullstack-frameworks" },
         { slug: "internal-platforms" },
       ],
     },
