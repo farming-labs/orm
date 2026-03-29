@@ -184,6 +184,34 @@ In practice, many frameworks will compose several schema packages:
 The important part is that the framework defines those contracts once instead of
 rewriting them per backend.
 
+If the framework also wants to render artifacts directly, it can call the
+generators from the same schema package:
+
+```ts
+import { renderDrizzleSchema, renderPrismaSchema, renderSafeSql } from "@farming-labs/orm";
+import { frameworkSchema } from "./framework-schema";
+
+const prisma = renderPrismaSchema(frameworkSchema, {
+  provider: "postgresql",
+});
+
+const drizzle = renderDrizzleSchema(frameworkSchema, {
+  dialect: "pg",
+});
+
+const sql = renderSafeSql(frameworkSchema, {
+  dialect: "postgres",
+});
+```
+
+That is especially useful when the framework owns:
+
+- official starter kits
+- a setup CLI
+- example apps
+- documentation snippets
+- self-hosted installation artifacts
+
 ### 2. Accept the raw client at the framework boundary
 
 ```ts title="create-framework-runtime.ts"
@@ -206,6 +234,19 @@ The framework can simply say:
 1. pass your raw Prisma, Drizzle, Kysely, SQL, Mongo, or Mongoose client
 2. let the framework normalize it through Farming Labs ORM
 3. use the framework modules on top of that normalized runtime
+
+If the framework wants to explain integration errors more clearly, inspect the
+runtime before constructing the ORM:
+
+```ts
+import { inspectDatabaseRuntime } from "@farming-labs/orm";
+
+const inspection = inspectDatabaseRuntime(database);
+
+if (!inspection.runtime) {
+  throw new Error(inspection.summary);
+}
+```
 
 ### 3. Write framework storage helpers once
 
@@ -449,7 +490,7 @@ Frameworks often need to bootstrap a real database for:
 
 Use the runtime-aware setup helpers for that:
 
-```ts title="framework-bootstrap.ts"
+```ts
 import { bootstrapDatabase } from "@farming-labs/orm-runtime/setup";
 
 const orm = await bootstrapDatabase({
@@ -461,11 +502,40 @@ const orm = await bootstrapDatabase({
 That gives the framework one runtime-aware setup story instead of one setup
 path per backend family.
 
+If the framework wants setup without immediately returning the ORM client, it
+can split the flow:
+
+```ts
+import { pushSchema } from "@farming-labs/orm-runtime/setup";
+
+await pushSchema({
+  schema: frameworkSchema,
+  client,
+});
+```
+
+That is useful for:
+
+- CLI setup commands
+- starter-template initialization
+- test harness bootstrapping
+- self-hosted installation steps
+
+## Helper map for framework authors
+
+- `renderPrismaSchema(...)`: generate Prisma artifacts from framework-owned schemas
+- `renderDrizzleSchema(...)`: generate Drizzle schema modules for starters or examples
+- `renderSafeSql(...)`: generate direct SQL artifacts for setup and self-hosting
+- `inspectDatabaseRuntime(...)`: inspect what raw client the app actually passed
+- `createOrmFromRuntime(...)`: normalize the app's runtime into the framework ORM
+- `pushSchema(...)`: set up framework-owned tables before app startup or tests
+- `bootstrapDatabase(...)`: set up the database and return the framework ORM in one step
+
 ## Capabilities matter for framework authors
 
 Frameworks usually need to branch on behavior more carefully than app code.
 
-```ts title="framework-capabilities.ts"
+```ts
 const caps = orm.$driver.capabilities;
 
 caps.numericIds;
@@ -491,7 +561,7 @@ That helps a framework choose:
 Frameworks should usually convert ORM failures into framework-facing errors at
 the integration boundary.
 
-```ts title="framework-errors.ts"
+```ts
 import { isOrmError } from "@farming-labs/orm";
 
 try {

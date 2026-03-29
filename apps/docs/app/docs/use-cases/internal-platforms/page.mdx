@@ -9,6 +9,10 @@ icon: building
 
 Internal platform teams often own models that many product teams consume.
 
+These packages are a strong fit for Farming Labs ORM because the platform team
+usually wants one durable contract while product teams still want freedom over
+their final runtime stack.
+
 ## Common platform-owned domains
 
 - organizations
@@ -27,6 +31,14 @@ Without a shared contract, every product team tends to drift:
 - different field names
 - different docs examples
 - different migration patterns
+
+Platform packages often have to support:
+
+- generated artifacts for app teams
+- runtime helpers for internal services
+- setup flows for demos, tests, and sandboxes
+
+That is where the generator and runtime helper story becomes important.
 
 ## Platform package example
 
@@ -71,6 +83,57 @@ export default defineConfig({
   },
 });
 ```
+
+If a platform team wants to render artifacts directly instead of going through
+the CLI, it can call the generators from the shared schema package:
+
+```ts
+import { renderDrizzleSchema, renderPrismaSchema, renderSafeSql } from "@farming-labs/orm";
+
+const prisma = renderPrismaSchema(orgSchema, {
+  provider: "postgresql",
+});
+
+const drizzle = renderDrizzleSchema(orgSchema, {
+  dialect: "pg",
+});
+
+const sql = renderSafeSql(orgSchema, {
+  dialect: "postgres",
+});
+```
+
+If a platform-owned service wants to accept a raw client directly:
+
+```ts
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const orm = await createOrmFromRuntime({
+  schema: orgSchema,
+  client: database,
+});
+```
+
+If the platform package needs to prepare a database in tests, demos, or setup
+flows:
+
+```ts
+import { pushSchema } from "@farming-labs/orm-runtime/setup";
+
+await pushSchema({
+  schema: orgSchema,
+  client: database,
+});
+```
+
+## Helper map for internal platforms
+
+- `renderPrismaSchema(...)`: ship Prisma artifacts to product teams
+- `renderDrizzleSchema(...)`: ship Drizzle schema modules from the shared platform contract
+- `renderSafeSql(...)`: emit SQL setup artifacts for direct SQL consumers
+- `createOrmFromRuntime(...)`: let platform services accept raw clients directly
+- `pushSchema(...)`: prepare test, sandbox, or setup databases for platform-owned modules
+- `bootstrapDatabase(...)`: prepare a live database and return the ORM in one step
 
 ## Why platform teams care
 

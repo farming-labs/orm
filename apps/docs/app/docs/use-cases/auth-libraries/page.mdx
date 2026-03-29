@@ -118,6 +118,33 @@ export default defineConfig({
 If the app wants Drizzle or safe SQL instead, the schema package does not have
 to change.
 
+If the auth library wants to render artifacts in memory for a CLI, installer,
+or docs example, it can also call the generators directly:
+
+```ts
+import { renderDrizzleSchema, renderPrismaSchema, renderSafeSql } from "@farming-labs/orm";
+import { authSchema } from "./auth-schema";
+
+const prisma = renderPrismaSchema(authSchema, {
+  provider: "postgresql",
+});
+
+const drizzle = renderDrizzleSchema(authSchema, {
+  dialect: "pg",
+});
+
+const sql = renderSafeSql(authSchema, {
+  dialect: "postgres",
+});
+```
+
+That is useful when the auth package wants to:
+
+- power an installer or setup wizard
+- emit artifacts in a framework CLI
+- snapshot generated output in tests
+- show docs examples that come from the real schema contract
+
 ## Step 3: write the auth storage helpers once
 
 The auth package can now write its data access once against the unified runtime
@@ -259,11 +286,24 @@ That keeps the auth integration small:
 2. normalize it into Farming ORM
 3. run the shared auth storage helpers against the normalized client
 
+If the integration needs to debug what the app passed in before creating the
+ORM, inspect the runtime first:
+
+```ts
+import { inspectDatabaseRuntime } from "@farming-labs/orm";
+
+const inspection = inspectDatabaseRuntime(database);
+
+if (!inspection.runtime) {
+  throw new Error(inspection.summary);
+}
+```
+
 ## Step 5: use capabilities instead of guessing
 
 Higher-level auth libraries often need to know what the runtime can safely do.
 
-```ts title="auth-runtime-capabilities.ts"
+```ts
 const caps = orm.$driver.capabilities;
 
 caps.supportsTransactions;
@@ -286,7 +326,7 @@ That is useful for decisions like:
 Auth systems often need to react consistently to duplicate emails or duplicate
 provider-account pairs.
 
-```ts title="auth-errors.ts"
+```ts
 import { isOrmError } from "@farming-labs/orm";
 
 try {
@@ -313,7 +353,7 @@ Mongo duplicate key errors separately in the auth package.
 If the auth package or framework needs to stand up a real database in tests,
 use the runtime-aware setup helpers.
 
-```ts title="auth-bootstrap.ts"
+```ts
 import { bootstrapDatabase } from "@farming-labs/orm-runtime/setup";
 import { authSchema } from "./auth-schema";
 
@@ -329,6 +369,32 @@ That is especially useful in:
 - local demos
 - framework-owned setup flows
 - preview apps
+
+If the auth package only needs to prepare the database and does not want the ORM
+returned yet, use:
+
+```ts
+import { pushSchema } from "@farming-labs/orm-runtime/setup";
+
+await pushSchema({
+  schema: authSchema,
+  client: prisma,
+});
+```
+
+Use `bootstrapDatabase(...)` when you want setup plus the ORM client back. Use
+`pushSchema(...)` or `applySchema(...)` when the package already has its own ORM
+or wants setup as a separate step.
+
+## Helper map for auth packages
+
+- `renderPrismaSchema(...)`: emit `schema.prisma` text from the auth schema
+- `renderDrizzleSchema(...)`: emit a Drizzle schema module for starter kits or generated output
+- `renderSafeSql(...)`: emit SQL DDL for direct SQL installs or snapshot testing
+- `inspectDatabaseRuntime(...)`: explain what raw client was passed to the auth integration
+- `createOrmFromRuntime(...)`: turn a raw client into the unified auth runtime
+- `pushSchema(...)`: prepare a real database before tests, examples, or setup flows
+- `bootstrapDatabase(...)`: prepare the database and return an ORM in one step
 
 ## Numeric IDs and namespaces
 

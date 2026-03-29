@@ -184,7 +184,7 @@ If a Postgres deployment wants a dedicated namespace, the package can also move
 those tables into `billing.*` later with `tableName(...)` without changing the
 rest of the billing model.
 
-```ts title="optional-postgres-namespace.ts"
+```ts
 import { tableName } from "@farming-labs/orm";
 
 table: tableName("subscriptions", { schema: "billing" });
@@ -219,6 +219,33 @@ often need to serve:
 - internal tools using Drizzle or Kysely
 - workers using direct SQL
 - self-hosted installs that want generated SQL artifacts
+
+If the package wants to render those artifacts directly in memory for a CLI,
+installer, or docs pipeline, it can use the generators:
+
+```ts
+import { renderDrizzleSchema, renderPrismaSchema, renderSafeSql } from "@farming-labs/orm";
+import { billingSchema } from "./billing-schema";
+
+const prisma = renderPrismaSchema(billingSchema, {
+  provider: "postgresql",
+});
+
+const drizzle = renderDrizzleSchema(billingSchema, {
+  dialect: "pg",
+});
+
+const sql = renderSafeSql(billingSchema, {
+  dialect: "postgres",
+});
+```
+
+That is useful when the billing package needs to:
+
+- power installation flows
+- generate self-hosted setup artifacts
+- document the real billing schema in examples
+- snapshot generated billing output in tests
 
 ## Step 3: write billing helpers once against the unified runtime
 
@@ -385,12 +412,25 @@ That gives the consumer a small integration surface:
 2. let Farming Labs ORM normalize it
 3. run shared billing helpers against the normalized runtime
 
+If a consuming app passes an unexpected wrapper or proxy around the database
+client, inspect it first:
+
+```ts
+import { inspectDatabaseRuntime } from "@farming-labs/orm";
+
+const inspection = inspectDatabaseRuntime(database);
+
+if (!inspection.runtime) {
+  throw new Error(inspection.summary);
+}
+```
+
 ## Step 5: use capabilities for billing behavior
 
 Billing systems often need to branch on runtime behavior more carefully than a
 typical app.
 
-```ts title="billing-capabilities.ts"
+```ts
 const caps = orm.$driver.capabilities;
 
 caps.supportsTransactions;
@@ -414,7 +454,7 @@ That can influence decisions like:
 Billing systems usually need to convert backend failures into product-facing
 behavior.
 
-```ts title="billing-errors.ts"
+```ts
 import { isOrmError } from "@farming-labs/orm";
 
 try {
@@ -459,7 +499,7 @@ Billing modules often need a real database in:
 
 Use the runtime-aware setup helpers for that:
 
-```ts title="billing-bootstrap.ts"
+```ts
 import { bootstrapDatabase } from "@farming-labs/orm-runtime/setup";
 import { billingSchema } from "./billing-schema";
 
@@ -472,6 +512,35 @@ const orm = await bootstrapDatabase({
 That gives the package a single runtime-aware setup path instead of one
 Prisma-specific setup story, one SQL-specific story, and one Mongo-specific
 story.
+
+If the billing package wants schema setup as a distinct step, use
+`pushSchema(...)` or `applySchema(...)` directly:
+
+```ts
+import { pushSchema } from "@farming-labs/orm-runtime/setup";
+
+await pushSchema({
+  schema: billingSchema,
+  client,
+});
+```
+
+That is often useful for:
+
+- setup wizards
+- CLI commands
+- self-hosted installation flows
+- test harnesses that want setup before creating the final runtime
+
+## Helper map for billing modules
+
+- `renderPrismaSchema(...)`: emit Prisma artifacts for hosted apps or starter kits
+- `renderDrizzleSchema(...)`: emit a Drizzle schema file for generated billing installs
+- `renderSafeSql(...)`: emit SQL DDL for direct SQL or self-hosted setup flows
+- `inspectDatabaseRuntime(...)`: inspect the raw billing runtime before normalizing it
+- `createOrmFromRuntime(...)`: create the billing runtime from a raw client
+- `pushSchema(...)`: apply the billing schema to a live database as a separate setup step
+- `bootstrapDatabase(...)`: prepare the billing database and return the ORM in one call
 
 ## Good places for a billing package to use this
 
