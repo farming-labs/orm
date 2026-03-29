@@ -1,35 +1,52 @@
 ---
 title: "Auth Libraries"
-description: "How one schema contract can replace adapter sprawl in auth-style packages."
+description: "How to build auth-style storage integrations on top of Farming Labs ORM."
 order: 1
 icon: shield
 ---
 
 # Auth Libraries
 
-Auth packages are one of the clearest fits for @farming-labs/docs
+Auth libraries are one of the strongest fits for Farming Labs ORM because they
+usually need to describe the same storage shape across many app stacks without
+rewriting the same adapter story over and over.
 
-## Why auth packages suffer
+## What auth libraries usually need
 
-They usually need to define the same storage ideas repeatedly:
+Most auth systems end up modeling the same ideas:
 
 - users
 - sessions
-- accounts
+- linked accounts
 - verification records
-- memberships
+- organizations and memberships
 - plugin-owned models
 
-And then they often repeat that work again for:
+The repeated work usually shows up in three places:
 
-- Prisma
-- Drizzle
-- raw SQL examples
-- docs and setup guides
+1. schema examples for each supported stack
+2. adapter or storage code for each backend
+3. docs that have to explain the same model in different ORM dialects
 
-## One schema instead
+Farming Labs ORM helps by letting the package define the storage contract once,
+then letting the consuming app choose the eventual runtime or generator target.
 
-```ts
+## Recommended integration model
+
+The cleanest auth-package architecture usually looks like this:
+
+1. the auth package owns the schema contract
+2. the app chooses how to generate or execute it
+3. the auth package writes its storage helpers once against the unified runtime
+
+That means the package does **not** need separate query logic for Prisma,
+Drizzle, Kysely, raw SQL, and MongoDB.
+
+## Step 1: define the schema once
+
+```ts title="auth-schema.ts"
+import { belongsTo, datetime, defineSchema, hasMany, id, model, string } from "@farming-labs/orm";
+
 export const authSchema = defineSchema({
   user: model({
     table: "users",
@@ -38,12 +55,14 @@ export const authSchema = defineSchema({
       email: string().unique(),
       name: string(),
       createdAt: datetime().defaultNow(),
+      updatedAt: datetime().defaultNow(),
     },
     relations: {
       sessions: hasMany("session", { foreignKey: "userId" }),
       accounts: hasMany("account", { foreignKey: "userId" }),
     },
   }),
+
   session: model({
     table: "sessions",
     fields: {
@@ -56,6 +75,7 @@ export const authSchema = defineSchema({
       user: belongsTo("user", { foreignKey: "userId" }),
     },
   }),
+
   account: model({
     table: "accounts",
     fields: {
@@ -74,9 +94,16 @@ export const authSchema = defineSchema({
 });
 ```
 
-## App-side generation
+The important part is that the auth package now owns the model once.
 
-```ts
+## Step 2: let the app generate what it needs
+
+If the consuming app wants Prisma output:
+
+```ts title="farm-orm.config.ts"
+import { defineConfig } from "@farming-labs/orm-cli";
+import { authSchema } from "@acme/auth";
+
 export default defineConfig({
   schemas: [authSchema],
   targets: {
@@ -88,12 +115,21 @@ export default defineConfig({
 });
 ```
 
-## Runtime helper example
+If the app wants Drizzle or safe SQL instead, the schema package does not have
+to change.
 
-```ts
+## Step 3: write the auth storage helpers once
+
+The auth package can now write its data access once against the unified runtime
+surface.
+
+```ts title="auth-store.ts"
+import type { OrmClient } from "@farming-labs/orm";
+import { authSchema } from "./auth-schema";
+
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
-export function createAuthStore(orm: typeof authOrm) {
+export function createAuthStore(orm: OrmClient<typeof authSchema>) {
   return {
     findUserByEmail(email: string) {
       return orm.user.findUnique({
@@ -115,6 +151,20 @@ export function createAuthStore(orm: typeof authOrm) {
               accountId: true,
             },
           },
+        },
+      });
+    },
+
+    findAccount(provider: string, accountId: string) {
+      return orm.account.findUnique({
+        where: {
+          provider,
+          accountId,
+        },
+        select: {
+          userId: true,
+          provider: true,
+          accountId: true,
         },
       });
     },
@@ -145,20 +195,6 @@ export function createAuthStore(orm: typeof authOrm) {
         });
 
         return { user, account };
-      });
-    },
-
-    findAccount(provider: string, accountId: string) {
-      return orm.account.findUnique({
-        where: {
-          provider,
-          accountId,
-        },
-        select: {
-          userId: true,
-          provider: true,
-          accountId: true,
-        },
       });
     },
 
@@ -193,40 +229,147 @@ export function createAuthStore(orm: typeof authOrm) {
 }
 ```
 
-If a library normalizes emails, it should use the same helper on both writes
-and lookups. Lowercasing only at query time can miss rows that were stored in a
-different case.
+That gives the auth package one place to implement:
 
-That gives an auth library one place to implement:
+- load a user by email, id, token, or linked account
+- rotate or revoke sessions
+- link provider accounts
+- count related records for hooks or plugin rules
 
-- load a user by email, id, or token
-- load a linked account by `provider + accountId`
-- rotate sessions
-- invalidate sessions
-- link or sync provider accounts
-- count related records for dashboards or plugin rules
+## Step 4: accept raw clients when the integration needs to
 
-The important part is that the auth package writes those helpers once against
-the unified runtime contract. The consumer app chooses the eventual target
-stack.
+If your auth framework wants to accept a raw database client directly, use the
+runtime helpers instead of rebuilding runtime detection yourself.
 
-That can now mean:
+```ts title="create-auth-runtime.ts"
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+import { authSchema } from "./auth-schema";
 
-- direct SQL through `@farming-labs/orm-sql`
-- MongoDB through `@farming-labs/orm-mongo`
-- MongoDB through `@farming-labs/orm-mongoose`
-- memory for tests and fixtures
+export async function createAuthOrm(database: unknown) {
+  return createOrmFromRuntime({
+    schema: authSchema,
+    client: database,
+  });
+}
+```
 
-The important recent addition is that auth-style compound keys are now first
-class in the runtime too, not only in generated schema output. A library can
-declare `constraints.unique: [["provider", "accountId"]]` once and then use the
-same pair in `findUnique(...)` and `upsert(...)` across supported drivers.
+That keeps the auth integration small:
+
+1. accept a raw client
+2. normalize it into Farming ORM
+3. run the shared auth storage helpers against the normalized client
+
+## Step 5: use capabilities instead of guessing
+
+Higher-level auth libraries often need to know what the runtime can safely do.
+
+```ts title="auth-runtime-capabilities.ts"
+const caps = orm.$driver.capabilities;
+
+caps.supportsTransactions;
+caps.numericIds;
+caps.supportsSchemaNamespaces;
+caps.upsert;
+caps.returning.create;
+caps.nativeRelations.hasMany;
+```
+
+That is useful for decisions like:
+
+- whether numeric IDs are manual or generated
+- whether transactions should wrap multi-step account linking
+- whether a schema namespace is available on Postgres
+- whether a fallback path is needed for relation-heavy reads
+
+## Step 6: use normalized errors at the boundary
+
+Auth systems often need to react consistently to duplicate emails or duplicate
+provider-account pairs.
+
+```ts title="auth-errors.ts"
+import { isOrmError } from "@farming-labs/orm";
+
+try {
+  await orm.user.create({
+    data: {
+      email: "ada@farminglabs.dev",
+      name: "Ada",
+    },
+  });
+} catch (error) {
+  if (isOrmError(error) && error.code === "UNIQUE_CONSTRAINT_VIOLATION") {
+    // convert to your auth-layer error
+  }
+
+  throw error;
+}
+```
+
+That is cleaner than parsing Prisma codes, SQLSTATEs, MySQL driver errors, and
+Mongo duplicate key errors separately in the auth package.
+
+## Step 7: bootstrap in tests and local setup
+
+If the auth package or framework needs to stand up a real database in tests,
+use the runtime-aware setup helpers.
+
+```ts title="auth-bootstrap.ts"
+import { bootstrapDatabase } from "@farming-labs/orm-runtime/setup";
+import { authSchema } from "./auth-schema";
+
+const orm = await bootstrapDatabase({
+  schema: authSchema,
+  client: prisma,
+});
+```
+
+That is especially useful in:
+
+- integration tests
+- local demos
+- framework-owned setup flows
+- preview apps
+
+## Numeric IDs and namespaces
+
+If the auth library needs numeric IDs, the schema can choose that explicitly:
+
+```ts
+id: id({ type: "integer", generated: "increment" });
+```
+
+That is first-class on:
+
+- SQL
+- Drizzle
+- Kysely
+- Prisma
+- memory
+
+MongoDB and Mongoose currently support manual numeric IDs only.
+
+If the auth package needs Postgres namespaces, use:
+
+```ts
+table: tableName("users", { schema: "auth" });
+```
+
+Do not pass flat strings like `"auth.users"`. The ORM intentionally rejects
+that shape so namespaces stay explicit.
+
+## Good auth-package rules of thumb
+
+- keep normalization helpers like `normalizeEmail(...)` shared between writes and reads
+- declare compound uniques such as `provider + accountId` in the schema, not only in app docs
+- keep backend-specific branching out of the auth package whenever possible
+- let the consuming app choose the generator/runtime target
+- use runtime capabilities and normalized errors instead of guessing backend behavior
 
 ## What this removes
 
-- storage docs duplicated per ORM
-- package-owned schema drift across stacks
-- hand-maintained adapter surfaces for every consumer stack
+- duplicated storage code per ORM
+- drift between auth docs and auth runtime behavior
+- hand-maintained adapter logic for every consumer stack
 
-It does not magically remove all complexity, but it centralizes the part that is
-actually shared.
+It does not remove every integration detail, but it centralizes the part that
+really is shared.
