@@ -5,6 +5,7 @@ import {
   type SchemaDefinition,
 } from "@farming-labs/orm";
 import type { DrizzleDialect, DrizzleDriverConfig } from "@farming-labs/orm-drizzle";
+import type { FirestoreDriverConfig } from "@farming-labs/orm-firestore";
 import type { KyselyDialect, KyselyDriverConfig } from "@farming-labs/orm-kysely";
 import type { MongoDriverConfig } from "@farming-labs/orm-mongo";
 import type { MongooseDriverConfig } from "@farming-labs/orm-mongoose";
@@ -19,6 +20,7 @@ import type {
 import {
   inferMongooseModels,
   resolveDialect,
+  resolveFirestoreDb,
   resolveMongoDb,
   resolveMongoSessionSource,
   resolveRuntime,
@@ -83,6 +85,14 @@ export async function createDriverFromRuntime<
       return createKyselyDriver<TSchema>({
         db: runtime.client as KyselyDriverConfig<TSchema>["db"],
         dialect: resolveDialect(runtime, options.dialect) as KyselyDialect,
+      }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
+    }
+    case "firestore": {
+      const { createFirestoreDriver } = await import("@farming-labs/orm-firestore");
+      return createFirestoreDriver<TSchema>({
+        db: resolveFirestoreDb(runtime, options),
+        collections: options.firestore?.collections,
+        transforms: options.firestore?.transforms as FirestoreDriverConfig<TSchema>["transforms"],
       }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
     }
     case "sql":

@@ -6,9 +6,9 @@ One schema. Many stacks.
 Prisma/Drizzle/SQL output from it, and run one typed query API across multiple
 runtime drivers.
 
-If an app already uses Prisma, Drizzle, Kysely, direct SQL, MongoDB, or
-Mongoose, the matching runtime package lets shared libraries keep one storage
-layer while the app keeps its own database stack.
+If an app already uses Prisma, Drizzle, Kysely, direct SQL, Firestore,
+MongoDB, or Mongoose, the matching runtime package lets shared libraries keep
+one storage layer while the app keeps its own database stack.
 
 ## Packages
 
@@ -24,6 +24,8 @@ layer while the app keeps its own database stack.
   Runtime driver for Kysely-backed SQLite, MySQL, and PostgreSQL
 - `@farming-labs/orm-sql`
   Direct SQL runtime for SQLite, MySQL, and PostgreSQL
+- `@farming-labs/orm-firestore`
+  Runtime driver for server-side Firestore clients
 - `@farming-labs/orm-mongo`
   Runtime driver for the native `mongodb` client
 - `@farming-labs/orm-mongoose`
@@ -59,6 +61,7 @@ layer while the app keeps its own database stack.
   - SQLite
   - MySQL
   - PostgreSQL
+  - Firestore via server-side Firestore clients
   - MongoDB via `mongodb`
   - MongoDB via Mongoose
 - relation support for:
@@ -72,6 +75,39 @@ layer while the app keeps its own database stack.
 - compound-unique runtime lookups and upserts
 - integer comparison filters and raw JSON equality filters across the live runtimes
 - enum, bigint, and decimal support across the live runtimes and generated outputs
+
+## Optional real Firestore tests
+
+The Firestore package runs its in-memory integration suite by default. Real
+Firestore tests are opt-in and only run when Firestore auth env vars are
+present.
+
+Recommended emulator flow:
+
+```bash
+export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
+export GOOGLE_CLOUD_PROJECT=farm-orm-local
+pnpm --filter @farming-labs/orm-firestore test:real
+```
+
+Cloud project flow:
+
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account.json
+export GOOGLE_CLOUD_PROJECT=your-firestore-project
+pnpm --filter @farming-labs/orm-firestore test:real
+```
+
+For CI, prefer encrypted secrets such as
+`FARM_ORM_LOCAL_FIRESTORE_SERVICE_ACCOUNT_JSON` and
+`FARM_ORM_LOCAL_FIRESTORE_PROJECT_ID`.
+
+If you want the real Firestore suite included in the normal workspace run, use
+the same env vars with:
+
+```bash
+pnpm test
+```
 
 ## Quick example
 

@@ -261,6 +261,31 @@ function normalizeMongoError(handle: OrmDriverHandle, error: unknown) {
   return null;
 }
 
+function normalizeFirestoreError(handle: OrmDriverHandle, error: unknown) {
+  const record = isRecord(error) ? error : {};
+  const code =
+    typeof record.code === "number" || typeof record.code === "string" ? record.code : undefined;
+  const message = getMessage(error);
+  const target =
+    Array.isArray(record.target) || typeof record.target === "string"
+      ? (record.target as string | string[])
+      : undefined;
+
+  if (
+    code === 6 ||
+    code === "ALREADY_EXISTS" ||
+    /already exists|unique constraint/i.test(message)
+  ) {
+    return createOrmError(handle, "UNIQUE_CONSTRAINT_VIOLATION", error, { target });
+  }
+
+  if (code === 10 || code === "ABORTED") {
+    return createOrmError(handle, "TRANSACTION_CONFLICT", error, { retryable: true });
+  }
+
+  return null;
+}
+
 export function isOrmError(error: unknown): error is OrmError {
   return error instanceof OrmError;
 }
@@ -280,6 +305,8 @@ export function normalizeOrmError(handle: OrmDriverHandle, error: unknown) {
     case "mongo":
     case "mongoose":
       return normalizeMongoError(handle, error);
+    case "firestore":
+      return normalizeFirestoreError(handle, error);
     default:
       return null;
   }

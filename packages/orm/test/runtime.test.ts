@@ -18,6 +18,7 @@ import {
   string,
   tableName,
 } from "../src";
+import { InMemoryFirestore } from "../../firestore/test/support/firestore-harness";
 
 const authSchema = defineSchema({
   user: model({
@@ -220,6 +221,17 @@ describe("runtime contract", () => {
     expect(detectDatabaseRuntime(orm.$driver.client)).toBe(null);
     expect(detectDatabaseRuntime({})).toBe(null);
     expect(detectDatabaseRuntime(null)).toBe(null);
+  });
+
+  it("detects Firestore runtimes from server-side clients", () => {
+    const db = new InMemoryFirestore();
+
+    expect(detectDatabaseRuntime(db)).toEqual({
+      kind: "firestore",
+      client: db,
+      source: "db",
+    });
+    expect(inspectDatabaseRuntime(db).runtime?.kind).toBe("firestore");
   });
 
   it("derives numericIds from supportsNumericIds when only the boolean flag is provided", () => {

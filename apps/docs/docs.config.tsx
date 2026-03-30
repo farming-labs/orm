@@ -154,6 +154,7 @@ export default defineDocs({
         { slug: "kysely" },
         { slug: "sql-databases" },
         { slug: "supabase" },
+        { slug: "firestore" },
         { slug: "mongodb" },
       ],
     },
