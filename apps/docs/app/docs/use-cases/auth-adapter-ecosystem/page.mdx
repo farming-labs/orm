@@ -1,0 +1,354 @@
+---
+title: "Adapter Ecosystem"
+description: "How to replace repeated adapter packages with one schema definition, one unified ORM/runtime layer, and one setup path."
+order: 2
+icon: network
+---
+
+# Adapter Ecosystem
+
+Some libraries do not really want “an ORM.” What they actually need is a clean
+way to stop maintaining an adapter ecosystem.
+
+That is the problem this layer is aimed at.
+
+Libraries like [NextAuth.js](https://next-auth.js.org/adapters) and
+[Better Auth](https://www.authjs.cn/getting-started/database) are good examples
+of packages that end up carrying a lot of repeated storage work:
+
+- one adapter package per backend
+- one schema example per backend
+- one setup story per backend
+- one error-parsing story per backend
+- one docs track per backend
+
+Farming Labs ORM gives you a way to collapse much of that into:
+
+- one schema definition
+- one ORM/runtime layer
+- one setup and bootstrap path
+- one capability surface
+- one normalized error boundary
+
+The point is not to add one more adapter. The point is to reduce how many
+adapter-shaped things the library has to own at all.
+
+## What the replacement looks like
+
+The replacement pattern is simple:
+
+1. define the storage contract once
+2. generate backend-specific artifacts when the consumer wants generated output
+3. create a unified ORM from the consumer's raw runtime client when the consumer wants live execution
+4. write the package storage logic once against that unified ORM
+5. use the same setup helpers in tests, demos, and framework-owned install flows
+
+That gives the package one storage-facing core instead of many backend-specific
+tracks.
+
+## Step 1: define the storage contract once
+
+The package should own one schema definition instead of several ORM-specific
+versions of the same model.
+
+```ts title="library-schema.ts"
+import { belongsTo, datetime, defineSchema, hasMany, id, model, string } from "@farming-labs/orm";
+
+export const librarySchema = defineSchema({
+  user: model({
+    table: "users",
+    fields: {
+      id: id(),
+      email: string().unique(),
+      name: string(),
+      createdAt: datetime().defaultNow(),
+    },
+    relations: {
+      sessions: hasMany("session", { foreignKey: "userId" }),
+      accounts: hasMany("account", { foreignKey: "userId" }),
+    },
+  }),
+
+  session: model({
+    table: "sessions",
+    fields: {
+      id: id(),
+      userId: string().references("user.id"),
+      token: string().unique(),
+      expiresAt: datetime(),
+    },
+    relations: {
+      user: belongsTo("user", { foreignKey: "userId" }),
+    },
+  }),
+
+  account: model({
+    table: "accounts",
+    fields: {
+      id: id(),
+      userId: string().references("user.id"),
+      provider: string(),
+      accountId: string(),
+    },
+    constraints: {
+      unique: [["provider", "accountId"]],
+    },
+    relations: {
+      user: belongsTo("user", { foreignKey: "userId" }),
+    },
+  }),
+});
+```
+
+This pattern is useful for auth libraries, billing modules, platform packages,
+and framework-owned storage modules. The example happens to look auth-shaped
+because that is one of the clearest cases, but the same replacement pattern
+works anywhere a package owns a shared storage contract.
+
+## Step 2: generate backend-specific output from the same schema
+
+If the consuming app wants generated Prisma, Drizzle, or SQL artifacts, the
+package does not need a separate storage definition.
+
+```ts
+import { renderDrizzleSchema, renderPrismaSchema, renderSafeSql } from "@farming-labs/orm";
+import { librarySchema } from "./library-schema";
+
+const prismaSchema = renderPrismaSchema(librarySchema, {
+  provider: "postgresql",
+});
+
+const drizzleSchema = renderDrizzleSchema(librarySchema, {
+  dialect: "pg",
+});
+
+const sqlSchema = renderSafeSql(librarySchema, {
+  dialect: "postgres",
+});
+```
+
+This is the generation-first path.
+
+Use it when the package wants to:
+
+- power an installer or CLI
+- emit framework starter files
+- snapshot generated output in tests
+- publish generated examples in docs
+
+## Step 3: accept a raw runtime client when the app already has one
+
+If the consumer already owns a real database client, the package can normalize
+that client into one ORM layer instead of forcing the user to manually wire a
+different adapter package.
+
+```ts title="create-library-runtime.ts"
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+import { librarySchema } from "./library-schema";
+
+export async function createLibraryOrm(database: unknown) {
+  return createOrmFromRuntime({
+    schema: librarySchema,
+    client: database,
+  });
+}
+```
+
+If the package wants to explain integration failures more clearly before it
+constructs the ORM, it can inspect the runtime first:
+
+```ts
+import { inspectDatabaseRuntime } from "@farming-labs/orm";
+
+const inspection = inspectDatabaseRuntime(database);
+
+if (!inspection.runtime) {
+  throw new Error(inspection.summary);
+}
+```
+
+This is the runtime-first path.
+
+It is the path that makes “bring your own client” integration possible.
+
+That is why libraries like NextAuth.js and Better Auth tend to need this kind
+of solution: they want the app to keep control of the final database client
+while still letting the package own one shared storage layer.
+
+## Step 4: write the package storage logic once
+
+Once the package has a unified ORM, the storage helpers only need to be written
+one time.
+
+```ts title="library-store.ts"
+import type { OrmClient } from "@farming-labs/orm";
+import { librarySchema } from "./library-schema";
+
+export function createLibraryStore(orm: OrmClient<typeof librarySchema>) {
+  return {
+    findUserByEmail(email: string) {
+      return orm.user.findUnique({
+        where: { email },
+        select: {
+          id: true,
+          email: true,
+          sessions: {
+            select: {
+              token: true,
+              expiresAt: true,
+            },
+          },
+          accounts: {
+            select: {
+              provider: true,
+              accountId: true,
+            },
+          },
+        },
+      });
+    },
+
+    findLinkedAccount(provider: string, accountId: string) {
+      return orm.account.findUnique({
+        where: {
+          provider,
+          accountId,
+        },
+        select: {
+          userId: true,
+          provider: true,
+          accountId: true,
+        },
+      });
+    },
+
+    createSession(input: { userId: string; token: string; expiresAt: Date }) {
+      return orm.session.create({
+        data: {
+          userId: input.userId,
+          token: input.token,
+          expiresAt: input.expiresAt,
+        },
+        select: {
+          id: true,
+          token: true,
+          expiresAt: true,
+        },
+      });
+    },
+  };
+}
+```
+
+This is the part that actually replaces the adapter ecosystem.
+
+The package no longer needs:
+
+- one Prisma query implementation
+- one Drizzle query implementation
+- one Kysely query implementation
+- one MongoDB query implementation
+- one SQL query implementation
+
+It keeps one storage implementation and lets the app choose how that
+implementation gets translated underneath.
+
+## Step 5: use one setup path in tests, demos, and install flows
+
+The same package can also stop owning a separate setup story per backend.
+
+If the package just needs to prepare the database:
+
+```ts
+import { pushSchema } from "@farming-labs/orm-runtime/setup";
+import { librarySchema } from "./library-schema";
+
+await pushSchema({
+  schema: librarySchema,
+  client: database,
+});
+```
+
+If the package wants setup plus the ORM back:
+
+```ts
+import { bootstrapDatabase } from "@farming-labs/orm-runtime/setup";
+import { librarySchema } from "./library-schema";
+
+const orm = await bootstrapDatabase({
+  schema: librarySchema,
+  client: database,
+});
+```
+
+This matters a lot in:
+
+- integration tests
+- self-hosted install flows
+- framework starter kits
+- local demos
+- preview apps
+
+## The shape of the replacement
+
+Without this pattern, a library ecosystem usually grows sideways:
+
+- more adapters
+- more setup docs
+- more migration docs
+- more backend-specific edge cases
+
+With this pattern, the library grows inward around a stable core:
+
+- one schema definition
+- one package-owned storage API
+- one runtime-normalized query layer
+- one capability surface
+- one normalized error surface
+
+That is the actual replacement story.
+
+The library still may need custom work for some platform-specific backends, but
+the shared contract stops fragmenting across every mainstream storage stack.
+
+## Potential improvements this unlocks
+
+Once a package stops centering many backend-specific adapters, a few important
+improvements become much easier to ship.
+
+- a storage fix can land once instead of being repeated across several adapters
+- docs, starters, and examples can stay closer to the real package behavior
+- integration tests can validate one storage contract across many runtimes
+- capabilities such as numeric IDs, namespaces, transactions, and richer setup flows can be adopted in one shared layer
+- plugin and module ecosystems can depend on one stable storage surface instead of backend-specific assumptions
+- setup UX can get simpler because the package can reuse `pushSchema(...)`, `applySchema(...)`, and `bootstrapDatabase(...)`
+- error handling can get more consistent because the package can react to normalized ORM errors instead of parsing several backend-specific error formats
+
+That is usually where the biggest win shows up. The value is not only fewer
+adapters. It is also a cleaner place to improve correctness, docs, testing, and
+integration UX over time.
+
+## Performance and platform benefits
+
+This replacement pattern can also improve the operational side of the package,
+not just the maintenance story.
+
+- bundle shape can get smaller because the package can center one shared storage layer instead of pulling several adapter implementations into the same surface area
+- serverless and edge-friendly integration gets easier because the runtime path can stay lighter and only load the backend-specific pieces the app actually uses
+- startup behavior can improve when the package avoids eagerly wiring many adapter branches or backend-specific helpers up front
+- test runtimes can get simpler because the same setup helpers and storage contract can be reused across the matrix instead of maintaining many custom harnesses
+- bug fixes that remove extra round trips or fallback logic can benefit every runtime that uses the shared layer instead of being repeated adapter by adapter
+
+The important nuance is that this does **not** magically make every database
+query faster on its own.
+
+Prisma is still Prisma. MongoDB is still MongoDB. Direct SQL is still limited by
+the underlying network and database cost.
+
+The more realistic wins usually come from:
+
+- less duplicated fix-up logic
+- fewer unnecessary adapter-specific branches
+- cleaner capability-driven behavior
+- better setup and bootstrap ergonomics
+- lighter import and runtime surfaces for packages that do not need every backend at once

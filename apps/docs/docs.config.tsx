@@ -160,6 +160,7 @@ export default defineDocs({
       slug: "use-cases",
       children: [
         { slug: "auth-libraries" },
+        { slug: "auth-adapter-ecosystem" },
         { slug: "billing-modules" },
         { slug: "fullstack-frameworks" },
         { slug: "internal-platforms" },

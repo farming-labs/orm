@@ -11,6 +11,10 @@ Auth libraries are one of the strongest fits for Farming Labs ORM because they
 usually need to describe the same storage shape across many app stacks without
 rewriting the same adapter story over and over.
 
+For many auth packages, that means Farming Labs ORM can become the drop-in
+replacement for much of the adapter ecosystem they would otherwise have to own
+and document separately.
+
 ## What auth libraries usually need
 
 Most auth systems end up modeling the same ideas:
@@ -41,6 +45,11 @@ The cleanest auth-package architecture usually looks like this:
 
 That means the package does **not** need separate query logic for Prisma,
 Drizzle, Kysely, raw SQL, and MongoDB.
+
+If you are evaluating the broader adapter surface that auth packages usually
+care about, see [Adapter Ecosystem](/docs/use-cases/auth-adapter-ecosystem)
+for the more general replacement pattern around one schema definition, one
+ORM/runtime layer, and one setup path instead of many adapter packages.
 
 ## Step 1: define the schema once
 
