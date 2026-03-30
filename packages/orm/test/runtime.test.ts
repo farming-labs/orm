@@ -234,6 +234,24 @@ describe("runtime contract", () => {
     expect(inspectDatabaseRuntime(db).runtime?.kind).toBe("firestore");
   });
 
+  it("detects DynamoDB runtimes from client shapes", () => {
+    const dynamo = {
+      send: async () => undefined,
+      destroy: () => undefined,
+      config: {},
+      constructor: {
+        name: "DynamoDBClient",
+      },
+    };
+
+    expect(detectDatabaseRuntime(dynamo)).toEqual({
+      kind: "dynamodb",
+      client: dynamo,
+      source: "client",
+    });
+    expect(inspectDatabaseRuntime(dynamo).runtime?.kind).toBe("dynamodb");
+  });
+
   it("detects TypeORM DataSource runtimes from the connection shape", () => {
     const dataSource = {
       options: {

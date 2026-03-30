@@ -9,6 +9,8 @@ import {
   renderSafeSql,
   type SchemaDefinition,
 } from "@farming-labs/orm";
+import { CreateTableCommand, DescribeTableCommand } from "@aws-sdk/client-dynamodb";
+import type { DynamoDbBaseClientLike } from "@farming-labs/orm-dynamodb";
 import type { DrizzleDriverConfig } from "@farming-labs/orm-drizzle";
 import type { MongoDbLike } from "@farming-labs/orm-mongo";
 import { createOrmFromRuntime } from "./index";
@@ -78,6 +80,8 @@ type MongoIndexCollectionLike = {
     options?: { unique?: boolean; name?: string },
   ): Promise<unknown>;
 };
+
+const ormPrimaryKey = "__orm_pk";
 
 type MongoSchemaTargetLike = {
   collection(name: string): MongoIndexCollectionLike;
@@ -520,6 +524,79 @@ async function pushPrismaSchema(
   }
 }
 
+async function ensureDynamoDbTable(client: DynamoDbBaseClientLike, tableName: string) {
+  try {
+    const described = (await client.send(
+      new DescribeTableCommand({
+        TableName: tableName,
+      }),
+    )) as { Table?: { TableStatus?: string } };
+
+    if (described.Table?.TableStatus === "ACTIVE") {
+      return;
+    }
+  } catch (error) {
+    if (
+      !isRecord(error) ||
+      (error.name !== "ResourceNotFoundException" && error.code !== "ResourceNotFoundException")
+    ) {
+      throw error;
+    }
+
+    await client.send(
+      new CreateTableCommand({
+        TableName: tableName,
+        BillingMode: "PAY_PER_REQUEST",
+        KeySchema: [
+          {
+            AttributeName: ormPrimaryKey,
+            KeyType: "HASH",
+          },
+        ],
+        AttributeDefinitions: [
+          {
+            AttributeName: ormPrimaryKey,
+            AttributeType: "S",
+          },
+        ],
+      }),
+    );
+  }
+
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    const described = (await client.send(
+      new DescribeTableCommand({
+        TableName: tableName,
+      }),
+    )) as { Table?: { TableStatus?: string } };
+
+    if (described.Table?.TableStatus === "ACTIVE") {
+      return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+
+  throw new Error(`Timed out while waiting for DynamoDB table "${tableName}" to become active.`);
+}
+
+async function ensureDynamoDbTables(
+  schema: SchemaDefinition<any>,
+  client: DynamoDbBaseClientLike,
+  tables?: Record<string, string | undefined>,
+) {
+  const manifest = createManifest(schema);
+
+  for (const [modelName, model] of Object.entries(manifest.models)) {
+    if (model.schema) {
+      throw new Error(
+        `The DynamoDB runtime does not support schema-qualified tables for model "${modelName}". Use flat table names instead.`,
+      );
+    }
+    await ensureDynamoDbTable(client, tables?.[modelName] ?? model.table);
+  }
+}
+
 async function applySchemaInternal<TSchema extends SchemaDefinition<any>, TClient = unknown>(
   stage: "apply" | "push",
   options: CreateDriverFromRuntimeOptions<TSchema, TClient>,
@@ -539,6 +616,15 @@ async function applySchemaInternal<TSchema extends SchemaDefinition<any>, TClien
     }
 
     if (runtime.kind === "firestore") {
+      return;
+    }
+
+    if (runtime.kind === "dynamodb") {
+      await ensureDynamoDbTables(
+        options.schema,
+        runtime.client as DynamoDbBaseClientLike,
+        options.dynamodb?.tables as Record<string, string | undefined> | undefined,
+      );
       return;
     }
 

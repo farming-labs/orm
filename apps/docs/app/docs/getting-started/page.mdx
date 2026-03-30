@@ -266,6 +266,25 @@ const orm = createOrm({
 });
 ```
 
+### DynamoDB
+
+```ts title="dynamodb-runtime.ts"
+import { createOrm } from "@farming-labs/orm";
+import { createDynamodbDriver } from "@farming-labs/orm-dynamodb";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+
+const client = new DynamoDBClient({
+  region: process.env.AWS_REGION ?? "us-east-1",
+});
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createDynamodbDriver({
+    client,
+  }),
+});
+```
+
 ### Mongoose
 
 ```ts title="mongoose-runtime.ts"
@@ -301,8 +320,8 @@ const orm = await createOrmFromRuntime({
 ```
 
 That path is especially useful for higher-level integrations that want to
-accept a raw Prisma, Drizzle, Kysely, TypeORM, Sequelize, SQL, MongoDB, or
-Mongoose runtime.
+accept a raw Prisma, Drizzle, Kysely, TypeORM, Sequelize, SQL, Firestore,
+DynamoDB, MongoDB, or Mongoose runtime.
 
 ## 5. Use the client
 
@@ -343,6 +362,7 @@ pnpm test:local:postgres
 pnpm test:local:mysql
 pnpm test:local:sequelize
 pnpm test:local:typeorm
+pnpm test:local:dynamodb
 pnpm test:local:mongodb
 ```
 
@@ -354,4 +374,5 @@ pnpm test:local:mongodb
 - [Sequelize integration](/docs/integrations/sequelize)
 - [TypeORM integration](/docs/integrations/typeorm)
 - [SQL databases](/docs/integrations/sql-databases)
+- [DynamoDB](/docs/integrations/dynamodb)
 - [MongoDB](/docs/integrations/mongodb)

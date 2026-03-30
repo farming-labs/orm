@@ -1,6 +1,6 @@
 ---
 title: "Runtime Helpers"
-description: "Create a driver or ORM directly from a raw Prisma, Drizzle, Kysely, TypeORM, Sequelize, SQL, MongoDB, or Mongoose runtime."
+description: "Create a driver or ORM directly from a raw Prisma, Drizzle, Kysely, TypeORM, Sequelize, SQL, Firestore, DynamoDB, MongoDB, or Mongoose runtime."
 order: 2
 icon: harddrive
 ---
@@ -45,6 +45,8 @@ That is especially useful when another library wants to accept:
 - a Sequelize instance
 - a `pg` pool/client
 - a `mysql2` pool/connection
+- a Firestore client
+- a `DynamoDBClient` or `DynamoDBDocumentClient`
 - a Mongo `Db` or `MongoClient`
 - a Mongoose connection
 
@@ -104,7 +106,7 @@ const error = await orm.user
 
 if (isOrmError(error)) {
   error.code; // "UNIQUE_CONSTRAINT_VIOLATION"
-  error.backendKind; // "sql" | "prisma" | "mongo" | ...
+  error.backendKind; // "sql" | "prisma" | "mongo" | "dynamodb" | ...
 }
 ```
 
@@ -250,6 +252,27 @@ await pushSchema({
   databaseName: "app",
 });
 ```
+
+### DynamoDB
+
+For DynamoDB, the helper creates one table per model through the raw AWS client.
+
+```ts
+import { pushSchema } from "@farming-labs/orm-runtime/setup";
+
+await pushSchema({
+  schema,
+  client: dynamo,
+});
+```
+
+The DynamoDB runtime then stores:
+
+- record items
+- internal unique-lock items
+
+inside that model table so exact unique and compound-unique lookups do not
+force higher-level packages to reimplement locking logic themselves.
 
 ## `createDriverFromRuntime(...)`
 
@@ -523,6 +546,8 @@ That matrix includes:
 - TypeORM on SQLite-family, PostgreSQL, and MySQL
 - Sequelize on PostgreSQL and MySQL
 - Prisma on SQLite, PostgreSQL, and MySQL
+- Firestore
+- DynamoDB through a local Dynalite-backed suite
 - MongoDB
 - Mongoose
 

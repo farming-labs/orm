@@ -1,6 +1,6 @@
 ---
 title: "Integrations"
-description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, TypeORM, Sequelize, SQL-first, Supabase, Firestore, and MongoDB-oriented workflows."
+description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, TypeORM, Sequelize, SQL-first, Supabase, Firestore, DynamoDB, and MongoDB-oriented workflows."
 order: 6
 icon: package
 ---
@@ -20,21 +20,22 @@ If you want the quickest “what works where?” answer, start with the
 
 ## Support matrix
 
-| Layer               | PostgreSQL | MySQL | SQLite | MongoDB | Notes                                     |
-| ------------------- | ---------- | ----- | ------ | ------- | ----------------------------------------- |
-| Prisma generation   | Yes        | Yes   | Yes    | No      | `postgresql`, `mysql`, `sqlite` providers |
-| Drizzle generation  | Yes        | Yes   | Yes    | No      | `pg`, `mysql`, `sqlite` dialects          |
-| Safe SQL generation | Yes        | Yes   | Yes    | No      | `postgres`, `mysql`, `sqlite` dialects    |
-| Memory runtime      | N/A        | N/A   | N/A    | N/A     | In-memory driver for tests and demos      |
-| Prisma runtime      | Yes        | Yes   | Yes    | No      | `@farming-labs/orm-prisma`                |
-| Drizzle runtime     | Yes        | Yes   | Yes    | No      | `@farming-labs/orm-drizzle`               |
-| Direct SQL runtime  | Yes        | Yes   | Yes    | No      | `@farming-labs/orm-sql`                   |
-| TypeORM runtime     | Yes        | Yes   | Yes    | No      | `@farming-labs/orm-typeorm`               |
-| Sequelize runtime   | Yes        | Yes   | No     | No      | `@farming-labs/orm-sequelize`             |
-| MongoDB runtime     | No         | No    | No     | Yes     | `@farming-labs/orm-mongo`                 |
-| Mongoose runtime    | No         | No    | No     | Yes     | `@farming-labs/orm-mongoose`              |
-| Kysely runtime      | Yes        | Yes   | Yes    | No      | `@farming-labs/orm-kysely`                |
-| Firestore runtime   | No         | No    | No     | Yes     | `@farming-labs/orm-firestore`             |
+| Layer               | PostgreSQL | MySQL | SQLite | Document / Key-value | Notes                                     |
+| ------------------- | ---------- | ----- | ------ | -------------------- | ----------------------------------------- |
+| Prisma generation   | Yes        | Yes   | Yes    | No                   | `postgresql`, `mysql`, `sqlite` providers |
+| Drizzle generation  | Yes        | Yes   | Yes    | No                   | `pg`, `mysql`, `sqlite` dialects          |
+| Safe SQL generation | Yes        | Yes   | Yes    | No                   | `postgres`, `mysql`, `sqlite` dialects    |
+| Memory runtime      | N/A        | N/A   | N/A    | N/A                  | In-memory driver for tests and demos      |
+| Prisma runtime      | Yes        | Yes   | Yes    | No                   | `@farming-labs/orm-prisma`                |
+| Drizzle runtime     | Yes        | Yes   | Yes    | No                   | `@farming-labs/orm-drizzle`               |
+| Direct SQL runtime  | Yes        | Yes   | Yes    | No                   | `@farming-labs/orm-sql`                   |
+| TypeORM runtime     | Yes        | Yes   | Yes    | No                   | `@farming-labs/orm-typeorm`               |
+| Sequelize runtime   | Yes        | Yes   | No     | No                   | `@farming-labs/orm-sequelize`             |
+| Kysely runtime      | Yes        | Yes   | Yes    | No                   | `@farming-labs/orm-kysely`                |
+| Firestore runtime   | No         | No    | No     | Yes                  | `@farming-labs/orm-firestore`             |
+| DynamoDB runtime    | No         | No    | No     | Yes                  | `@farming-labs/orm-dynamodb`              |
+| MongoDB runtime     | No         | No    | No     | Yes                  | `@farming-labs/orm-mongo`                 |
+| Mongoose runtime    | No         | No    | No     | Yes                  | `@farming-labs/orm-mongoose`              |
 
 Supabase is already covered through the PostgreSQL layer:
 
@@ -52,23 +53,36 @@ Firestore is now a first-class document runtime in this repo through
 - `pushSchema(...)` and `applySchema(...)` are intentional no-ops because
   Firestore does not have SQL-style DDL to apply
 
+DynamoDB is now a first-class key-value/document runtime in this repo through
+`@farming-labs/orm-dynamodb`.
+
+- it works with raw AWS SDK clients such as `DynamoDBClient` and
+  `DynamoDBDocumentClient`
+- it keeps the same schema and query API surface as the SQL, Mongo, and
+  Firestore runtimes
+- exact unique and compound-unique lookups use internal lock items instead of
+  making consumer packages own that logic
+- relation selections resolve through follow-up ORM queries rather than native joins
+- `pushSchema(...)` creates one table per model through the runtime setup layer
+
 ## Scalar field coverage
 
 The current repo verifies the scalar builders across the full live runtime
 matrix:
 
-| Runtime / stack    | PostgreSQL | MySQL | SQLite | MongoDB | `integer()` | `json()` | `enumeration()` | `bigint()` | `decimal()` |
-| ------------------ | ---------- | ----- | ------ | ------- | ----------- | -------- | --------------- | ---------- | ----------- |
-| Memory runtime     | N/A        | N/A   | N/A    | N/A     | Yes         | Yes      | Yes             | Yes        | Yes         |
-| Prisma runtime     | Yes        | Yes   | Yes    | No      | Yes         | Yes      | Yes             | Yes        | Yes         |
-| Drizzle runtime    | Yes        | Yes   | Yes    | No      | Yes         | Yes      | Yes             | Yes        | Yes         |
-| Kysely runtime     | Yes        | Yes   | Yes    | No      | Yes         | Yes      | Yes             | Yes        | Yes         |
-| Direct SQL runtime | Yes        | Yes   | Yes    | No      | Yes         | Yes      | Yes             | Yes        | Yes         |
-| TypeORM runtime    | Yes        | Yes   | Yes    | No      | Yes         | Yes      | Yes             | Yes\*      | Yes         |
-| Sequelize runtime  | Yes        | Yes   | No     | No      | Yes         | Yes      | Yes             | Yes        | Yes         |
-| MongoDB runtime    | No         | No    | No     | Yes     | Yes         | Yes      | Yes             | Yes        | Yes         |
-| Mongoose runtime   | No         | No    | No     | Yes     | Yes         | Yes      | Yes             | Yes        | Yes         |
-| Firestore runtime  | No         | No    | No     | Yes     | Yes         | Yes      | Yes             | Yes        | Yes         |
+| Runtime / stack    | PostgreSQL | MySQL | SQLite | Document / Key-value | `integer()` | `json()` | `enumeration()` | `bigint()` | `decimal()` |
+| ------------------ | ---------- | ----- | ------ | -------------------- | ----------- | -------- | --------------- | ---------- | ----------- |
+| Memory runtime     | N/A        | N/A   | N/A    | N/A                  | Yes         | Yes      | Yes             | Yes        | Yes         |
+| Prisma runtime     | Yes        | Yes   | Yes    | No                   | Yes         | Yes      | Yes             | Yes        | Yes         |
+| Drizzle runtime    | Yes        | Yes   | Yes    | No                   | Yes         | Yes      | Yes             | Yes        | Yes         |
+| Kysely runtime     | Yes        | Yes   | Yes    | No                   | Yes         | Yes      | Yes             | Yes        | Yes         |
+| Direct SQL runtime | Yes        | Yes   | Yes    | No                   | Yes         | Yes      | Yes             | Yes        | Yes         |
+| TypeORM runtime    | Yes        | Yes   | Yes    | No                   | Yes         | Yes      | Yes             | Yes\*      | Yes         |
+| Sequelize runtime  | Yes        | Yes   | No     | No                   | Yes         | Yes      | Yes             | Yes        | Yes         |
+| Firestore runtime  | No         | No    | No     | Yes                  | Yes         | Yes      | Yes             | Yes        | Yes         |
+| DynamoDB runtime   | No         | No    | No     | Yes                  | Yes         | Yes      | Yes             | Yes        | Yes         |
+| MongoDB runtime    | No         | No    | No     | Yes                  | Yes         | Yes      | Yes             | Yes        | Yes         |
+| Mongoose runtime   | No         | No    | No     | Yes                  | Yes         | Yes      | Yes             | Yes        | Yes         |
 
 Those checks are not generator-only. They run the live runtime query layer
 against real local database instances and real client stacks for each supported
@@ -136,6 +150,7 @@ driver you choose.
 - Use **Sequelize runtime** if your app already uses Sequelize
 - Use **direct SQL runtime** if you want to talk to SQLite, MySQL, or PostgreSQL directly
 - Use **Firestore runtime** if your app uses a server-side Firestore client
+- Use **DynamoDB runtime** if your app uses the AWS SDK DynamoDB clients directly
 - Use **MongoDB runtime** if your app uses the native `mongodb` client
 - Use **Mongoose runtime** if your app already uses Mongoose models
 
@@ -153,6 +168,7 @@ Examples:
 - `@farming-labs/orm-typeorm` translates into TypeORM-backed relational operations
 - `@farming-labs/orm-sequelize` translates into Sequelize-backed relational operations
 - `@farming-labs/orm-firestore` translates into Firestore document operations
+- `@farming-labs/orm-dynamodb` translates into DynamoDB document / key-value operations
 - `@farming-labs/orm-mongo` translates into native `mongodb` collection operations
 - `@farming-labs/orm-mongoose` translates into Mongoose model operations
 
@@ -228,6 +244,15 @@ Examples:
   linkLabel="Open Firestore guide"
 >
   Firestore integration
+</HoverLink>
+
+<HoverLink
+  href="/docs/integrations/dynamodb"
+  title="DynamoDB"
+  description="See how Farming Labs ORM translates one schema and one storage layer into AWS DynamoDB without a separate adapter stack."
+  linkLabel="Open DynamoDB guide"
+>
+  DynamoDB integration
 </HoverLink>
 
 <HoverLink

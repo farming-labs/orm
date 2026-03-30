@@ -286,6 +286,52 @@ function normalizeFirestoreError(handle: OrmDriverHandle, error: unknown) {
   return null;
 }
 
+function normalizeDynamoDbError(handle: OrmDriverHandle, error: unknown) {
+  const record = isRecord(error) ? error : {};
+  const code =
+    typeof record.code === "number" || typeof record.code === "string" ? record.code : undefined;
+  const name = typeof record.name === "string" ? record.name : undefined;
+  const message = getMessage(error);
+  const target =
+    Array.isArray(record.target) || typeof record.target === "string"
+      ? (record.target as string | string[])
+      : undefined;
+  const cancellationReasons = Array.isArray(record.CancellationReasons)
+    ? record.CancellationReasons
+    : Array.isArray(record.cancellationReasons)
+      ? record.cancellationReasons
+      : [];
+  const hasConditionalCancellation = cancellationReasons.some(
+    (reason) =>
+      isRecord(reason) &&
+      (reason.Code === "ConditionalCheckFailed" || reason.code === "ConditionalCheckFailed"),
+  );
+
+  if (
+    code === "ConditionalCheckFailedException" ||
+    name === "ConditionalCheckFailedException" ||
+    hasConditionalCancellation ||
+    /unique constraint/i.test(message)
+  ) {
+    return createOrmError(handle, "UNIQUE_CONSTRAINT_VIOLATION", error, { target });
+  }
+
+  if (code === "ResourceNotFoundException" || name === "ResourceNotFoundException") {
+    return createOrmError(handle, "MISSING_TABLE", error);
+  }
+
+  if (
+    code === "TransactionCanceledException" ||
+    name === "TransactionCanceledException" ||
+    code === "TransactionConflictException" ||
+    name === "TransactionConflictException"
+  ) {
+    return createOrmError(handle, "TRANSACTION_CONFLICT", error, { retryable: true });
+  }
+
+  return null;
+}
+
 export function isOrmError(error: unknown): error is OrmError {
   return error instanceof OrmError;
 }
@@ -307,6 +353,8 @@ export function normalizeOrmError(handle: OrmDriverHandle, error: unknown) {
       return normalizeMongoError(handle, error);
     case "firestore":
       return normalizeFirestoreError(handle, error);
+    case "dynamodb":
+      return normalizeDynamoDbError(handle, error);
     default:
       return null;
   }

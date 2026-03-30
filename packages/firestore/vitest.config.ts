@@ -8,6 +8,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@farming-labs/orm": path.resolve(dirname, "../orm/src/index.ts"),
+      "@farming-labs/orm-dynamodb": path.resolve(dirname, "../dynamodb/src/index.ts"),
       "@farming-labs/orm-drizzle": path.resolve(dirname, "../drizzle/src/index.ts"),
       "@farming-labs/orm-runtime/setup": path.resolve(dirname, "../runtime/src/setup.ts"),
       "@farming-labs/orm-runtime": path.resolve(dirname, "../runtime/src/index.ts"),

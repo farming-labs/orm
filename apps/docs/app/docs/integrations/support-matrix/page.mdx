@@ -19,36 +19,37 @@ this page.
 
 ## Runtime and generation coverage
 
-| Layer / stack       | PostgreSQL | MySQL | SQLite | MongoDB / Firestore | Notes                                            |
-| ------------------- | ---------- | ----- | ------ | ------------------- | ------------------------------------------------ |
-| Prisma generation   | Yes        | Yes   | Yes    | No                  | `postgresql`, `mysql`, `sqlite` providers        |
-| Drizzle generation  | Yes        | Yes   | Yes    | No                  | `pg`, `mysql`, `sqlite` dialects                 |
-| Safe SQL generation | Yes        | Yes   | Yes    | No                  | `postgres`, `mysql`, `sqlite` dialects           |
-| Memory runtime      | N/A        | N/A   | N/A    | N/A                 | in-memory driver for tests and demos             |
-| Prisma runtime      | Yes        | Yes   | Yes    | No                  | `@farming-labs/orm-prisma`                       |
-| Drizzle runtime     | Yes        | Yes   | Yes    | No                  | `@farming-labs/orm-drizzle`                      |
-| Kysely runtime      | Yes        | Yes   | Yes    | No                  | `@farming-labs/orm-kysely`                       |
-| TypeORM runtime     | Yes        | Yes   | Yes\*  | No                  | SQLite-family path is smoke-covered in this repo |
-| Sequelize runtime   | Yes        | Yes   | No     | No                  | PostgreSQL and MySQL/MariaDB                     |
-| Direct SQL runtime  | Yes        | Yes   | Yes    | No                  | `@farming-labs/orm-sql`                          |
-| MongoDB runtime     | No         | No    | No     | Yes                 | `@farming-labs/orm-mongo`                        |
-| Mongoose runtime    | No         | No    | No     | Yes                 | `@farming-labs/orm-mongoose`                     |
-| Firestore runtime   | No         | No    | No     | Yes                 | `@farming-labs/orm-firestore`                    |
+| Layer / stack       | PostgreSQL | MySQL | SQLite | Document / key-value | Notes                                            |
+| ------------------- | ---------- | ----- | ------ | -------------------- | ------------------------------------------------ |
+| Prisma generation   | Yes        | Yes   | Yes    | No                   | `postgresql`, `mysql`, `sqlite` providers        |
+| Drizzle generation  | Yes        | Yes   | Yes    | No                   | `pg`, `mysql`, `sqlite` dialects                 |
+| Safe SQL generation | Yes        | Yes   | Yes    | No                   | `postgres`, `mysql`, `sqlite` dialects           |
+| Memory runtime      | N/A        | N/A   | N/A    | N/A                  | in-memory driver for tests and demos             |
+| Prisma runtime      | Yes        | Yes   | Yes    | No                   | `@farming-labs/orm-prisma`                       |
+| Drizzle runtime     | Yes        | Yes   | Yes    | No                   | `@farming-labs/orm-drizzle`                      |
+| Kysely runtime      | Yes        | Yes   | Yes    | No                   | `@farming-labs/orm-kysely`                       |
+| TypeORM runtime     | Yes        | Yes   | Yes\*  | No                   | SQLite-family path is smoke-covered in this repo |
+| Sequelize runtime   | Yes        | Yes   | No     | No                   | PostgreSQL and MySQL/MariaDB                     |
+| Direct SQL runtime  | Yes        | Yes   | Yes    | No                   | `@farming-labs/orm-sql`                          |
+| Firestore runtime   | No         | No    | No     | Yes                  | `@farming-labs/orm-firestore`                    |
+| DynamoDB runtime    | No         | No    | No     | Yes                  | `@farming-labs/orm-dynamodb`                     |
+| MongoDB runtime     | No         | No    | No     | Yes                  | `@farming-labs/orm-mongo`                        |
+| Mongoose runtime    | No         | No    | No     | Yes                  | `@farming-labs/orm-mongoose`                     |
 
 \* TypeORM SQLite-family support currently uses SQL.js-backed smoke coverage in
 this repo. PostgreSQL and MySQL are exercised against real local databases.
 
 ## Runtime helpers and setup helpers
 
-| Helper                         | Prisma | Drizzle | Kysely | TypeORM | Sequelize | SQL | MongoDB | Mongoose | Firestore |
-| ------------------------------ | ------ | ------- | ------ | ------- | --------- | --- | ------- | -------- | --------- |
-| `detectDatabaseRuntime(...)`   | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       |
-| `inspectDatabaseRuntime(...)`  | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       |
-| `createDriverFromRuntime(...)` | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       |
-| `createOrmFromRuntime(...)`    | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       |
-| `pushSchema(...)`              | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | No-op     |
-| `applySchema(...)`             | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | No-op     |
-| `bootstrapDatabase(...)`       | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       |
+| Helper                         | Prisma | Drizzle | Kysely | TypeORM | Sequelize | SQL | MongoDB | Mongoose | Firestore | DynamoDB |
+| ------------------------------ | ------ | ------- | ------ | ------- | --------- | --- | ------- | -------- | --------- | -------- |
+| `detectDatabaseRuntime(...)`   | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       | Yes      |
+| `inspectDatabaseRuntime(...)`  | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       | Yes      |
+| `createDriverFromRuntime(...)` | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       | Yes      |
+| `createOrmFromRuntime(...)`    | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       | Yes      |
+| `pushSchema(...)`              | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | No-op     | Yes      |
+| `applySchema(...)`             | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | No-op     | Yes      |
+| `bootstrapDatabase(...)`       | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       | Yes      |
 
 Important nuance:
 
@@ -56,43 +57,45 @@ Important nuance:
   and `applySchema(...)` are no-op setup steps there rather than real schema
   application
 - Supabase fits through the PostgreSQL path, not a separate runtime family
+- DynamoDB setup creates one table per model and uses internal record and
+  unique-lock items inside that table
 
 ## Query and relation behavior
 
-| Feature                                        | SQL / Drizzle / Kysely | Prisma  | TypeORM | Sequelize | MongoDB / Mongoose | Firestore |
-| ---------------------------------------------- | ---------------------- | ------- | ------- | --------- | ------------------ | --------- |
-| `create`, `update`, `delete`, `find*`, `count` | Yes                    | Yes     | Yes     | Yes       | Yes                | Yes       |
-| transactions                                   | Yes                    | Yes     | Yes     | Yes       | Yes                | Yes       |
-| compound unique lookups                        | Yes                    | Yes     | Yes     | Yes       | Yes                | Yes       |
-| native relation loading                        | Partial                | Partial | Partial | Partial   | No                 | No        |
-| fallback relation resolver                     | Yes                    | Yes     | Yes     | Yes       | Yes                | Yes       |
+| Feature                                        | SQL / Drizzle / Kysely | Prisma  | TypeORM | Sequelize | MongoDB / Mongoose | Firestore | DynamoDB |
+| ---------------------------------------------- | ---------------------- | ------- | ------- | --------- | ------------------ | --------- | -------- |
+| `create`, `update`, `delete`, `find*`, `count` | Yes                    | Yes     | Yes     | Yes       | Yes                | Yes       | Yes      |
+| transactions                                   | Yes                    | Yes     | Yes     | Yes       | Yes                | Yes       | No       |
+| compound unique lookups                        | Yes                    | Yes     | Yes     | Yes       | Yes                | Yes       | Yes      |
+| native relation loading                        | Partial                | Partial | Partial | Partial   | No                 | No        | No       |
+| fallback relation resolver                     | Yes                    | Yes     | Yes     | Yes       | Yes                | Yes       | Yes      |
 
 “Partial” here means the native path covers the safest direct branches first,
 and more complex relation shapes still fall back to the shared resolver.
 
-That is why stacks without joins or SQL-style transactions can still work
+That is why stacks without joins or full SQL-style transactions can still work
 correctly through the same higher-level storage layer: the ORM handles the
 necessary consecutive reads and write orchestration instead of requiring the
 consumer package to fork its logic.
 
 ## Scalar and schema support
 
-| Feature                                            | SQL-family / Prisma / TypeORM / Sequelize | MongoDB / Mongoose | Firestore |
-| -------------------------------------------------- | ----------------------------------------- | ------------------ | --------- |
-| `integer()`                                        | Yes                                       | Yes                | Yes       |
-| `json()`                                           | Yes                                       | Yes                | Yes       |
-| `enumeration()`                                    | Yes                                       | Yes                | Yes       |
-| `bigint()`                                         | Yes                                       | Yes                | Yes       |
-| `decimal()`                                        | Yes                                       | Yes                | Yes       |
-| manual numeric IDs                                 | Yes                                       | Yes                | Yes       |
-| generated numeric IDs                              | Yes                                       | No                 | No        |
-| schema namespaces via `tableName(..., { schema })` | PostgreSQL-family only                    | No                 | No        |
+| Feature                                            | SQL-family / Prisma / TypeORM / Sequelize | MongoDB / Mongoose | Firestore | DynamoDB |
+| -------------------------------------------------- | ----------------------------------------- | ------------------ | --------- | -------- |
+| `integer()`                                        | Yes                                       | Yes                | Yes       | Yes      |
+| `json()`                                           | Yes                                       | Yes                | Yes       | Yes      |
+| `enumeration()`                                    | Yes                                       | Yes                | Yes       | Yes      |
+| `bigint()`                                         | Yes                                       | Yes                | Yes       | Yes      |
+| `decimal()`                                        | Yes                                       | Yes                | Yes       | Yes      |
+| manual numeric IDs                                 | Yes                                       | Yes                | Yes       | Yes      |
+| generated numeric IDs                              | Yes                                       | No                 | No        | No       |
+| schema namespaces via `tableName(..., { schema })` | PostgreSQL-family only                    | No                 | No        | No       |
 
 Important boundaries:
 
 - generated integer IDs are first-class on SQL-family runtimes, Prisma,
   TypeORM, Sequelize, and memory
-- MongoDB, Mongoose, and Firestore keep numeric IDs manual-only
+- MongoDB, Mongoose, Firestore, and DynamoDB keep numeric IDs manual-only
 - schema-qualified tables are Postgres-style only
 - flat strings like `"auth.users"` are intentionally rejected; use
   `tableName("users", { schema: "auth" })`
