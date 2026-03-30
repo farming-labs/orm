@@ -158,6 +158,7 @@ export default defineDocs({
         { slug: "sql-databases" },
         { slug: "supabase" },
         { slug: "firestore" },
+        { slug: "dynamodb" },
         { slug: "mongodb" },
       ],
     },

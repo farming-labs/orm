@@ -1,0 +1,224 @@
+---
+title: "DynamoDB"
+description: "How to use Farming Labs ORM with AWS DynamoDB through one unified key-value/document runtime."
+order: 9
+icon: database
+---
+
+# DynamoDB
+
+DynamoDB support in Farming Labs ORM is the key-value/document-runtime answer
+for teams that want one storage layer without owning a separate AWS-only
+adapter surface.
+
+The supported path is raw AWS SDK clients:
+
+- `DynamoDBClient`
+- `DynamoDBDocumentClient`
+
+That makes it a good fit for shared libraries and framework-owned storage
+layers, including auth-style integrations such as Better Auth or Auth.js, where
+the package wants one storage contract even though the backend is not SQL-first.
+
+## What this gives you
+
+You still write the schema and storage layer once.
+
+Then the runtime translates that layer into DynamoDB operations with:
+
+- one schema definition
+- one query API
+- one runtime-helper path
+- one capability surface
+- one normalized error surface
+- one setup/bootstrap path for creating the model tables
+
+## Create the runtime directly
+
+```ts title="dynamodb-runtime.ts"
+import { createOrm } from "@farming-labs/orm";
+import { createDynamodbDriver } from "@farming-labs/orm-dynamodb";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { appSchema } from "./schema";
+
+const client = new DynamoDBClient({
+  region: process.env.AWS_REGION ?? "us-east-1",
+});
+
+const orm = createOrm({
+  schema: appSchema,
+  driver: createDynamodbDriver({
+    client,
+  }),
+});
+```
+
+If your app already owns a `DynamoDBDocumentClient`, you can pass it as the
+document client override too:
+
+```ts
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+
+const raw = new DynamoDBClient({
+  region: process.env.AWS_REGION ?? "us-east-1",
+});
+
+const documentClient = DynamoDBDocumentClient.from(raw);
+
+const orm = createOrm({
+  schema: appSchema,
+  driver: createDynamodbDriver({
+    client: raw,
+    documentClient,
+  }),
+});
+```
+
+## Use the runtime helper path
+
+If a framework or shared package wants to accept a raw DynamoDB client and
+normalize it later, use the runtime helpers instead:
+
+```ts
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const orm = await createOrmFromRuntime({
+  schema: appSchema,
+  client,
+});
+```
+
+That keeps the package boundary generic instead of requiring a DynamoDB-only
+branch.
+
+## Setup helpers
+
+The setup helpers work with DynamoDB too:
+
+```ts
+import { bootstrapDatabase, pushSchema } from "@farming-labs/orm-runtime/setup";
+
+await pushSchema({
+  schema: appSchema,
+  client,
+});
+
+const orm = await bootstrapDatabase({
+  schema: appSchema,
+  client,
+});
+```
+
+For DynamoDB, `pushSchema(...)` creates one table per model with an internal
+partition key. The runtime stores both:
+
+- record items
+- internal unique-lock items
+
+inside that table, which lets exact unique and compound-unique lookups stay
+fast without making the consumer package invent a separate locking layer.
+
+## Joins, relations, and transactions
+
+DynamoDB does not have native joins.
+
+That does **not** mean relation selections stop working. The ORM resolves
+relation branches through follow-up reads, so code like this still works:
+
+```ts
+const user = await orm.user.findUnique({
+  where: {
+    email: "ada@farminglabs.dev",
+  },
+  select: {
+    id: true,
+    email: true,
+    profile: {
+      select: {
+        bio: true,
+      },
+    },
+    sessions: {
+      select: {
+        token: true,
+      },
+    },
+  },
+});
+```
+
+The runtime is similarly conservative about transactions:
+
+- `orm.$driver.capabilities.supportsTransactions` is `false`
+- `orm.transaction(...)` is available as a storage-layer boundary, but it is not
+  advertised as full database transaction semantics
+- create, update, upsert, and delete flows still coordinate the necessary
+  consecutive writes and unique checks so higher-level libraries do not need a
+  DynamoDB-only branch
+
+That is the important integration story for frameworks like Better Auth:
+storage code can stay unified even when the backend does not offer SQL joins or
+SQL-style transactions.
+
+## What is supported well
+
+- string ids
+- manual numeric ids
+- `integer()`
+- `json()`
+- `enumeration()`
+- `bigint()`
+- `decimal()`
+- compound unique lookups and upserts
+- relation selections through follow-up queries
+- raw client detection
+- `createOrmFromRuntime(...)`
+- `pushSchema(...)` and `bootstrapDatabase(...)`
+- normalized duplicate-key and missing-table errors
+
+## Important limits
+
+- generated integer ids are not supported on DynamoDB
+- schema-qualified table names are not supported
+- relation loading is fallback-based, not native-join based
+- `orm.transaction(...)` should not be treated as cross-write atomic database
+  transaction semantics in this runtime
+- non-unique filtering is scan-based, so very large-table access patterns should
+  prefer `id`, unique, or compound-unique lookups when possible
+
+## Real integration coverage
+
+The DynamoDB package is verified through a local Dynalite-backed integration
+suite.
+
+That suite covers:
+
+- raw runtime detection
+- `createDynamodbDriver(...)`
+- `createOrmFromRuntime(...)`
+- `pushSchema(...)`
+- `bootstrapDatabase(...)`
+- auth-style relation reads
+- mutation queries without native transaction guarantees
+- compound unique lookups and upserts
+- integer/json coverage
+- enum/bigint/decimal coverage
+- generated numeric-id rejection
+- schema-namespace rejection
+- normalized duplicate-key errors
+
+Run it with:
+
+```bash title="terminal"
+pnpm test:local:dynamodb
+```
+
+## Why it matters
+
+This keeps DynamoDB inside the same bigger ORM story:
+
+- write your storage layer once
+- keep one schema definition
+- let the app choose DynamoDB
+- avoid owning a separate DynamoDB-only adapter surface

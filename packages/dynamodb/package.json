@@ -1,0 +1,35 @@
+{
+  "name": "@farming-labs/orm-dynamodb",
+  "version": "0.0.34",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsx ./scripts/build.ts",
+    "test": "vitest run --config vitest.local.config.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.888.0",
+    "@aws-sdk/lib-dynamodb": "^3.888.0",
+    "@farming-labs/orm": "workspace:*"
+  },
+  "devDependencies": {
+    "dynalite": "^4.0.0",
+    "tsup": "^8.4.0"
+  }
+}

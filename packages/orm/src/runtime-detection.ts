@@ -7,6 +7,7 @@ export type DetectedDatabaseRuntime<TClient = unknown> = Readonly<{
     | "prisma"
     | "drizzle"
     | "kysely"
+    | "dynamodb"
     | "sequelize"
     | "sql"
     | "mongo"
@@ -121,6 +122,20 @@ function detectTypeormDialect(client: Record<string, unknown>) {
 
 function detectSequelizeDialect(client: Record<string, unknown>) {
   return normalizeDialect((client.options as Record<string, unknown> | undefined)?.dialect);
+}
+
+function isDynamoDbClient(client: unknown): client is Record<string, unknown> {
+  const constructorName = getConstructorName(client);
+  return (
+    hasFunction(client, "send") &&
+    (hasFunction(client, "destroy") || isRecord(client)) &&
+    (constructorName.includes("DynamoDBClient") ||
+      constructorName.includes("DynamoDBDocumentClient") ||
+      (isRecord(client) &&
+        isRecord((client as Record<string, unknown>).config) &&
+        "translateConfig" in
+          ((client as Record<string, unknown>).config as Record<string, unknown>)))
+  );
 }
 
 function isPrismaClient(client: unknown): client is Record<string, unknown> {
@@ -275,6 +290,14 @@ export function detectDatabaseRuntime<TClient>(
     });
   }
 
+  if (isDynamoDbClient(client)) {
+    return Object.freeze({
+      kind: "dynamodb",
+      client,
+      source: "client",
+    });
+  }
+
   if (isSequelizeClient(client)) {
     const dialect = detectSequelizeDialect(client);
     if (dialect) {
@@ -410,6 +433,15 @@ export function inspectDatabaseRuntime<TClient>(
         "transaction",
         "getExecutor",
       ]),
+    },
+    {
+      kind: "dynamodb",
+      matched: isDynamoDbClient(client),
+      reasons: isDynamoDbClient(client)
+        ? []
+        : missingFunctions(client, ["send"]).concat([
+            "expected a DynamoDBClient or DynamoDBDocumentClient-like runtime",
+          ]),
     },
     {
       kind: "sequelize",

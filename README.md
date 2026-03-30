@@ -4,7 +4,7 @@ One schema. Many stacks.
 
 `@farming-labs/orm` lets you write your schema and storage layer once, then
 translate it across Prisma, Drizzle, Kysely, TypeORM, Sequelize, direct SQL,
-Firestore, MongoDB, and Mongoose.
+Firestore, DynamoDB, MongoDB, and Mongoose.
 
 It gives you:
 
@@ -35,6 +35,8 @@ It gives you:
   Direct SQL runtime driver
 - `@farming-labs/orm-firestore`
   Server-side Firestore runtime driver
+- `@farming-labs/orm-dynamodb`
+  DynamoDB runtime driver
 - `@farming-labs/orm-mongo`
   Native MongoDB runtime driver
 - `@farming-labs/orm-mongoose`

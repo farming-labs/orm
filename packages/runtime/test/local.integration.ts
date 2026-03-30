@@ -16,6 +16,7 @@ import {
 } from "@farming-labs/orm";
 import { createDriverFromRuntime, createOrmFromRuntime } from "../src";
 import { applySchema, bootstrapDatabase, pushSchema } from "../src/setup";
+import { startLocalDynamoDb } from "../../dynamodb/test/support/local-dynamodb";
 import { InMemoryFirestore } from "../../firestore/test/support/firestore-harness";
 
 const schema = defineSchema({
@@ -230,6 +231,49 @@ describe("runtime helper local integration", () => {
       id: expect.any(String),
       email: "firestore@farminglabs.dev",
     });
+  });
+
+  it("creates and bootstraps a DynamoDB runtime from a raw client", async () => {
+    const local = await startLocalDynamoDb();
+
+    try {
+      await pushSchema({
+        schema,
+        client: local.client,
+      });
+      await applySchema({
+        schema,
+        client: local.client,
+      });
+
+      const driver = await createDriverFromRuntime({
+        schema,
+        client: local.client,
+      });
+      const orm = await bootstrapDatabase({
+        schema,
+        client: local.client,
+      });
+
+      const created = await orm.user.create({
+        data: {
+          email: "dynamodb@farminglabs.dev",
+          name: "DynamoDB",
+        },
+        select: {
+          id: true,
+          email: true,
+        },
+      });
+
+      expect(driver.handle.kind).toBe("dynamodb");
+      expect(created).toEqual({
+        id: expect.any(String),
+        email: "dynamodb@farminglabs.dev",
+      });
+    } finally {
+      await local.close();
+    }
   });
 
   it("supports manual numeric ids against a real SQLite database", async () => {

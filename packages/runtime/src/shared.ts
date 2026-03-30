@@ -7,6 +7,7 @@ import type {
   SchemaDefinition,
 } from "@farming-labs/orm";
 import type { DrizzleDialect, DrizzleDriverConfig } from "@farming-labs/orm-drizzle";
+import type { DynamoDbDriverConfig, DynamoDbDriverHandle } from "@farming-labs/orm-dynamodb";
 import type {
   FirestoreDbLike,
   FirestoreDriverConfig,
@@ -37,6 +38,7 @@ export type AutoDriverHandle<TClient = unknown> =
   | PrismaDriverHandle
   | SqlDriverHandle<TClient, AutoDialect>
   | OrmDriverHandle<"drizzle", TClient, DrizzleDialect>
+  | DynamoDbDriverHandle<any>
   | FirestoreDriverHandle<any>
   | OrmDriverHandle<"kysely", TClient, KyselyDialect>
   | OrmDriverHandle<"mongo", unknown>
@@ -58,6 +60,11 @@ export type CreateDriverFromRuntimeOptions<
     packageRoot?: string;
   };
   drizzle?: Pick<DrizzleDriverConfig<TSchema>, "client">;
+  dynamodb?: {
+    documentClient?: DynamoDbDriverConfig<TSchema>["documentClient"];
+    tables?: DynamoDbDriverConfig<TSchema>["tables"];
+    transforms?: DynamoDbDriverConfig<TSchema>["transforms"];
+  };
   firestore?: {
     db?: FirestoreDbLike;
     collections?: FirestoreDriverConfig<TSchema>["collections"];

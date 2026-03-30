@@ -5,6 +5,7 @@ import {
   type SchemaDefinition,
 } from "@farming-labs/orm";
 import type { DrizzleDialect, DrizzleDriverConfig } from "@farming-labs/orm-drizzle";
+import type { DynamoDbDriverConfig } from "@farming-labs/orm-dynamodb";
 import type { FirestoreDriverConfig } from "@farming-labs/orm-firestore";
 import type { KyselyDialect, KyselyDriverConfig } from "@farming-labs/orm-kysely";
 import type { MongoDriverConfig } from "@farming-labs/orm-mongo";
@@ -95,6 +96,15 @@ export async function createDriverFromRuntime<
         db: resolveFirestoreDb(runtime, options),
         collections: options.firestore?.collections,
         transforms: options.firestore?.transforms as FirestoreDriverConfig<TSchema>["transforms"],
+      }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
+    }
+    case "dynamodb": {
+      const { createDynamodbDriver } = await import("@farming-labs/orm-dynamodb");
+      return createDynamodbDriver<TSchema>({
+        client: runtime.client as DynamoDbDriverConfig<TSchema>["client"],
+        documentClient: options.dynamodb?.documentClient,
+        tables: options.dynamodb?.tables,
+        transforms: options.dynamodb?.transforms as DynamoDbDriverConfig<TSchema>["transforms"],
       }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
     }
     case "sequelize": {

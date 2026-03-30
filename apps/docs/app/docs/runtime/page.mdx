@@ -121,8 +121,9 @@ The setup helpers now live on the Node-only subpath:
 - `bootstrapDatabase(...)`
 
 Import them from `@farming-labs/orm-runtime/setup`. They use the same runtime
-detection layer to prepare direct SQL, Prisma, TypeORM, MongoDB, Mongoose,
-Drizzle, and Kysely runtimes without inventing a separate config surface.
+detection layer to prepare direct SQL, Prisma, TypeORM, Sequelize, MongoDB,
+Mongoose, Firestore, DynamoDB, Drizzle, and Kysely runtimes without inventing a
+separate config surface.
 
 There is also a dedicated guide for this flow:
 
@@ -230,6 +231,7 @@ the stage, runtime kind, dialect, and underlying cause available.
 - `createPgClientDriver(...)` from `@farming-labs/orm-sql`
 - `createMongoDriver(...)` from `@farming-labs/orm-mongo`
 - `createMongooseDriver(...)` from `@farming-labs/orm-mongoose`
+- `createDynamodbDriver(...)` from `@farming-labs/orm-dynamodb`
 - `createOrmFromRuntime(...)` from `@farming-labs/orm-runtime`
 - `createDriverFromRuntime(...)` from `@farming-labs/orm-runtime`
 - `pushSchema(...)` from `@farming-labs/orm-runtime/setup`
@@ -257,7 +259,7 @@ async function findUserByEmail(orm: typeof authOrm, email: string) {
 ```
 
 That helper stays the same whether the app uses Prisma, Drizzle, TypeORM,
-Sequelize, direct SQL, MongoDB, or Mongoose.
+Sequelize, direct SQL, Firestore, DynamoDB, MongoDB, or Mongoose.
 
 The same is true for compound auth lookups:
 
@@ -284,6 +286,7 @@ pnpm test:local:drizzle
 pnpm test:local:sqlite
 pnpm test:local:postgres
 pnpm test:local:mysql
+pnpm test:local:dynamodb
 pnpm test:local:mongodb
 ```
 
