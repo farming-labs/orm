@@ -34,7 +34,7 @@ If you want to run the ORM live against Supabase, use a PostgreSQL client such
 as `pg` and connect it to your Supabase database.
 
 Supabase's own docs are still the right place to choose the actual connection
-mode and connection string for your environment:
+mode, TLS settings, and connection string for your environment:
 
 - [Connect to your database](https://supabase.com/docs/guides/database/connecting-to-postgres)
 - [Connection strings](https://supabase.com/docs/reference/postgres/connection-strings)
@@ -46,6 +46,10 @@ Their current guidance is broadly:
 - transaction pooler for serverless or edge-style traffic
 
 This ORM guide sits on top of that PostgreSQL connection layer.
+
+Keep the provider-recommended TLS settings for your environment. Avoid
+disabling certificate verification in connection examples unless you are
+debugging a local-only setup and fully understand the tradeoff.
 
 ## Use the PostgreSQL runtime directly
 
@@ -60,9 +64,6 @@ import { appSchema } from "./schema";
 
 const pool = new Pool({
   connectionString: process.env.SUPABASE_DB_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
 });
 
 const orm = createOrm({
