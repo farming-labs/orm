@@ -3,7 +3,16 @@ export type DetectedDatabaseDialect = "sqlite" | "postgres" | "mysql";
 export type DetectedDatabaseSource = "client" | "connection" | "pool" | "database" | "db";
 
 export type DetectedDatabaseRuntime<TClient = unknown> = Readonly<{
-  kind: "prisma" | "drizzle" | "kysely" | "sql" | "mongo" | "mongoose" | "firestore" | "typeorm";
+  kind:
+    | "prisma"
+    | "drizzle"
+    | "kysely"
+    | "sequelize"
+    | "sql"
+    | "mongo"
+    | "mongoose"
+    | "firestore"
+    | "typeorm";
   client: TClient;
   dialect?: DetectedDatabaseDialect;
   source: DetectedDatabaseSource;
@@ -110,6 +119,10 @@ function detectTypeormDialect(client: Record<string, unknown>) {
   return normalizeDialect((client.options as Record<string, unknown> | undefined)?.type);
 }
 
+function detectSequelizeDialect(client: Record<string, unknown>) {
+  return normalizeDialect((client.options as Record<string, unknown> | undefined)?.dialect);
+}
+
 function isPrismaClient(client: unknown): client is Record<string, unknown> {
   return (
     hasFunction(client, "$connect") &&
@@ -138,6 +151,19 @@ function isKyselyDatabase(client: unknown): client is {
     hasFunction(client, "selectFrom") &&
     hasFunction(client, "transaction") &&
     hasFunction(client, "getExecutor")
+  );
+}
+
+function isSequelizeClient(client: unknown): client is Record<string, unknown> {
+  const record = client as Record<string, unknown>;
+  return (
+    hasFunction(client, "query") &&
+    hasFunction(client, "transaction") &&
+    hasFunction(client, "authenticate") &&
+    hasFunction(client, "close") &&
+    isRecord(client) &&
+    isRecord(record.options) &&
+    "dialect" in record.options
   );
 }
 
@@ -247,6 +273,18 @@ export function detectDatabaseRuntime<TClient>(
       dialect: detectKyselyDialect(client),
       source: "db",
     });
+  }
+
+  if (isSequelizeClient(client)) {
+    const dialect = detectSequelizeDialect(client);
+    if (dialect) {
+      return Object.freeze({
+        kind: "sequelize",
+        client,
+        dialect,
+        source: "connection",
+      });
+    }
   }
 
   if (isMongooseConnection(client)) {
@@ -372,6 +410,21 @@ export function inspectDatabaseRuntime<TClient>(
         "transaction",
         "getExecutor",
       ]),
+    },
+    {
+      kind: "sequelize",
+      matched: isSequelizeClient(client) && !!detectSequelizeDialect(client),
+      reasons: missingFunctions(client, ["query", "transaction", "authenticate", "close"]).concat(
+        isRecord(client) && isRecord((client as Record<string, unknown>).options)
+          ? "dialect" in ((client as Record<string, unknown>).options as Record<string, unknown>)
+            ? detectSequelizeDialect(client as Record<string, unknown>)
+              ? []
+              : [
+                  'unsupported Sequelize dialect; expected "postgres", "postgresql", "mysql", or "mariadb"',
+                ]
+            : ['missing "options.dialect"']
+          : ['missing object property "options"'],
+      ),
     },
     {
       kind: "mongoose",

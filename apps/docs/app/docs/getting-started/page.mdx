@@ -227,6 +227,26 @@ const orm = createOrm({
 });
 ```
 
+### Sequelize
+
+```ts title="sequelize-runtime.ts"
+import { createOrm } from "@farming-labs/orm";
+import { createSequelizeDriver } from "@farming-labs/orm-sequelize";
+import { Sequelize } from "sequelize";
+
+const sequelize = new Sequelize(process.env.DATABASE_URL!, {
+  dialect: "postgres",
+  logging: false,
+});
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createSequelizeDriver({
+    sequelize,
+  }),
+});
+```
+
 ### MongoDB
 
 ```ts title="mongo-runtime.ts"
@@ -281,7 +301,8 @@ const orm = await createOrmFromRuntime({
 ```
 
 That path is especially useful for higher-level integrations that want to
-accept a raw Prisma, Drizzle, Kysely, TypeORM, SQL, MongoDB, or Mongoose runtime.
+accept a raw Prisma, Drizzle, Kysely, TypeORM, Sequelize, SQL, MongoDB, or
+Mongoose runtime.
 
 ## 5. Use the client
 
@@ -320,6 +341,7 @@ pnpm test:local:drizzle
 pnpm test:local:sqlite
 pnpm test:local:postgres
 pnpm test:local:mysql
+pnpm test:local:sequelize
 pnpm test:local:typeorm
 pnpm test:local:mongodb
 ```
@@ -329,6 +351,7 @@ pnpm test:local:mongodb
 - [Runtime](/docs/runtime)
 - [Prisma integration](/docs/integrations/prisma)
 - [Drizzle integration](/docs/integrations/drizzle)
+- [Sequelize integration](/docs/integrations/sequelize)
 - [TypeORM integration](/docs/integrations/typeorm)
 - [SQL databases](/docs/integrations/sql-databases)
 - [MongoDB](/docs/integrations/mongodb)

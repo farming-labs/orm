@@ -1,0 +1,255 @@
+---
+title: "Sequelize"
+description: "How the unified schema and runtime fit into Sequelize-based PostgreSQL and MySQL apps."
+order: 5
+icon: braces
+---
+
+# Sequelize
+
+Sequelize integration is runtime-first.
+
+Use `@farming-labs/orm-sequelize` when:
+
+- the app already owns a real Sequelize instance
+- a shared package wants to keep one storage layer across Sequelize, Prisma,
+  Drizzle, Kysely, TypeORM, direct SQL, Firestore, MongoDB, or Mongoose
+- you want one schema definition and one query surface while still letting the
+  app use Sequelize underneath
+
+## Supported Sequelize dialect families
+
+- `postgres` / `postgresql`
+- `mysql` / `mariadb`
+
+The current repo verifies the live matrix on PostgreSQL and MySQL. MariaDB
+flows through the same MySQL-family path.
+
+## Runtime setup
+
+```ts title="sequelize-runtime.ts"
+import { createOrm } from "@farming-labs/orm";
+import { createSequelizeDriver } from "@farming-labs/orm-sequelize";
+import { Sequelize } from "sequelize";
+import { authSchema } from "./schema";
+
+const sequelize = new Sequelize(process.env.DATABASE_URL!, {
+  dialect: "postgres",
+  logging: false,
+});
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createSequelizeDriver({
+    sequelize,
+  }),
+});
+```
+
+From there, shared code keeps using the same unified API:
+
+```ts
+const user = await orm.user.findUnique({
+  where: {
+    email: "ada@farminglabs.dev",
+  },
+  select: {
+    id: true,
+    email: true,
+    profile: {
+      select: {
+        bio: true,
+      },
+    },
+    sessions: {
+      select: {
+        token: true,
+      },
+    },
+  },
+});
+```
+
+## What the Sequelize driver is doing
+
+The Sequelize driver does not invent a second schema system.
+
+It:
+
+1. accepts the app's real Sequelize instance
+2. executes through `sequelize.query(...)` and Sequelize transactions
+3. reuses the shared SQL runtime semantics for filtering, mutations, relation
+   loading, compound unique lookups, numeric IDs, namespaces, and normalized
+   errors
+
+That means a package can write its storage layer once while each app decides
+whether the actual execution stack is Sequelize, TypeORM, Prisma, Drizzle,
+Kysely, direct SQL, Firestore, MongoDB, or Mongoose.
+
+## Runtime helper path
+
+If a framework or shared package wants to accept the raw Sequelize client
+directly, use the runtime helpers:
+
+```ts
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+import { Sequelize } from "sequelize";
+
+const sequelize = new Sequelize(process.env.DATABASE_URL!, {
+  dialect: "postgres",
+  logging: false,
+});
+
+const orm = await createOrmFromRuntime({
+  schema: authSchema,
+  client: sequelize,
+});
+```
+
+That is the cleanest path for higher-level integrations that do not want to
+branch on Sequelize specifically.
+
+## Setup helpers
+
+The setup helpers work with Sequelize too:
+
+```ts
+import { bootstrapDatabase, pushSchema } from "@farming-labs/orm-runtime/setup";
+
+await pushSchema({
+  schema: authSchema,
+  client: sequelize,
+});
+
+const orm = await bootstrapDatabase({
+  schema: authSchema,
+  client: sequelize,
+});
+```
+
+For Sequelize runtimes, that setup path renders safe SQL from the Farming Labs
+schema and applies it through the live connection.
+
+That is especially useful when a package or framework wants:
+
+- repeatable test setup
+- one bootstrap path across runtime families
+- no separate Sequelize-only schema-push API at the package boundary
+
+## Relation support
+
+The Sequelize runtime inherits the current SQL-family relation behavior:
+
+- native single-query loading for supported singular chains
+- native single-query loading for simple `hasMany(...)` and explicit join-table
+  `manyToMany(...)` branches without relation-level modifiers
+- shared fallback relation resolution for more complex relation branches that
+  add their own `where`, `orderBy`, `take`, or `skip`
+
+That means auth-style and framework-style relation reads still work through the
+same unified API surface.
+
+## Transactions and mutations
+
+Sequelize transactions map into the unified ORM transaction surface:
+
+```ts
+await orm.transaction(async (tx) => {
+  const user = await tx.user.create({
+    data: {
+      email: "ada@farminglabs.dev",
+      name: "Ada",
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  await tx.session.upsert({
+    where: {
+      token: "session-token",
+    },
+    create: {
+      userId: user.id,
+      token: "session-token",
+      expiresAt: new Date("2027-01-01T00:00:00.000Z"),
+    },
+    update: {
+      expiresAt: new Date("2027-01-01T00:00:00.000Z"),
+    },
+  });
+});
+```
+
+The same runtime also supports:
+
+- `create`
+- `createMany`
+- `update`
+- `updateMany`
+- `upsert`
+- `delete`
+- `deleteMany`
+- compound-unique lookups
+- model-level constraint enforcement
+
+## Real integration coverage
+
+The Sequelize package is verified against:
+
+- PostgreSQL through a real local Sequelize connection
+- MySQL through a real local Sequelize connection
+
+The local suite includes:
+
+- raw runtime detection
+- `createSequelizeDriver(...)`
+- `createOrmFromRuntime(...)`
+- `pushSchema(...)`
+- `bootstrapDatabase(...)`
+- auth-style relation queries
+- mutation and transaction behavior
+- compound unique lookups
+- integer/json coverage
+- enum/bigint/decimal coverage on the relational matrix
+
+Run it with:
+
+```bash title="terminal"
+pnpm test:local:sequelize
+```
+
+If you want to point the suite at your own local database URLs, use:
+
+```bash
+export FARM_ORM_LOCAL_PG_ADMIN_URL=postgres://postgres:postgres@127.0.0.1:5432/postgres
+export FARM_ORM_LOCAL_MYSQL_ADMIN_URL=mysql://root:root@127.0.0.1:3306
+
+pnpm test:local:sequelize
+```
+
+You can also target a single Sequelize family while debugging:
+
+```bash
+FARM_ORM_LOCAL_SEQUELIZE_TARGETS=postgresql pnpm --filter @farming-labs/orm-sequelize test
+FARM_ORM_LOCAL_SEQUELIZE_TARGETS=mysql pnpm --filter @farming-labs/orm-sequelize test
+```
+
+The PostgreSQL and MySQL paths create isolated temporary databases during the
+run, execute the real Sequelize-backed runtime against them, and then clean
+those databases up afterward.
+
+## Why it fits well
+
+Sequelize already gives apps a familiar runtime abstraction.
+
+Farming Labs ORM sits one layer above that:
+
+- app code keeps Sequelize
+- package code keeps one schema and one storage layer
+- runtime helpers can still accept the raw Sequelize instance
+- setup helpers can still bootstrap the live database
+
+That is the main value: Sequelize apps can participate in the same package-level
+storage contract as TypeORM, Prisma, Drizzle, Kysely, direct SQL, Firestore,
+MongoDB, and Mongoose apps.

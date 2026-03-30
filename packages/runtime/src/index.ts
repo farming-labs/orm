@@ -10,6 +10,7 @@ import type { KyselyDialect, KyselyDriverConfig } from "@farming-labs/orm-kysely
 import type { MongoDriverConfig } from "@farming-labs/orm-mongo";
 import type { MongooseDriverConfig } from "@farming-labs/orm-mongoose";
 import type { PrismaDriverConfig } from "@farming-labs/orm-prisma";
+import type { SequelizeDriverConfig, SequelizeDriverDialect } from "@farming-labs/orm-sequelize";
 import type {
   MysqlConnectionLike,
   MysqlPoolLike,
@@ -94,6 +95,13 @@ export async function createDriverFromRuntime<
         db: resolveFirestoreDb(runtime, options),
         collections: options.firestore?.collections,
         transforms: options.firestore?.transforms as FirestoreDriverConfig<TSchema>["transforms"],
+      }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
+    }
+    case "sequelize": {
+      const { createSequelizeDriver } = await import("@farming-labs/orm-sequelize");
+      return createSequelizeDriver<TSchema>({
+        sequelize: runtime.client as SequelizeDriverConfig<TSchema>["sequelize"],
+        dialect: resolveDialect(runtime, options.dialect) as SequelizeDriverDialect,
       }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
     }
     case "typeorm": {
