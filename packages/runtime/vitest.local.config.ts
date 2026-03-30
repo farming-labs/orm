@@ -17,6 +17,7 @@ export default defineConfig({
       "@farming-labs/orm-runtime/setup": path.resolve(dirname, "./src/setup.ts"),
       "@farming-labs/orm-runtime": path.resolve(dirname, "./src/index.ts"),
       "@farming-labs/orm-sql": path.resolve(dirname, "../sql/src/index.ts"),
+      "@farming-labs/orm-typeorm": path.resolve(dirname, "../typeorm/src/index.ts"),
     },
   },
   test: {

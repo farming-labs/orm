@@ -22,6 +22,7 @@
       "@farming-labs/orm-runtime/setup": ["packages/runtime/src/setup.ts"],
       "@farming-labs/orm-runtime": ["packages/runtime/src/index.ts"],
       "@farming-labs/orm-sql": ["packages/sql/src/index.ts"],
+      "@farming-labs/orm-typeorm": ["packages/typeorm/src/index.ts"],
       "@farming-labs/orm-mongoose": ["packages/mongoose/src/index.ts"],
       "@farming-labs/orm-prisma": ["packages/prisma/src/index.ts"]
     }

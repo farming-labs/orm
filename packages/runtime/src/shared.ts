@@ -28,6 +28,7 @@ import type {
 import type { KyselyDialect } from "@farming-labs/orm-kysely";
 import type { PrismaDriverConfig, PrismaDriverHandle } from "@farming-labs/orm-prisma";
 import type { SqlDriverHandle } from "@farming-labs/orm-sql";
+import type { TypeormDriverHandle } from "@farming-labs/orm-typeorm";
 
 export type AutoDialect = DetectedDatabaseDialect;
 
@@ -38,7 +39,8 @@ export type AutoDriverHandle<TClient = unknown> =
   | FirestoreDriverHandle<any>
   | OrmDriverHandle<"kysely", TClient, KyselyDialect>
   | OrmDriverHandle<"mongo", unknown>
-  | OrmDriverHandle<"mongoose", unknown>;
+  | OrmDriverHandle<"mongoose", unknown>
+  | TypeormDriverHandle<TClient, AutoDialect>;
 
 export type CreateDriverFromRuntimeOptions<
   TSchema extends SchemaDefinition<any>,

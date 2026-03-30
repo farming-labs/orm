@@ -17,6 +17,7 @@ import type {
   PgPoolLike,
   SqliteDatabaseLike,
 } from "@farming-labs/orm-sql";
+import type { TypeormDriverConfig } from "@farming-labs/orm-typeorm";
 import {
   inferMongooseModels,
   resolveDialect,
@@ -93,6 +94,13 @@ export async function createDriverFromRuntime<
         db: resolveFirestoreDb(runtime, options),
         collections: options.firestore?.collections,
         transforms: options.firestore?.transforms as FirestoreDriverConfig<TSchema>["transforms"],
+      }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
+    }
+    case "typeorm": {
+      const { createTypeormDriver } = await import("@farming-labs/orm-typeorm");
+      return createTypeormDriver<TSchema>({
+        dataSource: runtime.client as TypeormDriverConfig<TSchema>["dataSource"],
+        dialect: resolveDialect(runtime, options.dialect),
       }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
     }
     case "sql":
