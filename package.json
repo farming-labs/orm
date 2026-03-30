@@ -1,6 +1,6 @@
 {
   "name": "farming-labs-orm",
-  "version": "0.0.31",
+  "version": "0.0.32",
   "private": true,
   "scripts": {
     "build": "pnpm --filter './packages/*' run build",
