@@ -1,6 +1,6 @@
 ---
 title: "Runtime Helpers"
-description: "Create a driver or ORM directly from a raw Prisma, Drizzle, Kysely, TypeORM, SQL, MongoDB, or Mongoose runtime."
+description: "Create a driver or ORM directly from a raw Prisma, Drizzle, Kysely, TypeORM, Sequelize, SQL, MongoDB, or Mongoose runtime."
 order: 2
 icon: harddrive
 ---
@@ -42,6 +42,7 @@ That is especially useful when another library wants to accept:
 - a Drizzle database
 - a Kysely instance
 - a TypeORM `DataSource`
+- a Sequelize instance
 - a `pg` pool/client
 - a `mysql2` pool/connection
 - a Mongo `Db` or `MongoClient`
@@ -278,6 +279,7 @@ const orm = createOrm({
 - Drizzle database
 - Kysely instance
 - TypeORM `DataSource`
+- Sequelize instance
 - SQLite database
 - `pg` Pool
 - `pg` Client
@@ -405,6 +407,25 @@ const orm = await createOrmFromRuntime({
 });
 ```
 
+### Sequelize
+
+If you already have a Sequelize instance, pass it directly:
+
+```ts
+import { Sequelize } from "sequelize";
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const sequelize = new Sequelize(process.env.DATABASE_URL!, {
+  dialect: "postgres",
+  logging: false,
+});
+
+const orm = await createOrmFromRuntime({
+  schema,
+  client: sequelize,
+});
+```
+
 ### MongoDB
 
 If you pass a `Db`, the helper can use it directly:
@@ -500,6 +521,7 @@ That matrix includes:
 - Drizzle on SQLite, PostgreSQL, and MySQL
 - Kysely on SQLite, PostgreSQL, and MySQL
 - TypeORM on SQLite-family, PostgreSQL, and MySQL
+- Sequelize on PostgreSQL and MySQL
 - Prisma on SQLite, PostgreSQL, and MySQL
 - MongoDB
 - Mongoose

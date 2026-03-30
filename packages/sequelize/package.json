@@ -1,5 +1,5 @@
 {
-  "name": "@farming-labs/orm-runtime",
+  "name": "@farming-labs/orm-sequelize",
   "version": "0.0.33",
   "files": [
     "dist"
@@ -13,11 +13,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    },
-    "./setup": {
-      "types": "./dist/setup.d.ts",
-      "import": "./dist/setup.js",
-      "require": "./dist/setup.cjs"
     }
   },
   "publishConfig": {
@@ -30,17 +25,16 @@
   },
   "dependencies": {
     "@farming-labs/orm": "workspace:*",
-    "@farming-labs/orm-drizzle": "workspace:*",
-    "@farming-labs/orm-firestore": "workspace:*",
-    "@farming-labs/orm-kysely": "workspace:*",
-    "@farming-labs/orm-mongo": "workspace:*",
-    "@farming-labs/orm-mongoose": "workspace:*",
-    "@farming-labs/orm-prisma": "workspace:*",
-    "@farming-labs/orm-sequelize": "workspace:*",
-    "@farming-labs/orm-sql": "workspace:*",
-    "@farming-labs/orm-typeorm": "workspace:*"
+    "@farming-labs/orm-sql": "workspace:*"
   },
   "devDependencies": {
+    "@types/pg": "^8.15.6",
+    "mysql2": "^3.15.2",
+    "pg": "^8.16.3",
+    "sequelize": "^6.37.8",
     "tsup": "^8.4.0"
+  },
+  "peerDependencies": {
+    "sequelize": "^6.37.8"
   }
 }

@@ -16,6 +16,7 @@ export default defineConfig({
       "@farming-labs/orm-prisma": path.resolve(dirname, "../prisma/src/index.ts"),
       "@farming-labs/orm-runtime/setup": path.resolve(dirname, "../runtime/src/setup.ts"),
       "@farming-labs/orm-runtime": path.resolve(dirname, "../runtime/src/index.ts"),
+      "@farming-labs/orm-sequelize": path.resolve(dirname, "../sequelize/src/index.ts"),
       "@farming-labs/orm-sql": path.resolve(dirname, "../sql/src/index.ts"),
       "@farming-labs/orm-typeorm": path.resolve(dirname, "./src/index.ts"),
     },

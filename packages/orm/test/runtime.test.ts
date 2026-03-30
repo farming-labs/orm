@@ -254,6 +254,26 @@ describe("runtime contract", () => {
     expect(inspectDatabaseRuntime(dataSource).runtime?.kind).toBe("typeorm");
   });
 
+  it("detects Sequelize runtimes from the connection shape", () => {
+    const sequelize = {
+      options: {
+        dialect: "postgres",
+      },
+      query: async () => [],
+      transaction: async <TResult>(run: () => Promise<TResult>) => run(),
+      authenticate: async () => undefined,
+      close: async () => undefined,
+    };
+
+    expect(detectDatabaseRuntime(sequelize)).toEqual({
+      kind: "sequelize",
+      client: sequelize,
+      dialect: "postgres",
+      source: "connection",
+    });
+    expect(inspectDatabaseRuntime(sequelize).runtime?.kind).toBe("sequelize");
+  });
+
   it("derives numericIds from supportsNumericIds when only the boolean flag is provided", () => {
     const handle = createDriverHandle({
       kind: "test",

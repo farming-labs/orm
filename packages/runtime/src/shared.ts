@@ -27,6 +27,7 @@ import type {
 } from "@farming-labs/orm-mongoose";
 import type { KyselyDialect } from "@farming-labs/orm-kysely";
 import type { PrismaDriverConfig, PrismaDriverHandle } from "@farming-labs/orm-prisma";
+import type { SequelizeDriverDialect, SequelizeDriverHandle } from "@farming-labs/orm-sequelize";
 import type { SqlDriverHandle } from "@farming-labs/orm-sql";
 import type { TypeormDriverHandle } from "@farming-labs/orm-typeorm";
 
@@ -40,6 +41,7 @@ export type AutoDriverHandle<TClient = unknown> =
   | OrmDriverHandle<"kysely", TClient, KyselyDialect>
   | OrmDriverHandle<"mongo", unknown>
   | OrmDriverHandle<"mongoose", unknown>
+  | SequelizeDriverHandle<TClient, SequelizeDriverDialect>
   | TypeormDriverHandle<TClient, AutoDialect>;
 
 export type CreateDriverFromRuntimeOptions<
