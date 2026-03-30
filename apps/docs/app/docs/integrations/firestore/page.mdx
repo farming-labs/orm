@@ -86,6 +86,55 @@ const orm = await bootstrapDatabase({
 });
 ```
 
+## Testing against a real Firestore backend
+
+The Firestore package ships with two test paths:
+
+- fast in-memory contract tests that run by default
+- optional real-backend tests for an emulator or a cloud project
+
+The real suite is skipped unless one of the Firestore auth environments is
+present.
+
+### Recommended: emulator
+
+```bash
+export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
+export GOOGLE_CLOUD_PROJECT=farm-orm-local
+
+pnpm --filter @farming-labs/orm-firestore test:real
+```
+
+### Cloud project
+
+If you want to verify against a real Firestore project, use either:
+
+- `GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account.json`
+- or `FARM_ORM_LOCAL_FIRESTORE_SERVICE_ACCOUNT_JSON='{"type":"service_account", ...}'`
+
+And provide the project id:
+
+```bash
+export GOOGLE_CLOUD_PROJECT=your-firestore-project
+# or:
+export FARM_ORM_LOCAL_FIRESTORE_PROJECT_ID=your-firestore-project
+
+pnpm --filter @farming-labs/orm-firestore test:real
+```
+
+Keep those secrets out of git and CI logs. For CI, prefer encrypted repository
+secrets rather than checked-in files.
+
+If you want the real Firestore suite to run as part of the normal workspace
+test flow, export those same env vars before `pnpm test`:
+
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account.json
+export GOOGLE_CLOUD_PROJECT=your-firestore-project
+
+pnpm test
+```
+
 ## Joins and relations
 
 Firestore does not have native joins.

@@ -40,6 +40,7 @@ jobs:
       FARM_ORM_LOCAL_PG_ADMIN_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
       FARM_ORM_LOCAL_MYSQL_ADMIN_URL: mysql://root:root@127.0.0.1:3306
       FARM_ORM_LOCAL_MONGODB_URL: mongodb://127.0.0.1:27017
+      FARM_ORM_SKIP_REAL_FIRESTORE_TESTS: "1"
       FARM_ORM_DEMO_REQUIRE_LOCAL: "1"
     services:
       postgres:

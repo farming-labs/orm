@@ -79,9 +79,7 @@ export type FirestoreDbLike = {
   runTransaction?<TResult>(
     updateFunction: (transaction: FirestoreTransactionLike) => Promise<TResult>,
   ): Promise<TResult>;
-  getAll?(
-    ...references: FirestoreDocumentReferenceLike[]
-  ): Promise<FirestoreDocumentSnapshotLike[]>;
+  getAll?(...references: unknown[]): Promise<unknown[]>;
   batch?(): unknown;
 };
 

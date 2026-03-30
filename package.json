@@ -8,6 +8,7 @@
     "dev:demo": "pnpm --filter demo dev",
     "test": "pnpm -r test && pnpm test:e2e",
     "test:e2e": "vitest run tests/e2e.test.ts",
+    "test:firestore:real": "pnpm --filter @farming-labs/orm-firestore test:real",
     "test:local": "pnpm test:local:sql && pnpm test:local:drizzle && pnpm test:local:kysely && pnpm test:local:mongodb && pnpm test:local:prisma",
     "test:local:sql": "pnpm --filter @farming-labs/orm-sql test:local",
     "test:local:sqlite": "FARM_ORM_LOCAL_SQL_TARGETS=sqlite pnpm --filter @farming-labs/orm-sql test:local",

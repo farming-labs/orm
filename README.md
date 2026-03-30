@@ -76,6 +76,39 @@ one storage layer while the app keeps its own database stack.
 - integer comparison filters and raw JSON equality filters across the live runtimes
 - enum, bigint, and decimal support across the live runtimes and generated outputs
 
+## Optional real Firestore tests
+
+The Firestore package runs its in-memory integration suite by default. Real
+Firestore tests are opt-in and only run when Firestore auth env vars are
+present.
+
+Recommended emulator flow:
+
+```bash
+export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
+export GOOGLE_CLOUD_PROJECT=farm-orm-local
+pnpm --filter @farming-labs/orm-firestore test:real
+```
+
+Cloud project flow:
+
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account.json
+export GOOGLE_CLOUD_PROJECT=your-firestore-project
+pnpm --filter @farming-labs/orm-firestore test:real
+```
+
+For CI, prefer encrypted secrets such as
+`FARM_ORM_LOCAL_FIRESTORE_SERVICE_ACCOUNT_JSON` and
+`FARM_ORM_LOCAL_FIRESTORE_PROJECT_ID`.
+
+If you want the real Firestore suite included in the normal workspace run, use
+the same env vars with:
+
+```bash
+pnpm test
+```
+
 ## Quick example
 
 ```ts
