@@ -339,8 +339,8 @@ function mergeModelTransforms(
 
   for (const [modelName, fieldTransforms] of Object.entries(extra)) {
     output[modelName] = {
-      ...(output[modelName] ?? {}),
-      ...(fieldTransforms ?? {}),
+      ...output[modelName],
+      ...fieldTransforms,
     };
   }
 
