@@ -908,6 +908,32 @@ function createDynamoDbDriverInternal<TSchema extends SchemaDefinition<any>>(
     );
   }
 
+  async function acquireUniqueLocksSequential(tableName: string, locks: UniqueLock[]) {
+    const acquired: UniqueLock[] = [];
+
+    try {
+      for (const lock of locks) {
+        await putUniqueSequential(tableName, lock);
+        acquired.push(lock);
+      }
+    } catch (error) {
+      await releaseUniqueLocksSequential(tableName, acquired);
+      throw error;
+    }
+
+    return acquired;
+  }
+
+  async function releaseUniqueLocksSequential(tableName: string, locks: UniqueLock[]) {
+    for (const lock of [...locks].reverse()) {
+      try {
+        await deleteSequential(tableName, lock.pk);
+      } catch {
+        // Best-effort cleanup for the sequential fallback path.
+      }
+    }
+  }
+
   async function createRecordWithLocks(
     tableName: string,
     row: { docId: string; stored: DynamoDbRow; decoded: DynamoDbRow },
@@ -930,9 +956,13 @@ function createDynamoDbDriverInternal<TSchema extends SchemaDefinition<any>>(
         throw error;
       }
 
-      await putRecordSequential(tableName, row, true);
-      for (const lock of locks) {
-        await putUniqueSequential(tableName, lock);
+      const acquiredLocks = await acquireUniqueLocksSequential(tableName, locks);
+
+      try {
+        await putRecordSequential(tableName, row, true);
+      } catch (recordError) {
+        await releaseUniqueLocksSequential(tableName, acquiredLocks);
+        throw recordError;
       }
     }
   }
@@ -967,14 +997,18 @@ function createDynamoDbDriverInternal<TSchema extends SchemaDefinition<any>>(
         throw error;
       }
 
-      await putRecordSequential(tableName, next, false);
+      const addedLocks = [...nextLocks.values()].filter((lock) => !currentLocks.has(lock.pk));
+      const acquiredLocks = await acquireUniqueLocksSequential(tableName, addedLocks);
+
+      try {
+        await putRecordSequential(tableName, next, false);
+      } catch (recordError) {
+        await releaseUniqueLocksSequential(tableName, acquiredLocks);
+        throw recordError;
+      }
+
       for (const operation of deleteOps) {
         await deleteSequential(tableName, operation.Delete.Key[ormPrimaryKey]);
-      }
-      for (const [, lock] of nextLocks.entries()) {
-        if (!currentLocks.has(lock.pk)) {
-          await putUniqueSequential(tableName, lock);
-        }
       }
     }
   }

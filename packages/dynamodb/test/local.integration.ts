@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { PutCommand } from "@aws-sdk/lib-dynamodb";
 import {
   createOrm,
   datetime,
@@ -27,6 +28,7 @@ import {
   assertOneToOneAndHasManyQueries,
   schema,
 } from "../../mongoose/test/support/auth";
+import type { DynamoDbDocumentClientLike } from "../src";
 
 const generatedNumericIdSchema = defineSchema({
   auditEvent: model({
@@ -60,23 +62,77 @@ const normalizedUniqueLookupSchema = defineSchema({
   }),
 });
 
-async function createLocalDynamoOrm() {
+const fallbackIntegritySchema = defineSchema({
+  user: model({
+    table: "users",
+    fields: {
+      id: id(),
+      email: string().unique(),
+      name: string(),
+    },
+  }),
+});
+
+function createConditionalCheckFailedError(target?: string | string[]) {
+  const error = new Error("ConditionalCheckFailedException");
+  Object.assign(error, {
+    name: "ConditionalCheckFailedException",
+    code: "ConditionalCheckFailedException",
+    target,
+  });
+  return error;
+}
+
+function uniqueLockPk(modelName: string, fields: string[], values: unknown[]) {
+  return `unique#${modelName}#${fields.join("+")}#${values
+    .map((value) => encodeURIComponent(JSON.stringify(value)))
+    .join("#")}`;
+}
+
+function createFailingDocumentClient(
+  base: DynamoDbDocumentClientLike,
+  options: {
+    failOnPk: string;
+    target?: string | string[];
+  },
+) {
+  return {
+    send: async (command: unknown) => {
+      if (command instanceof PutCommand) {
+        const item = command.input.Item as Record<string, unknown> | undefined;
+        if (item?.__orm_pk === options.failOnPk) {
+          throw createConditionalCheckFailedError(options.target);
+        }
+      }
+
+      return base.send(command);
+    },
+  } as DynamoDbDocumentClientLike;
+}
+
+async function createLocalDynamoOrm(options?: { documentClient?: DynamoDbDocumentClientLike }) {
   const local = await startLocalDynamoDb();
 
-  await pushSchema({
-    schema,
-    client: local.client,
-  });
-
-  return {
-    ...local,
-    orm: createOrm({
+  try {
+    await pushSchema({
       schema,
-      driver: createDynamodbDriver({
-        client: local.client,
-      }),
-    }) as RuntimeOrm,
-  };
+      client: local.client,
+    });
+
+    return {
+      ...local,
+      orm: createOrm({
+        schema,
+        driver: createDynamodbDriver({
+          client: local.client,
+          ...(options?.documentClient ? { documentClient: options.documentClient } : {}),
+        }),
+      }) as RuntimeOrm,
+    };
+  } catch (error) {
+    await local.close();
+    throw error;
+  }
 }
 
 describe("dynamodb local integration", () => {
@@ -270,6 +326,134 @@ describe("dynamodb local integration", () => {
       expect(isOrmError(error)).toBe(true);
       expect(error.code).toBe("UNIQUE_CONSTRAINT_VIOLATION");
       expect(error.backendKind).toBe("dynamodb");
+    } finally {
+      await local.close();
+    }
+  });
+
+  it("does not persist a record when the sequential create fallback loses a unique lock", async () => {
+    const local = await startLocalDynamoDb();
+
+    try {
+      await pushSchema({
+        schema: fallbackIntegritySchema,
+        client: local.client,
+      });
+
+      const orm = createOrm({
+        schema: fallbackIntegritySchema,
+        driver: createDynamodbDriver({
+          client: local.client,
+          documentClient: createFailingDocumentClient(local.documentClient, {
+            failOnPk: uniqueLockPk("user", ["email"], ["conflict@farminglabs.dev"]),
+            target: ["email"],
+          }),
+        }),
+      });
+
+      const error = await orm.user
+        .create({
+          data: {
+            email: "conflict@farminglabs.dev",
+            name: "Conflict",
+          },
+        })
+        .catch((reason) => reason);
+
+      expect(isOrmError(error)).toBe(true);
+      expect(error.code).toBe("UNIQUE_CONSTRAINT_VIOLATION");
+      expect(
+        await orm.user.count({
+          where: {
+            email: "conflict@farminglabs.dev",
+          },
+        }),
+      ).toBe(0);
+    } finally {
+      await local.close();
+    }
+  });
+
+  it("does not partially apply updates when the sequential fallback loses a new unique lock", async () => {
+    const local = await startLocalDynamoDb();
+
+    try {
+      await pushSchema({
+        schema: fallbackIntegritySchema,
+        client: local.client,
+      });
+
+      const baseOrm = createOrm({
+        schema: fallbackIntegritySchema,
+        driver: createDynamodbDriver({
+          client: local.client,
+        }),
+      });
+
+      const created = await baseOrm.user.create({
+        data: {
+          email: "before@farminglabs.dev",
+          name: "Before",
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+        },
+      });
+
+      const failingOrm = createOrm({
+        schema: fallbackIntegritySchema,
+        driver: createDynamodbDriver({
+          client: local.client,
+          documentClient: createFailingDocumentClient(local.documentClient, {
+            failOnPk: uniqueLockPk("user", ["email"], ["after@farminglabs.dev"]),
+            target: ["email"],
+          }),
+        }),
+      });
+
+      const error = await failingOrm.user
+        .update({
+          where: {
+            id: created.id,
+          },
+          data: {
+            email: "after@farminglabs.dev",
+          },
+          select: {
+            id: true,
+            email: true,
+          },
+        })
+        .catch((reason) => reason);
+
+      expect(isOrmError(error)).toBe(true);
+      expect(error.code).toBe("UNIQUE_CONSTRAINT_VIOLATION");
+      expect(
+        await baseOrm.user.findUnique({
+          where: {
+            id: created.id,
+          },
+          select: {
+            email: true,
+            name: true,
+          },
+        }),
+      ).toEqual({
+        email: "before@farminglabs.dev",
+        name: "Before",
+      });
+      expect(
+        await baseOrm.user.findUnique({
+          where: {
+            email: "after@farminglabs.dev",
+          },
+          select: {
+            id: true,
+          },
+        }),
+      ).toBeNull();
     } finally {
       await local.close();
     }
