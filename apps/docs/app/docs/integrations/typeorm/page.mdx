@@ -217,6 +217,27 @@ Run it with:
 pnpm test:local:typeorm
 ```
 
+If you want to point the suite at your own local database URLs, use:
+
+```bash
+export FARM_ORM_LOCAL_PG_ADMIN_URL=postgres://postgres:postgres@127.0.0.1:5432/postgres
+export FARM_ORM_LOCAL_MYSQL_ADMIN_URL=mysql://root:root@127.0.0.1:3306
+
+pnpm test:local:typeorm
+```
+
+You can also target a single TypeORM family while debugging:
+
+```bash
+FARM_ORM_LOCAL_TYPEORM_TARGETS=postgresql pnpm --filter @farming-labs/orm-typeorm test
+FARM_ORM_LOCAL_TYPEORM_TARGETS=mysql pnpm --filter @farming-labs/orm-typeorm test
+FARM_ORM_LOCAL_TYPEORM_TARGETS=sqlite pnpm --filter @farming-labs/orm-typeorm test
+```
+
+The PostgreSQL and MySQL paths create isolated temporary databases during the
+run, execute the real TypeORM-backed runtime against them, and then clean those
+databases up afterward.
+
 ## Why it fits well
 
 TypeORM already gives apps a familiar `DataSource` abstraction.
