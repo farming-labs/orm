@@ -527,6 +527,10 @@ async function applySchemaInternal<TSchema extends SchemaDefinition<any>, TClien
       return;
     }
 
+    if (runtime.kind === "firestore") {
+      return;
+    }
+
     if (runtime.kind === "mongoose") {
       const connection = runtime.client as Record<string, unknown>;
       const db = isRecord(connection.db) ? connection.db : connection;

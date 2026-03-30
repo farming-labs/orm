@@ -8,6 +8,11 @@ import type {
 } from "@farming-labs/orm";
 import type { DrizzleDialect, DrizzleDriverConfig } from "@farming-labs/orm-drizzle";
 import type {
+  FirestoreDbLike,
+  FirestoreDriverConfig,
+  FirestoreDriverHandle,
+} from "@farming-labs/orm-firestore";
+import type {
   MongoCollectionMap,
   MongoDbLike,
   MongoDriverConfig,
@@ -30,6 +35,7 @@ export type AutoDriverHandle<TClient = unknown> =
   | PrismaDriverHandle
   | SqlDriverHandle<TClient, AutoDialect>
   | OrmDriverHandle<"drizzle", TClient, DrizzleDialect>
+  | FirestoreDriverHandle<any>
   | OrmDriverHandle<"kysely", TClient, KyselyDialect>
   | OrmDriverHandle<"mongo", unknown>
   | OrmDriverHandle<"mongoose", unknown>;
@@ -48,6 +54,11 @@ export type CreateDriverFromRuntimeOptions<
     packageRoot?: string;
   };
   drizzle?: Pick<DrizzleDriverConfig<TSchema>, "client">;
+  firestore?: {
+    db?: FirestoreDbLike;
+    collections?: FirestoreDriverConfig<TSchema>["collections"];
+    transforms?: FirestoreDriverConfig<TSchema>["transforms"];
+  };
   mongo?: {
     collections?: MongoCollectionMap<TSchema>;
     db?: MongoDbLike;
@@ -76,6 +87,13 @@ type MongoClientLike = MongoSessionSourceLike & {
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object";
+}
+
+export function resolveFirestoreDb(
+  runtime: DetectedDatabaseRuntime<any>,
+  options: CreateDriverFromRuntimeOptions<any>,
+) {
+  return (options.firestore?.db ?? runtime.client) as FirestoreDbLike;
 }
 
 export function hasFunction<TName extends string>(

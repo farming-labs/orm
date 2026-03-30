@@ -6,9 +6,9 @@ One schema. Many stacks.
 Prisma/Drizzle/SQL output from it, and run one typed query API across multiple
 runtime drivers.
 
-If an app already uses Prisma, Drizzle, Kysely, direct SQL, MongoDB, or
-Mongoose, the matching runtime package lets shared libraries keep one storage
-layer while the app keeps its own database stack.
+If an app already uses Prisma, Drizzle, Kysely, direct SQL, Firestore,
+MongoDB, or Mongoose, the matching runtime package lets shared libraries keep
+one storage layer while the app keeps its own database stack.
 
 ## Packages
 
@@ -24,6 +24,8 @@ layer while the app keeps its own database stack.
   Runtime driver for Kysely-backed SQLite, MySQL, and PostgreSQL
 - `@farming-labs/orm-sql`
   Direct SQL runtime for SQLite, MySQL, and PostgreSQL
+- `@farming-labs/orm-firestore`
+  Runtime driver for server-side Firestore clients
 - `@farming-labs/orm-mongo`
   Runtime driver for the native `mongodb` client
 - `@farming-labs/orm-mongoose`
@@ -59,6 +61,7 @@ layer while the app keeps its own database stack.
   - SQLite
   - MySQL
   - PostgreSQL
+  - Firestore via server-side Firestore clients
   - MongoDB via `mongodb`
   - MongoDB via Mongoose
 - relation support for:

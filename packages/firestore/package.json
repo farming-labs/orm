@@ -1,0 +1,32 @@
+{
+  "name": "@farming-labs/orm-firestore",
+  "version": "0.0.30",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsx ./scripts/build.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@farming-labs/orm": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.4.0"
+  }
+}

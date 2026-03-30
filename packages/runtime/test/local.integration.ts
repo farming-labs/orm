@@ -16,6 +16,7 @@ import {
 } from "@farming-labs/orm";
 import { createDriverFromRuntime, createOrmFromRuntime } from "../src";
 import { applySchema, bootstrapDatabase, pushSchema } from "../src/setup";
+import { InMemoryFirestore } from "../../firestore/test/support/firestore-harness";
 
 const schema = defineSchema({
   user: model({
@@ -190,6 +191,45 @@ describe("runtime helper local integration", () => {
       database.close();
       await rm(directory, { recursive: true, force: true });
     }
+  });
+
+  it("creates and bootstraps a Firestore runtime from a raw server-side client", async () => {
+    const db = new InMemoryFirestore();
+
+    await pushSchema({
+      schema,
+      client: db,
+    });
+    await applySchema({
+      schema,
+      client: db,
+    });
+
+    const driver = await createDriverFromRuntime({
+      schema,
+      client: db,
+    });
+    const orm = await bootstrapDatabase({
+      schema,
+      client: db,
+    });
+
+    const created = await orm.user.create({
+      data: {
+        email: "firestore@farminglabs.dev",
+        name: "Firestore",
+      },
+      select: {
+        id: true,
+        email: true,
+      },
+    });
+
+    expect(driver.handle.kind).toBe("firestore");
+    expect(created).toEqual({
+      id: expect.any(String),
+      email: "firestore@farminglabs.dev",
+    });
   });
 
   it("supports manual numeric ids against a real SQLite database", async () => {

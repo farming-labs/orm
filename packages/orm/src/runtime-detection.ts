@@ -3,7 +3,7 @@ export type DetectedDatabaseDialect = "sqlite" | "postgres" | "mysql";
 export type DetectedDatabaseSource = "client" | "connection" | "pool" | "database" | "db";
 
 export type DetectedDatabaseRuntime<TClient = unknown> = Readonly<{
-  kind: "prisma" | "drizzle" | "kysely" | "sql" | "mongo" | "mongoose";
+  kind: "prisma" | "drizzle" | "kysely" | "sql" | "mongo" | "mongoose" | "firestore";
   client: TClient;
   dialect?: DetectedDatabaseDialect;
   source: DetectedDatabaseSource;
@@ -186,6 +186,14 @@ function isMongoClient(client: unknown): client is Record<string, unknown> {
   );
 }
 
+function isFirestoreDb(client: unknown): client is Record<string, unknown> {
+  return (
+    hasFunction(client, "collection") &&
+    hasFunction(client, "runTransaction") &&
+    (hasFunction(client, "getAll") || hasFunction(client, "batch"))
+  );
+}
+
 export function detectDatabaseRuntime<TClient>(
   client: TClient,
 ): DetectedDatabaseRuntime<TClient> | null {
@@ -237,6 +245,14 @@ export function detectDatabaseRuntime<TClient>(
       kind: "mongo",
       client,
       source: "client",
+    });
+  }
+
+  if (isFirestoreDb(client)) {
+    return Object.freeze({
+      kind: "firestore",
+      client,
+      source: "db",
     });
   }
 
@@ -342,6 +358,17 @@ export function inspectDatabaseRuntime<TClient>(
           : missingFunctions(client, ["collection"]).concat([
               'expected either a Mongo Db ("command", "admin") or MongoClient ("db", "connect", "close", "startSession") shape',
             ]),
+    },
+    {
+      kind: "firestore",
+      matched: isFirestoreDb(client),
+      reasons: isFirestoreDb(client)
+        ? []
+        : missingFunctions(client, ["collection", "runTransaction"]).concat(
+            hasFunction(client, "getAll") || hasFunction(client, "batch")
+              ? []
+              : ['missing "getAll()" or "batch()"'],
+          ),
     },
     {
       kind: "sql",

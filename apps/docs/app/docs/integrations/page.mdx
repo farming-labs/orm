@@ -1,6 +1,6 @@
 ---
 title: "Integrations"
-description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, SQL-first, Supabase, and MongoDB-oriented workflows."
+description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, SQL-first, Supabase, Firestore, and MongoDB-oriented workflows."
 order: 6
 icon: package
 ---
@@ -29,6 +29,7 @@ layer rather than needing a separate database model.
 | MongoDB runtime     | No         | No    | No     | Yes     | `@farming-labs/orm-mongo`                 |
 | Mongoose runtime    | No         | No    | No     | Yes     | `@farming-labs/orm-mongoose`              |
 | Kysely runtime      | Yes        | Yes   | Yes    | No      | `@farming-labs/orm-kysely`                |
+| Firestore runtime   | No         | No    | No     | Yes     | `@farming-labs/orm-firestore`             |
 
 Supabase is already covered through the PostgreSQL layer:
 
@@ -36,9 +37,15 @@ Supabase is already covered through the PostgreSQL layer:
 - the live ORM runtime works through a PostgreSQL client connected to Supabase
 - setup helpers such as `pushSchema(...)` and `bootstrapDatabase(...)` still work through that PostgreSQL path
 
-Firebase / Firestore is **not** a first-class runtime in this repo yet. It
-needs a dedicated document-driver and emulator-backed test matrix rather than
-the PostgreSQL / SQL path that Supabase can use.
+Firestore is now a first-class document runtime in this repo through
+`@farming-labs/orm-firestore`.
+
+- it works with server-side Firestore clients such as `@google-cloud/firestore`
+  and `firebase-admin`
+- it keeps the same schema and query API surface as the SQL and Mongo runtimes
+- relation selections resolve through follow-up ORM queries rather than native joins
+- `pushSchema(...)` and `applySchema(...)` are intentional no-ops because
+  Firestore does not have SQL-style DDL to apply
 
 ## Scalar field coverage
 
@@ -54,6 +61,7 @@ matrix:
 | Direct SQL runtime | Yes        | Yes   | Yes    | No      | Yes         | Yes      | Yes             | Yes        | Yes         |
 | MongoDB runtime    | No         | No    | No     | Yes     | Yes         | Yes      | Yes             | Yes        | Yes         |
 | Mongoose runtime   | No         | No    | No     | Yes     | Yes         | Yes      | Yes             | Yes        | Yes         |
+| Firestore runtime  | No         | No    | No     | Yes     | Yes         | Yes      | Yes             | Yes        | Yes         |
 
 Those checks are not generator-only. They run the live runtime query layer
 against real local database instances and real client stacks for each supported
@@ -88,6 +96,7 @@ Today that means:
 | Kysely runtime     | inherited SQL single-query loading for singular chains and simple collection branches without relation-level modifiers          | relation branches with extra relation-level filters, ordering, or paging |
 | Direct SQL runtime | single SQL statement for singular chains and simple collection branches without relation-level modifiers                        | relation branches with extra relation-level filters, ordering, or paging |
 | Mongo / Mongoose   | not yet                                                                                                                         | shared relation resolver                                                 |
+| Firestore          | not yet                                                                                                                         | shared relation resolver                                                 |
 
 The important nuance is that the fallback column does **not** mean the backend
 is fundamentally missing relation support.
@@ -110,6 +119,7 @@ today**, not **the theoretical limit of the backend**.
 - Use **Drizzle runtime** if your app already uses Drizzle
 - Use **Kysely runtime** if your app already uses Kysely
 - Use **direct SQL runtime** if you want to talk to SQLite, MySQL, or PostgreSQL directly
+- Use **Firestore runtime** if your app uses a server-side Firestore client
 - Use **MongoDB runtime** if your app uses the native `mongodb` client
 - Use **Mongoose runtime** if your app already uses Mongoose models
 
@@ -124,6 +134,7 @@ Examples:
 - `@farming-labs/orm-drizzle` translates into Drizzle-backed queries
 - `@farming-labs/orm-kysely` translates into Kysely-backed queries
 - `@farming-labs/orm-sql` translates into direct SQL operations
+- `@farming-labs/orm-firestore` translates into Firestore document operations
 - `@farming-labs/orm-mongo` translates into native `mongodb` collection operations
 - `@farming-labs/orm-mongoose` translates into Mongoose model operations
 
@@ -172,6 +183,15 @@ Examples:
   linkLabel="Open Supabase guide"
 >
   Supabase integration
+</HoverLink>
+
+<HoverLink
+  href="/docs/integrations/firestore"
+  title="Firestore"
+  description="See how Farming Labs ORM translates one schema and one storage layer into Firebase / Firestore server-side workflows."
+  linkLabel="Open Firestore guide"
+>
+  Firestore integration
 </HoverLink>
 
 <HoverLink

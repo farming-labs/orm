@@ -31,6 +31,7 @@
   "dependencies": {
     "@farming-labs/orm": "workspace:*",
     "@farming-labs/orm-drizzle": "workspace:*",
+    "@farming-labs/orm-firestore": "workspace:*",
     "@farming-labs/orm-kysely": "workspace:*",
     "@farming-labs/orm-mongo": "workspace:*",
     "@farming-labs/orm-mongoose": "workspace:*",

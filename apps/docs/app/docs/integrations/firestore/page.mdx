@@ -1,0 +1,171 @@
+---
+title: "Firestore"
+description: "How to use Farming Labs ORM with Firebase / Firestore through one unified document runtime."
+order: 6
+icon: database
+---
+
+# Firestore
+
+Firestore support in Farming Labs ORM is the document-runtime answer for teams
+that want one storage layer without owning a separate Firebase-only adapter
+stack.
+
+The supported path is **server-side Firestore clients**, such as:
+
+- `@google-cloud/firestore`
+- `firebase-admin/firestore`
+
+This is not the browser SDK path.
+
+## What this gives you
+
+You still write the schema and storage layer once.
+
+Then the runtime translates that layer into Firestore document operations:
+
+- one schema definition
+- one query API
+- one capability surface
+- one normalized error surface
+- one runtime-helper path
+
+That means a framework, auth package, billing package, or internal platform can
+keep one storage implementation while the app decides to use Firestore.
+
+## Create the runtime directly
+
+```ts title="firestore-runtime.ts"
+import { createOrm } from "@farming-labs/orm";
+import { createFirestoreDriver } from "@farming-labs/orm-firestore";
+import { Firestore } from "@google-cloud/firestore";
+import { appSchema } from "./schema";
+
+const db = new Firestore();
+
+const orm = createOrm({
+  schema: appSchema,
+  driver: createFirestoreDriver({
+    db,
+  }),
+});
+```
+
+## Use the runtime helper path
+
+If a library or framework wants to accept a raw Firestore client and normalize
+it later, use the runtime helpers instead:
+
+```ts
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const orm = await createOrmFromRuntime({
+  schema: appSchema,
+  client: db,
+});
+```
+
+That is the cleanest path for package-owned integrations.
+
+## Setup helpers
+
+Firestore does not have SQL-style table DDL, so the setup helpers are honest
+about that.
+
+- `pushSchema(...)` is a no-op
+- `applySchema(...)` is a no-op
+- `bootstrapDatabase(...)` still works and returns the ORM client after that
+  no-op setup stage
+
+```ts
+import { bootstrapDatabase } from "@farming-labs/orm-runtime/setup";
+
+const orm = await bootstrapDatabase({
+  schema: appSchema,
+  client: db,
+});
+```
+
+## Joins and relations
+
+Firestore does not have native joins.
+
+That does **not** mean relation selections stop working.
+
+The ORM resolves relation branches through consecutive document queries, so
+code like this still works:
+
+```ts
+const user = await orm.user.findUnique({
+  where: {
+    email: "ada@farminglabs.dev",
+  },
+  select: {
+    id: true,
+    email: true,
+    profile: {
+      select: {
+        bio: true,
+      },
+    },
+    sessions: {
+      select: {
+        token: true,
+      },
+    },
+  },
+});
+```
+
+That is the same replacement story libraries like NextAuth.js or Better Auth
+need: write the storage layer once, and let the ORM resolve the
+document-database differences underneath it.
+
+## Transactions and constraints
+
+When the Firestore client exposes `runTransaction(...)`, the Firestore runtime
+uses it for writes that need consistency:
+
+- create
+- createMany
+- update
+- updateMany
+- upsert
+- delete
+- deleteMany
+- explicit `orm.transaction(...)`
+
+That matters because model-level unique constraints and compound unique
+constraints are checked inside that write flow rather than being left as
+best-effort client-side checks.
+
+## What is supported well
+
+- string ids
+- manual numeric ids
+- `integer()`
+- `json()`
+- `enumeration()`
+- `bigint()`
+- `decimal()`
+- one-to-one, one-to-many, and explicit join-table many-to-many relation
+  resolution through ORM follow-up queries
+- compound unique lookups and upserts
+- normalized duplicate-key error handling
+
+## Important limits
+
+- generated integer ids are not supported on Firestore
+- schema-qualified table names are not supported
+- relation loading is fallback-based, not native-join based
+- advanced filter shapes are still more limited than SQL-first runtimes
+- browser SDK clients are not the target here
+
+## Why this matters
+
+This keeps Firestore inside the same bigger ORM story:
+
+- write your storage layer once
+- keep one schema definition
+- let the app choose Firestore
+- avoid owning a separate Firebase-only adapter surface
