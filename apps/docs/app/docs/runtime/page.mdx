@@ -121,8 +121,8 @@ The setup helpers now live on the Node-only subpath:
 - `bootstrapDatabase(...)`
 
 Import them from `@farming-labs/orm-runtime/setup`. They use the same runtime
-detection layer to prepare direct SQL, Prisma, MongoDB, Mongoose, Drizzle, and
-Kysely runtimes without inventing a separate config surface.
+detection layer to prepare direct SQL, Prisma, TypeORM, MongoDB, Mongoose,
+Drizzle, and Kysely runtimes without inventing a separate config surface.
 
 There is also a dedicated guide for this flow:
 
@@ -221,6 +221,7 @@ the stage, runtime kind, dialect, and underlying cause available.
 - `createMemoryDriver(...)` from `@farming-labs/orm`
 - `createPrismaDriver(...)` from `@farming-labs/orm-prisma`
 - `createDrizzleDriver(...)` from `@farming-labs/orm-drizzle`
+- `createTypeormDriver(...)` from `@farming-labs/orm-typeorm`
 - `createSqliteDriver(...)` from `@farming-labs/orm-sql`
 - `createMysqlDriver(...)` from `@farming-labs/orm-sql`
 - `createPgPoolDriver(...)` from `@farming-labs/orm-sql`
@@ -253,8 +254,8 @@ async function findUserByEmail(orm: typeof authOrm, email: string) {
 }
 ```
 
-That helper stays the same whether the app uses Prisma, Drizzle, direct SQL,
-MongoDB, or Mongoose.
+That helper stays the same whether the app uses Prisma, Drizzle, TypeORM,
+direct SQL, MongoDB, or Mongoose.
 
 The same is true for compound auth lookups:
 

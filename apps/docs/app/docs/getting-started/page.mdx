@@ -204,6 +204,29 @@ const orm = createOrm({
 });
 ```
 
+### TypeORM
+
+```ts title="typeorm-runtime.ts"
+import { createOrm } from "@farming-labs/orm";
+import { createTypeormDriver } from "@farming-labs/orm-typeorm";
+import { DataSource } from "typeorm";
+
+const dataSource = new DataSource({
+  type: "postgres",
+  url: process.env.DATABASE_URL,
+  entities: [],
+});
+
+await dataSource.initialize();
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createTypeormDriver({
+    dataSource,
+  }),
+});
+```
+
 ### MongoDB
 
 ```ts title="mongo-runtime.ts"
@@ -258,7 +281,7 @@ const orm = await createOrmFromRuntime({
 ```
 
 That path is especially useful for higher-level integrations that want to
-accept a raw Prisma, Drizzle, Kysely, SQL, MongoDB, or Mongoose runtime.
+accept a raw Prisma, Drizzle, Kysely, TypeORM, SQL, MongoDB, or Mongoose runtime.
 
 ## 5. Use the client
 
@@ -297,6 +320,7 @@ pnpm test:local:drizzle
 pnpm test:local:sqlite
 pnpm test:local:postgres
 pnpm test:local:mysql
+pnpm test:local:typeorm
 pnpm test:local:mongodb
 ```
 
@@ -305,5 +329,6 @@ pnpm test:local:mongodb
 - [Runtime](/docs/runtime)
 - [Prisma integration](/docs/integrations/prisma)
 - [Drizzle integration](/docs/integrations/drizzle)
+- [TypeORM integration](/docs/integrations/typeorm)
 - [SQL databases](/docs/integrations/sql-databases)
 - [MongoDB](/docs/integrations/mongodb)

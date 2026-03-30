@@ -1,0 +1,233 @@
+---
+title: "TypeORM"
+description: "How the unified schema and runtime fit into TypeORM DataSource-based apps."
+order: 4
+icon: braces
+---
+
+# TypeORM
+
+TypeORM integration is runtime-first.
+
+Use `@farming-labs/orm-typeorm` when:
+
+- the app already owns a real TypeORM `DataSource`
+- a shared package wants to keep one storage layer across TypeORM, Prisma,
+  Drizzle, Kysely, SQL, Firestore, MongoDB, or Mongoose
+- you want one schema definition and one query surface while still letting the
+  app use TypeORM underneath
+
+## Supported TypeORM dialect families
+
+- `postgres`
+- `mysql` / `mariadb`
+- `sqlite`-family DataSources such as `sqlite`, `better-sqlite3`, and `sqljs`
+
+The current repo verifies the broadest TypeORM matrix on PostgreSQL and MySQL,
+with SQL.js-backed SQLite smoke coverage for bootstrap and runtime creation.
+
+## Runtime setup
+
+```ts title="typeorm-runtime.ts"
+import { createOrm } from "@farming-labs/orm";
+import { createTypeormDriver } from "@farming-labs/orm-typeorm";
+import { DataSource } from "typeorm";
+import { authSchema } from "./schema";
+
+const dataSource = new DataSource({
+  type: "postgres",
+  url: process.env.DATABASE_URL,
+  entities: [],
+});
+
+await dataSource.initialize();
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createTypeormDriver({
+    dataSource,
+  }),
+});
+```
+
+From there, shared code keeps using the same unified API:
+
+```ts
+const user = await orm.user.findUnique({
+  where: {
+    email: "ada@farminglabs.dev",
+  },
+  select: {
+    id: true,
+    email: true,
+    profile: {
+      select: {
+        bio: true,
+      },
+    },
+    sessions: {
+      select: {
+        token: true,
+      },
+    },
+  },
+});
+```
+
+## What the TypeORM driver is doing
+
+The TypeORM driver does not invent another ORM layer.
+
+It:
+
+1. accepts the app's real `DataSource`
+2. executes through TypeORM query runners and transactions
+3. reuses the shared SQL runtime semantics for filtering, mutations, relation
+   loading, compound unique lookups, numeric IDs, and normalized errors
+
+That means a package can write its storage layer once while each app decides
+whether the actual execution stack is TypeORM, Prisma, Drizzle, Kysely, direct
+SQL, Firestore, MongoDB, or Mongoose.
+
+## Runtime helper path
+
+If a framework or shared package wants to accept the raw `DataSource` directly,
+use the runtime helpers:
+
+```ts
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const orm = await createOrmFromRuntime({
+  schema: authSchema,
+  client: dataSource,
+});
+```
+
+That is the cleanest path for higher-level integrations that do not want to
+branch on TypeORM specifically.
+
+## Setup helpers
+
+The setup helpers work with TypeORM too:
+
+```ts
+import { bootstrapDatabase, pushSchema } from "@farming-labs/orm-runtime/setup";
+
+await pushSchema({
+  schema: authSchema,
+  client: dataSource,
+});
+
+const orm = await bootstrapDatabase({
+  schema: authSchema,
+  client: dataSource,
+});
+```
+
+For TypeORM DataSources, that setup path renders safe SQL from the Farming Labs
+schema and applies it through the DataSource itself.
+
+That is especially useful when a package or framework wants:
+
+- repeatable test setup
+- one bootstrap path across runtime families
+- no separate TypeORM-only schema-push API at the package boundary
+
+## Relation support
+
+The TypeORM runtime inherits the current SQL-family relation behavior:
+
+- native single-query loading for supported singular chains
+- native single-query loading for simple `hasMany(...)` and explicit join-table
+  `manyToMany(...)` branches without relation-level modifiers
+- shared fallback relation resolution for more complex relation branches that
+  add their own `where`, `orderBy`, `take`, or `skip`
+
+That means auth-style and framework-style relation reads still work through the
+same unified API surface.
+
+## Transactions and mutations
+
+TypeORM transactions map into the unified ORM transaction surface:
+
+```ts
+await orm.transaction(async (tx) => {
+  const user = await tx.user.create({
+    data: {
+      email: "ada@farminglabs.dev",
+      name: "Ada",
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  await tx.session.upsert({
+    where: {
+      token: "session-token",
+    },
+    create: {
+      userId: user.id,
+      token: "session-token",
+      expiresAt: new Date("2027-01-01T00:00:00.000Z"),
+    },
+    update: {
+      expiresAt: new Date("2027-01-01T00:00:00.000Z"),
+    },
+  });
+});
+```
+
+The same runtime also supports:
+
+- `create`
+- `createMany`
+- `update`
+- `updateMany`
+- `upsert`
+- `delete`
+- `deleteMany`
+- compound-unique lookups
+- model-level constraint enforcement
+
+## Real integration coverage
+
+The TypeORM package is verified against:
+
+- SQL.js-backed SQLite smoke coverage for bootstrap and runtime creation
+- PostgreSQL through a real local TypeORM `DataSource`
+- MySQL through a real local TypeORM `DataSource`
+
+The local suite includes:
+
+- raw runtime detection
+- `createTypeormDriver(...)`
+- `createOrmFromRuntime(...)`
+- `pushSchema(...)`
+- `bootstrapDatabase(...)`
+- auth-style relation queries
+- mutation and transaction behavior
+- compound unique lookups
+- integer/json coverage
+- enum/bigint/decimal coverage on the relational matrix
+
+Run it with:
+
+```bash title="terminal"
+pnpm test:local:typeorm
+```
+
+## Why it fits well
+
+TypeORM already gives apps a familiar `DataSource` abstraction.
+
+Farming Labs ORM sits one layer above that:
+
+- app code keeps TypeORM
+- package code keeps one schema and one storage layer
+- runtime helpers can still accept the raw `DataSource`
+- setup helpers can still bootstrap the live database
+
+That is the main value: TypeORM apps can participate in the same package-level
+storage contract as Prisma, Drizzle, Kysely, direct SQL, Firestore, MongoDB,
+and Mongoose apps.

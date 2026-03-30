@@ -54,6 +54,11 @@ type SqliteExecClient = {
   exec(sql: string): Promise<unknown> | unknown;
 };
 
+type InitializableConnectionLike = {
+  isInitialized?: boolean;
+  initialize?(): Promise<unknown>;
+};
+
 type KyselyExecuteClient = {
   executeQuery(query: {
     sql: string;
@@ -428,6 +433,12 @@ async function applySqlSchemaToClient(client: unknown, dialect: AutoDialect, sql
   );
 }
 
+async function ensureInitializedConnection(client: unknown) {
+  if (isRecord(client) && client.isInitialized === false && hasFunction(client, "initialize")) {
+    await (client as InitializableConnectionLike).initialize?.();
+  }
+}
+
 async function runPrismaDbPush(schemaPath: string, databaseUrl: string, packageRoot: string) {
   await execFileAsync(
     "pnpm",
@@ -548,6 +559,12 @@ async function applySchemaInternal<TSchema extends SchemaDefinition<any>, TClien
 
     if (runtime.kind === "drizzle") {
       await applySqlSchemaToClient(resolveDrizzleRuntimeClient(runtime, options), dialect, sql);
+      return;
+    }
+
+    if (runtime.kind === "typeorm") {
+      await ensureInitializedConnection(runtime.client);
+      await applySqlSchemaToClient(runtime.client, dialect, sql);
       return;
     }
 

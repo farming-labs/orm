@@ -3,7 +3,7 @@ export type DetectedDatabaseDialect = "sqlite" | "postgres" | "mysql";
 export type DetectedDatabaseSource = "client" | "connection" | "pool" | "database" | "db";
 
 export type DetectedDatabaseRuntime<TClient = unknown> = Readonly<{
-  kind: "prisma" | "drizzle" | "kysely" | "sql" | "mongo" | "mongoose" | "firestore";
+  kind: "prisma" | "drizzle" | "kysely" | "sql" | "mongo" | "mongoose" | "firestore" | "typeorm";
   client: TClient;
   dialect?: DetectedDatabaseDialect;
   source: DetectedDatabaseSource;
@@ -61,9 +61,19 @@ function missingKeys(value: unknown, keys: readonly string[]) {
 function normalizeDialect(value: unknown): DetectedDatabaseDialect | undefined {
   switch (value) {
     case "sqlite":
-    case "mysql":
-    case "postgres":
       return value;
+    case "better-sqlite3":
+    case "sqljs":
+    case "better-sqlite":
+      return "sqlite";
+    case "mysql":
+    case "mariadb":
+    case "aurora-mysql":
+    case "mariadb-mysql":
+      return "mysql";
+    case "postgres":
+    case "cockroachdb":
+    case "aurora-postgres":
     case "postgresql":
       return "postgres";
     default:
@@ -94,6 +104,10 @@ function detectKyselyDialect(client: { getExecutor?: () => { adapter?: unknown }
   if (adapterName.includes("Mysql")) return "mysql";
   if (adapterName.includes("Postgres")) return "postgres";
   return undefined;
+}
+
+function detectTypeormDialect(client: Record<string, unknown>) {
+  return normalizeDialect((client.options as Record<string, unknown> | undefined)?.type);
 }
 
 function isPrismaClient(client: unknown): client is Record<string, unknown> {
@@ -194,6 +208,17 @@ function isFirestoreDb(client: unknown): client is Record<string, unknown> {
   );
 }
 
+function isTypeormDataSource(client: unknown): client is Record<string, unknown> {
+  const record = client as Record<string, unknown>;
+  return (
+    hasFunction(client, "createQueryRunner") &&
+    hasFunction(client, "transaction") &&
+    isRecord(client) &&
+    isRecord(record.options) &&
+    "type" in record.options
+  );
+}
+
 export function detectDatabaseRuntime<TClient>(
   client: TClient,
 ): DetectedDatabaseRuntime<TClient> | null {
@@ -253,6 +278,15 @@ export function detectDatabaseRuntime<TClient>(
       kind: "firestore",
       client,
       source: "db",
+    });
+  }
+
+  if (isTypeormDataSource(client)) {
+    return Object.freeze({
+      kind: "typeorm",
+      client,
+      dialect: detectTypeormDialect(client),
+      source: "connection",
     });
   }
 
@@ -369,6 +403,17 @@ export function inspectDatabaseRuntime<TClient>(
               ? []
               : ['missing "getAll()" or "batch()"'],
           ),
+    },
+    {
+      kind: "typeorm",
+      matched: isTypeormDataSource(client),
+      reasons: missingFunctions(client, ["createQueryRunner", "transaction"]).concat(
+        isRecord(client) && isRecord(client.options)
+          ? "type" in client.options
+            ? []
+            : ['missing "options.type"']
+          : ['missing object property "options"'],
+      ),
     },
     {
       kind: "sql",

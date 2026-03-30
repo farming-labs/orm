@@ -152,6 +152,7 @@ export default defineDocs({
         { slug: "prisma" },
         { slug: "drizzle" },
         { slug: "kysely" },
+        { slug: "typeorm" },
         { slug: "sql-databases" },
         { slug: "supabase" },
         { slug: "firestore" },

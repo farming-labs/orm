@@ -1,6 +1,6 @@
 ---
 title: "Integrations"
-description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, SQL-first, Supabase, Firestore, and MongoDB-oriented workflows."
+description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, TypeORM, SQL-first, Supabase, Firestore, and MongoDB-oriented workflows."
 order: 6
 icon: package
 ---
@@ -26,6 +26,7 @@ layer rather than needing a separate database model.
 | Prisma runtime      | Yes        | Yes   | Yes    | No      | `@farming-labs/orm-prisma`                |
 | Drizzle runtime     | Yes        | Yes   | Yes    | No      | `@farming-labs/orm-drizzle`               |
 | Direct SQL runtime  | Yes        | Yes   | Yes    | No      | `@farming-labs/orm-sql`                   |
+| TypeORM runtime     | Yes        | Yes   | Yes    | No      | `@farming-labs/orm-typeorm`               |
 | MongoDB runtime     | No         | No    | No     | Yes     | `@farming-labs/orm-mongo`                 |
 | Mongoose runtime    | No         | No    | No     | Yes     | `@farming-labs/orm-mongoose`              |
 | Kysely runtime      | Yes        | Yes   | Yes    | No      | `@farming-labs/orm-kysely`                |
@@ -59,6 +60,7 @@ matrix:
 | Drizzle runtime    | Yes        | Yes   | Yes    | No      | Yes         | Yes      | Yes             | Yes        | Yes         |
 | Kysely runtime     | Yes        | Yes   | Yes    | No      | Yes         | Yes      | Yes             | Yes        | Yes         |
 | Direct SQL runtime | Yes        | Yes   | Yes    | No      | Yes         | Yes      | Yes             | Yes        | Yes         |
+| TypeORM runtime    | Yes        | Yes   | Yes    | No      | Yes         | Yes      | Yes             | Yes\*      | Yes         |
 | MongoDB runtime    | No         | No    | No     | Yes     | Yes         | Yes      | Yes             | Yes        | Yes         |
 | Mongoose runtime   | No         | No    | No     | Yes     | Yes         | Yes      | Yes             | Yes        | Yes         |
 | Firestore runtime  | No         | No    | No     | Yes     | Yes         | Yes      | Yes             | Yes        | Yes         |
@@ -95,6 +97,7 @@ Today that means:
 | Drizzle runtime    | inherited SQL single-query loading for singular chains and simple collection branches without relation-level modifiers          | relation branches with extra relation-level filters, ordering, or paging |
 | Kysely runtime     | inherited SQL single-query loading for singular chains and simple collection branches without relation-level modifiers          | relation branches with extra relation-level filters, ordering, or paging |
 | Direct SQL runtime | single SQL statement for singular chains and simple collection branches without relation-level modifiers                        | relation branches with extra relation-level filters, ordering, or paging |
+| TypeORM runtime    | inherited SQL single-query loading for singular chains and simple collection branches without relation-level modifiers          | relation branches with extra relation-level filters, ordering, or paging |
 | Mongo / Mongoose   | not yet                                                                                                                         | shared relation resolver                                                 |
 | Firestore          | not yet                                                                                                                         | shared relation resolver                                                 |
 
@@ -110,6 +113,11 @@ is fundamentally missing relation support.
 So the current matrix is best read as: **what this repo natively translates
 today**, not **the theoretical limit of the backend**.
 
+\* The TypeORM suite fully verifies bigint round-trips on PostgreSQL and MySQL.
+The SQLite-family TypeORM path currently uses SQL.js smoke coverage in this
+repo, so bigint precision there still depends on the concrete TypeORM sqlite
+driver you choose.
+
 ## How to choose
 
 - Use **Prisma generation** if your app already owns `schema.prisma`
@@ -118,6 +126,7 @@ today**, not **the theoretical limit of the backend**.
 - Use **Prisma runtime** if your app already uses `PrismaClient`
 - Use **Drizzle runtime** if your app already uses Drizzle
 - Use **Kysely runtime** if your app already uses Kysely
+- Use **TypeORM runtime** if your app already uses a TypeORM `DataSource`
 - Use **direct SQL runtime** if you want to talk to SQLite, MySQL, or PostgreSQL directly
 - Use **Firestore runtime** if your app uses a server-side Firestore client
 - Use **MongoDB runtime** if your app uses the native `mongodb` client
@@ -134,6 +143,7 @@ Examples:
 - `@farming-labs/orm-drizzle` translates into Drizzle-backed queries
 - `@farming-labs/orm-kysely` translates into Kysely-backed queries
 - `@farming-labs/orm-sql` translates into direct SQL operations
+- `@farming-labs/orm-typeorm` translates into TypeORM-backed relational operations
 - `@farming-labs/orm-firestore` translates into Firestore document operations
 - `@farming-labs/orm-mongo` translates into native `mongodb` collection operations
 - `@farming-labs/orm-mongoose` translates into Mongoose model operations
@@ -165,6 +175,15 @@ Examples:
   linkLabel="Open Kysely guide"
 >
   Kysely integration
+</HoverLink>
+
+<HoverLink
+  href="/docs/integrations/typeorm"
+  title="TypeORM"
+  description="See how a real TypeORM DataSource can power the unified Farming ORM runtime without rewriting package-level storage code."
+  linkLabel="Open TypeORM guide"
+>
+  TypeORM integration
 </HoverLink>
 
 <HoverLink

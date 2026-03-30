@@ -234,6 +234,26 @@ describe("runtime contract", () => {
     expect(inspectDatabaseRuntime(db).runtime?.kind).toBe("firestore");
   });
 
+  it("detects TypeORM DataSource runtimes from the connection shape", () => {
+    const dataSource = {
+      options: {
+        type: "postgres",
+      },
+      createQueryRunner: () => ({
+        query: async () => undefined,
+      }),
+      transaction: async <TResult>(run: () => Promise<TResult>) => run(),
+    };
+
+    expect(detectDatabaseRuntime(dataSource)).toEqual({
+      kind: "typeorm",
+      client: dataSource,
+      dialect: "postgres",
+      source: "connection",
+    });
+    expect(inspectDatabaseRuntime(dataSource).runtime?.kind).toBe("typeorm");
+  });
+
   it("derives numericIds from supportsNumericIds when only the boolean flag is provided", () => {
     const handle = createDriverHandle({
       kind: "test",
