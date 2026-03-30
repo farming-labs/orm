@@ -1,6 +1,6 @@
 ---
 title: "Integrations"
-description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, SQL-first, and MongoDB-oriented workflows."
+description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, SQL-first, Supabase, and MongoDB-oriented workflows."
 order: 6
 icon: package
 ---
@@ -11,6 +11,9 @@ Farming Labs ORM has two layers:
 
 - `@farming-labs/orm` defines the schema and query API
 - runtime packages execute that API against the app’s actual stack
+
+Hosted PostgreSQL platforms such as Supabase fit through that same PostgreSQL
+layer rather than needing a separate database model.
 
 ## Support matrix
 
@@ -26,6 +29,16 @@ Farming Labs ORM has two layers:
 | MongoDB runtime     | No         | No    | No     | Yes     | `@farming-labs/orm-mongo`                 |
 | Mongoose runtime    | No         | No    | No     | Yes     | `@farming-labs/orm-mongoose`              |
 | Kysely runtime      | Yes        | Yes   | Yes    | No      | `@farming-labs/orm-kysely`                |
+
+Supabase is already covered through the PostgreSQL layer:
+
+- generated Prisma / Drizzle / SQL output still works
+- the live ORM runtime works through a PostgreSQL client connected to Supabase
+- setup helpers such as `pushSchema(...)` and `bootstrapDatabase(...)` still work through that PostgreSQL path
+
+Firebase / Firestore is **not** a first-class runtime in this repo yet. It
+needs a dedicated document-driver and emulator-backed test matrix rather than
+the PostgreSQL / SQL path that Supabase can use.
 
 ## Scalar field coverage
 
@@ -150,6 +163,15 @@ Examples:
   linkLabel="Open SQL guide"
 >
   SQL integration
+</HoverLink>
+
+<HoverLink
+  href="/docs/integrations/supabase"
+  title="Supabase"
+  description="See how Farming Labs ORM uses the PostgreSQL layer to work with Supabase without creating a separate database model."
+  linkLabel="Open Supabase guide"
+>
+  Supabase integration
 </HoverLink>
 
 <HoverLink

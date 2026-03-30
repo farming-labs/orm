@@ -332,24 +332,24 @@ function freezeDriverCapabilities(input?: OrmDriverCapabilityInput): OrmDriverCa
   const supportsNumericIds = input?.supportsNumericIds ?? numericIds !== "none";
   return Object.freeze({
     ...defaultDriverCapabilities,
-    ...(input ?? {}),
+    ...input,
     supportsNumericIds,
     numericIds,
     textMatching: Object.freeze({
       ...defaultDriverCapabilities.textMatching,
-      ...(input?.textMatching ?? {}),
+      ...input?.textMatching,
     }),
     returning: Object.freeze({
       ...defaultDriverCapabilities.returning,
-      ...(input?.returning ?? {}),
+      ...input?.returning,
     }),
     returningMode: Object.freeze({
       ...defaultDriverCapabilities.returningMode,
-      ...(input?.returningMode ?? {}),
+      ...input?.returningMode,
     }),
     nativeRelations: Object.freeze({
       ...defaultDriverCapabilities.nativeRelations,
-      ...(input?.nativeRelations ?? {}),
+      ...input?.nativeRelations,
     }),
   });
 }

@@ -1,0 +1,169 @@
+---
+title: "Supabase"
+description: "How to use Farming Labs ORM with Supabase through its PostgreSQL database layer."
+order: 5
+icon: database
+---
+
+# Supabase
+
+Supabase is best understood here as a PostgreSQL platform integration, not as a
+separate database model.
+
+That means Farming Labs ORM support for Supabase comes through the same unified
+schema, runtime, and setup layers that already power PostgreSQL.
+
+## What that means in practice
+
+You can use the same schema definition to:
+
+- generate Prisma schema output
+- generate Drizzle schema output
+- generate safe SQL DDL
+- run the unified ORM against a PostgreSQL client connected to Supabase
+- bootstrap the database in package-owned setup flows
+
+This keeps Supabase inside the same storage story instead of forcing your
+package to own a totally separate adapter track.
+
+## Best fit
+
+This path is for backend or server-owned database access.
+
+If you want to run the ORM live against Supabase, use a PostgreSQL client such
+as `pg` and connect it to your Supabase database.
+
+Supabase's own docs are still the right place to choose the actual connection
+mode, TLS settings, and connection string for your environment:
+
+- [Connect to your database](https://supabase.com/docs/guides/database/connecting-to-postgres)
+- [Connection strings](https://supabase.com/docs/reference/postgres/connection-strings)
+
+Their current guidance is broadly:
+
+- direct connections for persistent backend services
+- session pooler for persistent application traffic when needed
+- transaction pooler for serverless or edge-style traffic
+
+This ORM guide sits on top of that PostgreSQL connection layer.
+
+Keep the provider-recommended TLS settings for your environment. Avoid
+disabling certificate verification in connection examples unless you are
+debugging a local-only setup and fully understand the tradeoff.
+
+## Use the PostgreSQL runtime directly
+
+If you already have a `pg` pool or client connected to Supabase, you can run
+the ORM through the Supabase aliases in `@farming-labs/orm-sql`.
+
+```ts title="supabase-runtime.ts"
+import { createOrm } from "@farming-labs/orm";
+import { createSupabasePoolDriver } from "@farming-labs/orm-sql";
+import { Pool } from "pg";
+import { appSchema } from "./schema";
+
+const pool = new Pool({
+  connectionString: process.env.SUPABASE_DB_URL,
+});
+
+const orm = createOrm({
+  schema: appSchema,
+  driver: createSupabasePoolDriver(pool),
+});
+```
+
+If you already have a connected PostgreSQL client instead of a pool:
+
+```ts
+import { createOrm } from "@farming-labs/orm";
+import { createSupabaseClientDriver } from "@farming-labs/orm-sql";
+
+const orm = createOrm({
+  schema: appSchema,
+  driver: createSupabaseClientDriver(pgClient),
+});
+```
+
+These helpers are intentionally thin. Supabase is still PostgreSQL underneath,
+so the ORM uses the PostgreSQL runtime rather than inventing a separate runtime
+family.
+
+## Use the runtime helper path
+
+If the package wants to accept a raw PostgreSQL client and normalize it later,
+use the runtime helpers instead:
+
+```ts
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const orm = await createOrmFromRuntime({
+  schema: appSchema,
+  client: pool,
+});
+```
+
+That is a good fit when a library or framework wants the app to keep control of
+the final database client.
+
+## Use generated output from the same schema
+
+If the consuming app wants generated artifacts instead of only the live runtime,
+the same schema can still render:
+
+```ts
+import { renderDrizzleSchema, renderPrismaSchema, renderSafeSql } from "@farming-labs/orm";
+
+const prismaSchema = renderPrismaSchema(appSchema, {
+  provider: "postgresql",
+});
+
+const drizzleSchema = renderDrizzleSchema(appSchema, {
+  dialect: "pg",
+});
+
+const sqlSchema = renderSafeSql(appSchema, {
+  dialect: "postgres",
+});
+```
+
+That makes Supabase a good fit for:
+
+- package-owned installers
+- starter kits
+- framework examples
+- self-hosted docs
+- snapshot tests for generated schema output
+
+## Setup helpers
+
+If the package or framework needs to prepare the database before tests or setup
+flows, use the same runtime-aware setup helpers:
+
+```ts
+import { pushSchema } from "@farming-labs/orm-runtime/setup";
+
+await pushSchema({
+  schema: appSchema,
+  client: pool,
+});
+```
+
+Or, if you want setup plus the ORM back:
+
+```ts
+import { bootstrapDatabase } from "@farming-labs/orm-runtime/setup";
+
+const orm = await bootstrapDatabase({
+  schema: appSchema,
+  client: pool,
+});
+```
+
+## Why this matters
+
+This is the core value for a library or framework:
+
+- write the storage layer once
+- keep one schema definition
+- let the app choose Supabase as the actual PostgreSQL platform
+- avoid creating a completely separate Supabase-only adapter path

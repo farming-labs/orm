@@ -153,6 +153,7 @@ export default defineDocs({
         { slug: "drizzle" },
         { slug: "kysely" },
         { slug: "sql-databases" },
+        { slug: "supabase" },
         { slug: "mongodb" },
       ],
     },
