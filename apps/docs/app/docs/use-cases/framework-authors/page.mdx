@@ -1,0 +1,250 @@
+---
+title: "Framework Authors"
+description: "How libraries, frameworks, and reusable modules can build one storage layer and let apps bring the final runtime."
+order: 1
+icon: rocket
+---
+
+# Framework Authors
+
+This guide is for anyone building on top of Farming Labs ORM rather than just
+using it inside one app.
+
+That includes:
+
+- auth libraries
+- billing modules
+- platform packages
+- full-stack frameworks
+- reusable internal packages
+
+The main idea is simple:
+
+1. define the storage contract once
+2. accept a raw client from the consumer app
+3. normalize it with the runtime helpers
+4. write the storage logic once
+5. inspect capabilities and normalized errors instead of branching on backend-specific behavior
+
+## What you are trying to avoid
+
+Without a unifying layer, reusable packages often drift into:
+
+- one Prisma implementation
+- one Drizzle implementation
+- one TypeORM or Sequelize implementation
+- one SQL-only test path
+- one MongoDB path
+- duplicated setup docs
+- duplicated error handling
+
+That is how frameworks and libraries accidentally end up maintaining an adapter
+ecosystem instead of one storage layer.
+
+## The intended integration path
+
+### 1. Keep the schema in the package
+
+```ts title="package-schema.ts"
+import { belongsTo, datetime, defineSchema, hasMany, id, model, string } from "@farming-labs/orm";
+
+export const packageSchema = defineSchema({
+  user: model({
+    table: "users",
+    fields: {
+      id: id(),
+      email: string().unique(),
+      name: string(),
+      createdAt: datetime().defaultNow(),
+    },
+    relations: {
+      sessions: hasMany("session", { foreignKey: "userId" }),
+    },
+  }),
+  session: model({
+    table: "sessions",
+    fields: {
+      id: id(),
+      userId: string().references("user.id"),
+      token: string().unique(),
+      expiresAt: datetime(),
+    },
+    relations: {
+      user: belongsTo("user", { foreignKey: "userId" }),
+    },
+  }),
+});
+```
+
+That schema can later power:
+
+- runtime execution
+- generated Prisma output
+- generated Drizzle output
+- safe SQL output
+- setup/bootstrap helpers
+
+## 2. Accept the raw client
+
+The package boundary should usually accept the consumer app’s real runtime
+client, not force the app to construct another adapter-shaped object first.
+
+```ts title="create-package-orm.ts"
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+import { packageSchema } from "./package-schema";
+
+export function createPackageOrm(database: unknown) {
+  return createOrmFromRuntime({
+    schema: packageSchema,
+    client: database,
+  });
+}
+```
+
+That is what lets one package support Prisma, Drizzle, Kysely, TypeORM,
+Sequelize, direct SQL, MongoDB, Mongoose, and Firestore without forking the
+package storage code into one implementation per stack.
+
+## 3. Inspect the runtime when integration fails
+
+If the consumer passes a wrapped or unsupported client, inspect it before
+constructing the ORM:
+
+```ts title="inspect-client.ts"
+import { inspectDatabaseRuntime } from "@farming-labs/orm";
+
+const inspection = inspectDatabaseRuntime(database);
+
+if (!inspection.runtime) {
+  throw new Error(inspection.summary);
+}
+```
+
+That gives a framework or reusable package a better onboarding story than a
+generic “unsupported client” failure.
+
+## 4. Write the storage layer once
+
+```ts title="package-store.ts"
+import type { OrmClient } from "@farming-labs/orm";
+import { packageSchema } from "./package-schema";
+
+export function createPackageStore(orm: OrmClient<typeof packageSchema>) {
+  return {
+    findUserByEmail(email: string) {
+      return orm.user.findUnique({
+        where: { email },
+        select: {
+          id: true,
+          email: true,
+          sessions: {
+            select: {
+              token: true,
+              expiresAt: true,
+            },
+          },
+        },
+      });
+    },
+
+    createSession(input: { userId: string; token: string; expiresAt: Date }) {
+      return orm.session.create({
+        data: input,
+        select: {
+          id: true,
+          token: true,
+          expiresAt: true,
+        },
+      });
+    },
+  };
+}
+```
+
+This is the key value:
+
+- you write the package storage layer once
+- Farming Labs ORM handles the translation across the supported database and
+  ORM stacks underneath
+
+## 5. Use capabilities instead of backend guesses
+
+When a higher-level package needs behavior decisions, inspect capabilities:
+
+```ts title="capabilities.ts"
+const orm = await createPackageOrm(database);
+
+orm.$driver.capabilities.supportsTransactions;
+orm.$driver.capabilities.numericIds;
+orm.$driver.capabilities.upsert;
+orm.$driver.capabilities.returning.update;
+orm.$driver.capabilities.supportsSchemaNamespaces;
+```
+
+That gives you a generic way to make runtime decisions without hard-coding
+Prisma-only, SQL-only, or Mongo-only assumptions.
+
+## 6. Handle normalized errors at the package boundary
+
+```ts title="errors.ts"
+import { isOrmError } from "@farming-labs/orm";
+
+try {
+  await store.createSession(input);
+} catch (error) {
+  if (isOrmError(error) && error.code === "UNIQUE_CONSTRAINT_VIOLATION") {
+    throw new Error("Session token already exists.");
+  }
+  throw error;
+}
+```
+
+That keeps the package from owning one parser for Prisma codes, another parser
+for SQLSTATEs, another parser for Mongo errors, and so on.
+
+## 7. Use one setup path in tests and install flows
+
+If the package wants to prepare the live database in tests, demos, or install
+flows, use the setup helpers:
+
+```ts title="setup.ts"
+import { bootstrapDatabase, pushSchema } from "@farming-labs/orm-runtime/setup";
+
+await pushSchema({
+  schema: packageSchema,
+  client: database,
+});
+
+const orm = await bootstrapDatabase({
+  schema: packageSchema,
+  client: database,
+});
+```
+
+That gives you:
+
+- one test setup shape
+- one framework-owned install shape
+- one demo/bootstrap shape
+
+instead of one flow per backend family.
+
+## Where this fits best
+
+This pattern is especially strong when the package wants to behave like:
+
+- “bring your own Prisma, Drizzle, Kysely, TypeORM, Sequelize, SQL, Mongo, or Firestore client”
+- “one storage contract, many execution stacks”
+- “one docs story and one setup story instead of many adapter stories”
+
+That is why it fits auth libraries, billing modules, platform packages, and
+full-stack frameworks so well.
+
+## Best next pages
+
+- adapter-sprawl replacement story:
+  [Adapter Ecosystem](/docs/use-cases/auth-adapter-ecosystem)
+- framework-scale examples:
+  [Full-Stack Frameworks](/docs/use-cases/fullstack-frameworks)
+- support coverage by stack:
+  [Support Matrix](/docs/integrations/support-matrix)

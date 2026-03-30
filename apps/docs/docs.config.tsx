@@ -149,6 +149,7 @@ export default defineDocs({
     {
       slug: "integrations",
       children: [
+        { slug: "support-matrix" },
         { slug: "prisma" },
         { slug: "drizzle" },
         { slug: "kysely" },
@@ -163,6 +164,7 @@ export default defineDocs({
     {
       slug: "use-cases",
       children: [
+        { slug: "framework-authors" },
         { slug: "auth-libraries" },
         { slug: "auth-adapter-ecosystem" },
         { slug: "billing-modules" },
