@@ -1,6 +1,6 @@
 {
   "name": "@farming-labs/orm-drizzle",
-  "version": "0.0.32",
+  "version": "0.0.33",
   "files": [
     "dist"
   ],
