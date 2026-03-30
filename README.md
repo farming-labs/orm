@@ -2,126 +2,44 @@
 
 One schema. Many stacks.
 
-`@farming-labs/orm` lets you define a schema once in TypeScript, generate
-Prisma/Drizzle/SQL output from it, and run one typed query API across multiple
-runtime drivers.
+`@farming-labs/orm` lets you write your schema and storage layer once, then
+translate it across Prisma, Drizzle, Kysely, direct SQL, Firestore, MongoDB,
+and Mongoose.
 
-If an app already uses Prisma, Drizzle, Kysely, direct SQL, Firestore,
-MongoDB, or Mongoose, the matching runtime package lets shared libraries keep
-one storage layer while the app keeps its own database stack.
+It gives you:
+
+- one schema definition in TypeScript
+- one typed query API
+- generated Prisma, Drizzle, and safe SQL artifacts
+- runtime helpers that accept raw clients and build the ORM for you
 
 ## Packages
 
 - `@farming-labs/orm`
   Core schema DSL, typed client, generators, and memory driver
 - `@farming-labs/orm-cli`
-  CLI for generating Prisma, Drizzle, and safe SQL artifacts
-- `@farming-labs/orm-prisma`
-  Runtime driver for `PrismaClient`
-- `@farming-labs/orm-drizzle`
-  Runtime driver for Drizzle-backed SQLite, MySQL, and PostgreSQL
-- `@farming-labs/orm-kysely`
-  Runtime driver for Kysely-backed SQLite, MySQL, and PostgreSQL
-- `@farming-labs/orm-sql`
-  Direct SQL runtime for SQLite, MySQL, and PostgreSQL
-- `@farming-labs/orm-firestore`
-  Runtime driver for server-side Firestore clients
-- `@farming-labs/orm-mongo`
-  Runtime driver for the native `mongodb` client
-- `@farming-labs/orm-mongoose`
-  Runtime driver for Mongoose
+  CLI for generating Prisma, Drizzle, and SQL artifacts
 - `@farming-labs/orm-runtime`
-  Auto-detect helpers that build a driver or ORM from a raw runtime instance
+  Helpers for detecting a raw client and creating a driver or ORM from it
+- `@farming-labs/orm-prisma`
+  Prisma runtime driver
+- `@farming-labs/orm-drizzle`
+  Drizzle runtime driver
+- `@farming-labs/orm-kysely`
+  Kysely runtime driver
+- `@farming-labs/orm-sql`
+  Direct SQL runtime driver
+- `@farming-labs/orm-firestore`
+  Server-side Firestore runtime driver
+- `@farming-labs/orm-mongo`
+  Native MongoDB runtime driver
+- `@farming-labs/orm-mongoose`
+  Mongoose runtime driver
 
-## What works today
-
-- schema definition with:
-  - `id()`
-  - `string()`
-  - `boolean()`
-  - `datetime()`
-  - `integer()`
-  - `json()`
-  - `enumeration()`
-  - `bigint()`
-  - `decimal()`
-  - defaults
-  - field-level uniques
-  - model-level compound uniques and indexes
-  - mapped column names
-  - relations
-- generated Prisma output
-- generated Drizzle output
-- generated safe SQL output
-- live runtime drivers for:
-  - memory
-  - Prisma
-  - Drizzle
-  - Kysely
-  - SQLite
-  - MySQL
-  - PostgreSQL
-  - Firestore via server-side Firestore clients
-  - MongoDB via `mongodb`
-  - MongoDB via Mongoose
-- relation support for:
-  - `belongsTo`
-  - `hasOne`
-  - `hasMany`
-  - explicit join-table `manyToMany`
-- native relation translation for:
-  - direct SQL, Drizzle, and Kysely on singular chains and simple collection branches
-  - Prisma delegate translation for supported nested relation branches and simple explicit join-table traversal
-- compound-unique runtime lookups and upserts
-- integer comparison filters and raw JSON equality filters across the live runtimes
-- enum, bigint, and decimal support across the live runtimes and generated outputs
-
-## Optional real Firestore tests
-
-The Firestore package runs its in-memory integration suite by default. Real
-Firestore tests are opt-in and only run when Firestore auth env vars are
-present.
-
-Recommended emulator flow:
-
-```bash
-export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
-export GOOGLE_CLOUD_PROJECT=farm-orm-local
-pnpm --filter @farming-labs/orm-firestore test:real
-```
-
-Cloud project flow:
-
-```bash
-export GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account.json
-export GOOGLE_CLOUD_PROJECT=your-firestore-project
-pnpm --filter @farming-labs/orm-firestore test:real
-```
-
-For CI, prefer encrypted secrets such as
-`FARM_ORM_LOCAL_FIRESTORE_SERVICE_ACCOUNT_JSON` and
-`FARM_ORM_LOCAL_FIRESTORE_PROJECT_ID`.
-
-If you want the real Firestore suite included in the normal workspace run, use
-the same env vars with:
-
-```bash
-pnpm test
-```
-
-## Quick example
+## Example
 
 ```ts
-import {
-  belongsTo,
-  createOrm,
-  defineSchema,
-  detectDatabaseRuntime,
-  hasMany,
-  id,
-  model,
-  string,
-} from "@farming-labs/orm";
+import { belongsTo, createOrm, defineSchema, hasMany, id, model, string } from "@farming-labs/orm";
 import { createPgPoolDriver } from "@farming-labs/orm-sql";
 import { Pool } from "pg";
 
@@ -171,39 +89,40 @@ const user = await orm.user.findOne({
     },
   },
 });
+```
+
+## Runtime Helpers
+
+If you already have a raw runtime client, let the helper package detect it and
+build the ORM:
+
+```ts
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+import { Pool } from "pg";
+
+const orm = await createOrmFromRuntime({
+  schema,
+  client: new Pool({
+    connectionString: process.env.DATABASE_URL,
+  }),
+});
 
 orm.$driver.kind; // "sql"
 orm.$driver.capabilities.supportsTransactions; // true
-orm.$driver.capabilities.nativeRelationLoading; // "partial"
 ```
 
-## Kysely runtime example
+You can also inspect a client before building anything:
 
 ```ts
-import { createOrm } from "@farming-labs/orm";
-import { createKyselyDriver } from "@farming-labs/orm-kysely";
-import { Kysely, PostgresDialect } from "kysely";
-import { Pool } from "pg";
-import { schema } from "./schema";
+import { inspectDatabaseRuntime } from "@farming-labs/orm";
 
-const kysely = new Kysely({
-  dialect: new PostgresDialect({
-    pool: new Pool({
-      connectionString: process.env.DATABASE_URL,
-    }),
-  }),
-});
+const report = inspectDatabaseRuntime(client);
 
-const orm = createOrm({
-  schema,
-  driver: createKyselyDriver({
-    db: kysely,
-    dialect: "postgres",
-  }),
-});
+report.runtime;
+report.summary;
 ```
 
-## Generate artifacts
+## Generate Artifacts
 
 ```ts
 import { defineConfig } from "@farming-labs/orm-cli";
@@ -234,207 +153,6 @@ farm-orm generate drizzle
 farm-orm generate sql
 ```
 
-You can also inspect a raw client before building a driver:
+## Docs
 
-```ts
-import { detectDatabaseRuntime } from "@farming-labs/orm";
-import { Pool } from "pg";
-
-const detected = detectDatabaseRuntime(
-  new Pool({
-    connectionString: process.env.DATABASE_URL,
-  }),
-);
-
-detected?.kind; // "sql"
-detected?.dialect; // "postgres"
-```
-
-Or let the helper package detect the runtime and build the ORM for you:
-
-```ts
-import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
-import { Pool } from "pg";
-
-const orm = await createOrmFromRuntime({
-  schema,
-  client: new Pool({
-    connectionString: process.env.DATABASE_URL,
-  }),
-});
-
-orm.$driver.kind; // "sql"
-orm.$driver.dialect; // "postgres"
-orm.$driver.capabilities.upsert; // "native"
-orm.$driver.capabilities.textComparison; // "database-default"
-orm.$driver.capabilities.numericIds; // "generated"
-```
-
-If you want only the driver, use the lower-level helper:
-
-```ts
-import { createDriverFromRuntime } from "@farming-labs/orm-runtime";
-
-const driver = await createDriverFromRuntime({
-  schema,
-  client: prisma,
-});
-```
-
-If you need to understand why runtime detection failed, use the diagnostic
-report:
-
-```ts
-import { inspectDatabaseRuntime } from "@farming-labs/orm";
-
-const report = inspectDatabaseRuntime(client);
-
-report.runtime; // detected runtime or null
-report.summary;
-report.hint;
-```
-
-For runtime-aware setup and schema bootstrap, use the Node-only setup path:
-
-```ts
-import { bootstrapDatabase, pushSchema } from "@farming-labs/orm-runtime/setup";
-
-await pushSchema({
-  schema,
-  client: prisma,
-});
-
-const orm = await bootstrapDatabase({
-  schema,
-  client: prisma,
-});
-```
-
-For SQL-family runtimes it applies generated DDL. For Prisma it runs a temporary
-`prisma db push --skip-generate`. For MongoDB and Mongoose it ensures
-collections and indexes from the schema manifest.
-
-Runtime errors are normalized too:
-
-```ts
-import { isOrmError } from "@farming-labs/orm";
-
-const error = await orm.user
-  .create({
-    data: {
-      email: "duplicate@farminglabs.dev",
-      name: "Ada",
-    },
-  })
-  .catch((reason) => reason);
-
-if (isOrmError(error)) {
-  error.code; // "UNIQUE_CONSTRAINT_VIOLATION"
-  error.backendKind; // "sql" | "prisma" | "mongo" | ...
-}
-```
-
-The schema DSL also supports manual or generated numeric IDs and Postgres-style
-namespaced tables:
-
-```ts
-import { defineSchema, id, model, string, tableName } from "@farming-labs/orm";
-
-const schema = defineSchema({
-  user: model({
-    table: tableName("users", { schema: "auth" }),
-    fields: {
-      id: id({ type: "integer", generated: "increment" }),
-      email: string().unique(),
-    },
-  }),
-});
-```
-
-Use `tableName(...)` instead of passing flat strings like `"auth.users"`. The
-ORM now rejects schema-qualified table strings so schema namespaces stay
-explicit and portable.
-
-Generated numeric IDs are currently first-class on the SQL-family runtimes,
-Prisma, and the in-memory driver. MongoDB and Mongoose still support manual
-numeric IDs only.
-
-## Local development
-
-```bash
-pnpm install
-pnpm build
-pnpm test
-pnpm dev:docs
-pnpm dev:demo
-```
-
-`pnpm test` already includes the real integration matrix. Use these when you
-want to rerun the database-backed suites directly:
-
-```bash
-pnpm test:local
-pnpm test:local:prisma
-pnpm test:local:kysely
-pnpm test:local:drizzle
-pnpm test:local:sqlite
-pnpm test:local:postgres
-pnpm test:local:mysql
-pnpm test:local:mongodb
-```
-
-That local matrix now includes real coverage for:
-
-- `integer()` fields
-- `json()` fields
-- `enumeration()` fields
-- `bigint()` fields
-- `decimal()` fields
-- compound-unique lookups and upserts
-- relation traversal and mutation flows
-
-across Prisma, Drizzle, Kysely, direct SQL, MongoDB, and Mongoose.
-
-For SQLite bigint coverage, the local matrix enables the underlying
-`node:sqlite` big-int read mode so values stay as real `bigint` outputs.
-
-Demo:
-
-```bash
-pnpm --filter demo demo -- all
-pnpm --filter demo demo -- memory
-pnpm --filter demo demo -- prisma
-pnpm --filter demo demo -- mongo
-pnpm --filter demo demo -- mongoose
-```
-
-## Release
-
-```bash
-pnpm release:latest
-```
-
-That command now does the full stable flow:
-
-1. bumps versions with `bumpp`
-2. uses the explicit package manifest list in `bump.config.ts`
-3. creates the release commit and tag from `bump.config.ts`
-4. publishes the packages to npm
-
-The version source of truth for release lives in these package manifests:
-
-- `packages/orm/package.json`
-- `packages/cli/package.json`
-- `packages/sql/package.json`
-- `packages/drizzle/package.json`
-- `packages/kysely/package.json`
-- `packages/mongo/package.json`
-- `packages/mongoose/package.json`
-- `packages/prisma/package.json`
-- `packages/runtime/package.json`
-
-For a beta release:
-
-```bash
-pnpm release:beta
-```
+The full guides live in the docs app under [`apps/docs`](/Users/mac/oss/orms/apps/docs).
