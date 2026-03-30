@@ -1,6 +1,6 @@
 ---
 title: "Overview"
-description: "Schema-first documentation for @farming-labs/docs"
+description: "Write your storage layer once and let Farming Labs ORM handle the translation across databases and ORM stacks."
 order: 1
 icon: book
 ---
@@ -9,8 +9,12 @@ import { DocsOverviewFeatures } from "@/components/ui/features";
 
 # Overview
 
-Farming Labs ORM gives library authors one schema and one query API, while
-letting each app choose its own runtime stack.
+Farming Labs ORM lets you write your storage layer once, then handles the
+translation across databases and ORM stacks underneath.
+
+Library authors and framework authors can keep one schema definition and one
+storage-facing API while letting each app choose how that gets generated or
+executed.
 
 The model is simple:
 
@@ -20,8 +24,9 @@ The model is simple:
 
 In practice, that means:
 
-- one schema for shared packages
-- one typed query surface for runtime code
+- one storage layer for shared packages
+- one typed ORM and query surface for runtime code
+- one schema definition that can translate across databases and ORM stacks
 - one generator CLI for app-side artifacts
 
 <DocsOverviewFeatures />
