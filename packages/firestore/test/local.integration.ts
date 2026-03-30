@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   createOrm,
+  datetime,
   defineSchema,
   detectDatabaseRuntime,
   id,
+  integer,
   inspectDatabaseRuntime,
   isOrmError,
   model,
@@ -42,6 +44,18 @@ const namespacedSchema = defineSchema({
     fields: {
       id: id(),
       email: string().unique(),
+    },
+  }),
+});
+
+const normalizedUniqueLookupSchema = defineSchema({
+  event: model({
+    table: "events",
+    fields: {
+      id: id(),
+      revision: integer().unique(),
+      occurredAt: datetime().unique(),
+      name: string(),
     },
   }),
 });
@@ -228,5 +242,53 @@ describe("firestore local integration", () => {
         }),
       }).user.count(),
     ).rejects.toThrow(/schema-qualified tables/i);
+  });
+
+  it("normalizes numeric and datetime unique filters before matching rows", async () => {
+    const db = new InMemoryFirestore();
+    const orm = createOrm({
+      schema: normalizedUniqueLookupSchema,
+      driver: createFirestoreDriver({
+        db,
+      }),
+    });
+    const occurredAt = new Date("2026-03-30T00:00:00.000Z");
+
+    await orm.event.create({
+      data: {
+        revision: 7,
+        occurredAt,
+        name: "Launch",
+      },
+    });
+
+    const byRevision = await orm.event.findUnique({
+      where: {
+        revision: "7" as never,
+      },
+      select: {
+        id: true,
+        revision: true,
+      },
+    });
+
+    const byOccurredAt = await orm.event.findUnique({
+      where: {
+        occurredAt: occurredAt.toISOString() as never,
+      },
+      select: {
+        id: true,
+        occurredAt: true,
+      },
+    });
+
+    expect(byRevision).toEqual({
+      id: expect.any(String),
+      revision: 7,
+    });
+    expect(byOccurredAt).toEqual({
+      id: expect.any(String),
+      occurredAt,
+    });
   });
 });

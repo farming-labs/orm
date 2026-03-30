@@ -585,7 +585,7 @@ function createFirestoreDriverInternal<TSchema extends SchemaDefinition<any>>(
     }
 
     const rows = await loadRows(schema, modelName);
-    return rows.find((row) => matchesWhere(row.data, where as FirestoreWhere)) ?? null;
+    return rows.find((row) => matchesModelWhere(model, row.data, where as FirestoreWhere)) ?? null;
   }
 
   function findUniqueConflict(
