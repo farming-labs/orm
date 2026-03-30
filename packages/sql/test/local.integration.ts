@@ -1313,16 +1313,19 @@ for (const [target, factory] of [
       const { driverClient, close } = await factory();
 
       try {
-        const orm =
-          target === "postgres-pool"
-            ? createOrm({
-                schema,
-                driver: createSupabasePoolDriver(driverClient as Pool),
-              })
-            : createOrm({
-                schema,
-                driver: createSupabaseClientDriver(driverClient as PgClientLike),
-              });
+        let orm: RuntimeOrm;
+
+        if (target === "postgres-pool") {
+          orm = createOrm({
+            schema,
+            driver: createSupabasePoolDriver<typeof schema>(driverClient as Pool),
+          });
+        } else {
+          orm = createOrm({
+            schema,
+            driver: createSupabaseClientDriver<typeof schema>(driverClient as PgClientLike),
+          });
+        }
 
         expect(orm.$driver.kind).toBe("sql");
         expect(orm.$driver.dialect).toBe("postgres");
