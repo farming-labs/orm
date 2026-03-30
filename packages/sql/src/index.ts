@@ -67,6 +67,9 @@ export type PgPoolLike = PgClientLike & {
   connect(): Promise<PgClientLike>;
 };
 
+export type SupabasePoolLike = PgPoolLike;
+export type SupabaseClientLike = PgClientLike;
+
 type MysqlExecuteResult = {
   affectedRows?: number;
   insertId?: number | bigint;
@@ -1879,6 +1882,18 @@ export function createPgClientDriver<TSchema extends SchemaDefinition<any>>(clie
       capabilities: sqlDriverCapabilities("postgres"),
     }),
   );
+}
+
+export function createSupabasePoolDriver<TSchema extends SchemaDefinition<any>>(
+  pool: SupabasePoolLike,
+) {
+  return createPgPoolDriver<TSchema>(pool);
+}
+
+export function createSupabaseClientDriver<TSchema extends SchemaDefinition<any>>(
+  client: SupabaseClientLike,
+) {
+  return createPgClientDriver<TSchema>(client);
 }
 
 export function createMysqlDriver<TSchema extends SchemaDefinition<any>>(

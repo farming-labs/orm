@@ -32,8 +32,10 @@ import {
   createPgClientDriver,
   createPgPoolDriver,
   createSqliteDriver,
+  createSupabaseClientDriver,
+  createSupabasePoolDriver,
 } from "../src";
-import type { MysqlConnectionLike, MysqlPoolLike } from "../src";
+import type { MysqlConnectionLike, MysqlPoolLike, PgClientLike } from "../src";
 import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
 import { pushSchema } from "@farming-labs/orm-runtime/setup";
 
@@ -1298,6 +1300,62 @@ for (const [target, factory] of [
           email: "auto@farminglabs.dev",
         });
         expect(count).toBe(1);
+      } finally {
+        await close();
+      }
+    });
+
+    it("supports the Supabase Postgres aliases against a real local database", async () => {
+      if (target !== "postgres-pool" && target !== "postgres-client") {
+        return;
+      }
+
+      const { driverClient, close } = await factory();
+
+      try {
+        const orm =
+          target === "postgres-pool"
+            ? createOrm({
+                schema,
+                driver: createSupabasePoolDriver(driverClient as Pool),
+              })
+            : createOrm({
+                schema,
+                driver: createSupabaseClientDriver(driverClient as PgClientLike),
+              });
+
+        expect(orm.$driver.kind).toBe("sql");
+        expect(orm.$driver.dialect).toBe("postgres");
+        expect(orm.$driver.client).toBe(driverClient);
+
+        await exerciseRuntime(orm);
+
+        const created = await orm.user.create({
+          data: {
+            email: `supabase-${target}@farminglabs.dev`,
+            name: "Supabase",
+          },
+          select: {
+            id: true,
+            email: true,
+          },
+        });
+
+        const loaded = await orm.user.findUnique({
+          where: {
+            email: created.email,
+          },
+          select: {
+            id: true,
+            email: true,
+          },
+        });
+
+        expect(created).toEqual({
+          id: expect.any(String),
+          email: `supabase-${target}@farminglabs.dev`,
+        });
+        expect(loaded).toEqual(created);
       } finally {
         await close();
       }
