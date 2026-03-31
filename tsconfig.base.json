@@ -25,6 +25,7 @@
       "@farming-labs/orm-sequelize": ["packages/sequelize/src/index.ts"],
       "@farming-labs/orm-sql": ["packages/sql/src/index.ts"],
       "@farming-labs/orm-typeorm": ["packages/typeorm/src/index.ts"],
+      "@farming-labs/orm-unstorage": ["packages/unstorage/src/index.ts"],
       "@farming-labs/orm-mongoose": ["packages/mongoose/src/index.ts"],
       "@farming-labs/orm-prisma": ["packages/prisma/src/index.ts"]
     }

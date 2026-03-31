@@ -20,6 +20,7 @@ export default defineConfig({
       "@farming-labs/orm-sequelize": path.resolve(dirname, "../sequelize/src/index.ts"),
       "@farming-labs/orm-sql": path.resolve(dirname, "../sql/src/index.ts"),
       "@farming-labs/orm-typeorm": path.resolve(dirname, "./src/index.ts"),
+      "@farming-labs/orm-unstorage": path.resolve(dirname, "../unstorage/src/index.ts"),
     },
   },
   test: {

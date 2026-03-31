@@ -122,8 +122,8 @@ The setup helpers now live on the Node-only subpath:
 
 Import them from `@farming-labs/orm-runtime/setup`. They use the same runtime
 detection layer to prepare direct SQL, Prisma, TypeORM, Sequelize, MongoDB,
-Mongoose, Firestore, DynamoDB, Drizzle, and Kysely runtimes without inventing a
-separate config surface.
+Mongoose, Firestore, DynamoDB, Unstorage, Drizzle, and Kysely runtimes without
+inventing a separate config surface.
 
 There is also a dedicated guide for this flow:
 
@@ -223,15 +223,18 @@ the stage, runtime kind, dialect, and underlying cause available.
 - `createMemoryDriver(...)` from `@farming-labs/orm`
 - `createPrismaDriver(...)` from `@farming-labs/orm-prisma`
 - `createDrizzleDriver(...)` from `@farming-labs/orm-drizzle`
+- `createKyselyDriver(...)` from `@farming-labs/orm-kysely`
 - `createTypeormDriver(...)` from `@farming-labs/orm-typeorm`
 - `createSequelizeDriver(...)` from `@farming-labs/orm-sequelize`
 - `createSqliteDriver(...)` from `@farming-labs/orm-sql`
 - `createMysqlDriver(...)` from `@farming-labs/orm-sql`
 - `createPgPoolDriver(...)` from `@farming-labs/orm-sql`
 - `createPgClientDriver(...)` from `@farming-labs/orm-sql`
+- `createFirestoreDriver(...)` from `@farming-labs/orm-firestore`
 - `createMongoDriver(...)` from `@farming-labs/orm-mongo`
 - `createMongooseDriver(...)` from `@farming-labs/orm-mongoose`
 - `createDynamodbDriver(...)` from `@farming-labs/orm-dynamodb`
+- `createUnstorageDriver(...)` from `@farming-labs/orm-unstorage`
 - `createOrmFromRuntime(...)` from `@farming-labs/orm-runtime`
 - `createDriverFromRuntime(...)` from `@farming-labs/orm-runtime`
 - `pushSchema(...)` from `@farming-labs/orm-runtime/setup`
@@ -259,7 +262,7 @@ async function findUserByEmail(orm: typeof authOrm, email: string) {
 ```
 
 That helper stays the same whether the app uses Prisma, Drizzle, TypeORM,
-Sequelize, direct SQL, Firestore, DynamoDB, MongoDB, or Mongoose.
+Sequelize, direct SQL, Firestore, DynamoDB, Unstorage, MongoDB, or Mongoose.
 
 The same is true for compound auth lookups:
 
@@ -287,6 +290,7 @@ pnpm test:local:sqlite
 pnpm test:local:postgres
 pnpm test:local:mysql
 pnpm test:local:dynamodb
+pnpm test:local:unstorage
 pnpm test:local:mongodb
 ```
 

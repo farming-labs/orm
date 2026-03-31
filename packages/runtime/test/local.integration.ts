@@ -18,6 +18,7 @@ import { createDriverFromRuntime, createOrmFromRuntime } from "../src";
 import { applySchema, bootstrapDatabase, pushSchema } from "../src/setup";
 import { startLocalDynamoDb } from "../../dynamodb/test/support/local-dynamodb";
 import { InMemoryFirestore } from "../../firestore/test/support/firestore-harness";
+import { startLocalUnstorage } from "../../unstorage/test/support/local-unstorage";
 
 const schema = defineSchema({
   user: model({
@@ -271,6 +272,50 @@ describe("runtime helper local integration", () => {
         id: expect.any(String),
         email: "dynamodb@farminglabs.dev",
       });
+    } finally {
+      await local.close();
+    }
+  });
+
+  it("creates and bootstraps an Unstorage runtime from a raw storage client", async () => {
+    const local = await startLocalUnstorage("memory");
+
+    try {
+      await pushSchema({
+        schema,
+        client: local.storage,
+      });
+      await applySchema({
+        schema,
+        client: local.storage,
+      });
+
+      const driver = await createDriverFromRuntime({
+        schema,
+        client: local.storage,
+      });
+      const orm = await bootstrapDatabase({
+        schema,
+        client: local.storage,
+      });
+
+      const created = await orm.user.create({
+        data: {
+          email: "unstorage@farminglabs.dev",
+          name: "Unstorage",
+        },
+        select: {
+          id: true,
+          email: true,
+        },
+      });
+
+      expect(driver.handle.kind).toBe("unstorage");
+      expect(created).toEqual({
+        id: expect.any(String),
+        email: "unstorage@farminglabs.dev",
+      });
+      expect(inspectDatabaseRuntime(local.storage).runtime?.kind).toBe("unstorage");
     } finally {
       await local.close();
     }
