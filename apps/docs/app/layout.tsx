@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { RootProvider } from "@farming-labs/theme";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Databuddy } from '@databuddy/sdk/react';
 
 const heading = Geist({
   subsets: ["latin"],
@@ -24,7 +25,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${heading.className} ${heading.variable} ${mono.variable}`}>
-        <RootProvider>{children}</RootProvider>
+        <RootProvider>{children}
+          <Databuddy
+            clientId="0269b778-9ed5-485b-a153-93b77b35d5d5" />
+        </RootProvider>
       </body>
     </html>
   );

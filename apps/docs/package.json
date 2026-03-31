@@ -11,6 +11,7 @@
     "typecheck": "pnpm run prisma:generate && next build"
   },
   "dependencies": {
+    "@databuddy/sdk": "^2.4.0",
     "@farming-labs/docs": "0.0.64",
     "@farming-labs/next": "0.0.64",
     "@farming-labs/theme": "0.0.64",
