@@ -8,6 +8,7 @@ export type DetectedDatabaseRuntime<TClient = unknown> = Readonly<{
     | "drizzle"
     | "kysely"
     | "dynamodb"
+    | "unstorage"
     | "sequelize"
     | "sql"
     | "mongo"
@@ -135,6 +136,16 @@ function isDynamoDbClient(client: unknown): client is Record<string, unknown> {
         isRecord((client as Record<string, unknown>).config) &&
         "translateConfig" in
           ((client as Record<string, unknown>).config as Record<string, unknown>)))
+  );
+}
+
+function isUnstorageClient(client: unknown): client is Record<string, unknown> {
+  return (
+    hasFunction(client, "getItem") &&
+    hasFunction(client, "setItem") &&
+    hasFunction(client, "removeItem") &&
+    hasFunction(client, "getKeys") &&
+    hasFunction(client, "getMounts")
   );
 }
 
@@ -298,6 +309,14 @@ export function detectDatabaseRuntime<TClient>(
     });
   }
 
+  if (isUnstorageClient(client)) {
+    return Object.freeze({
+      kind: "unstorage",
+      client,
+      source: "client",
+    });
+  }
+
   if (isSequelizeClient(client)) {
     const dialect = detectSequelizeDialect(client);
     if (dialect) {
@@ -442,6 +461,19 @@ export function inspectDatabaseRuntime<TClient>(
         : missingFunctions(client, ["send"]).concat([
             "expected a DynamoDBClient or DynamoDBDocumentClient-like runtime",
           ]),
+    },
+    {
+      kind: "unstorage",
+      matched: isUnstorageClient(client),
+      reasons: isUnstorageClient(client)
+        ? []
+        : missingFunctions(client, [
+            "getItem",
+            "setItem",
+            "removeItem",
+            "getKeys",
+            "getMounts",
+          ]).concat(["expected an Unstorage storage client created with createStorage(...)"]),
     },
     {
       kind: "sequelize",

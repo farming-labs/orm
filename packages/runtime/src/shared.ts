@@ -31,6 +31,7 @@ import type { PrismaDriverConfig, PrismaDriverHandle } from "@farming-labs/orm-p
 import type { SequelizeDriverDialect, SequelizeDriverHandle } from "@farming-labs/orm-sequelize";
 import type { SqlDriverHandle } from "@farming-labs/orm-sql";
 import type { TypeormDriverHandle } from "@farming-labs/orm-typeorm";
+import type { UnstorageDriverConfig, UnstorageDriverHandle } from "@farming-labs/orm-unstorage";
 
 export type AutoDialect = DetectedDatabaseDialect;
 
@@ -44,7 +45,8 @@ export type AutoDriverHandle<TClient = unknown> =
   | OrmDriverHandle<"mongo", unknown>
   | OrmDriverHandle<"mongoose", unknown>
   | SequelizeDriverHandle<TClient, SequelizeDriverDialect>
-  | TypeormDriverHandle<TClient, AutoDialect>;
+  | TypeormDriverHandle<TClient, AutoDialect>
+  | UnstorageDriverHandle<any>;
 
 export type CreateDriverFromRuntimeOptions<
   TSchema extends SchemaDefinition<any>,
@@ -69,6 +71,11 @@ export type CreateDriverFromRuntimeOptions<
     db?: FirestoreDbLike;
     collections?: FirestoreDriverConfig<TSchema>["collections"];
     transforms?: FirestoreDriverConfig<TSchema>["transforms"];
+  };
+  unstorage?: {
+    base?: UnstorageDriverConfig<TSchema>["base"];
+    prefixes?: UnstorageDriverConfig<TSchema>["prefixes"];
+    transforms?: UnstorageDriverConfig<TSchema>["transforms"];
   };
   mongo?: {
     collections?: MongoCollectionMap<TSchema>;

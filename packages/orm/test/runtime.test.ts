@@ -252,6 +252,23 @@ describe("runtime contract", () => {
     expect(inspectDatabaseRuntime(dynamo).runtime?.kind).toBe("dynamodb");
   });
 
+  it("detects Unstorage runtimes from storage shapes", () => {
+    const storage = {
+      getItem: async () => null,
+      setItem: async () => undefined,
+      removeItem: async () => undefined,
+      getKeys: async () => [],
+      getMounts: () => [],
+    };
+
+    expect(detectDatabaseRuntime(storage)).toEqual({
+      kind: "unstorage",
+      client: storage,
+      source: "client",
+    });
+    expect(inspectDatabaseRuntime(storage).runtime?.kind).toBe("unstorage");
+  });
+
   it("detects TypeORM DataSource runtimes from the connection shape", () => {
     const dataSource = {
       options: {

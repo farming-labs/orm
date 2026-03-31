@@ -1,0 +1,181 @@
+---
+title: "Unstorage"
+description: "How to use Farming Labs ORM with Unstorage through one unified key-value/document runtime."
+order: 10
+icon: database
+---
+
+# Unstorage
+
+Unstorage support in Farming Labs ORM is the key-value/runtime answer for teams
+that want one storage layer across lightweight stores without owning a separate
+adapter surface for each Unstorage driver.
+
+The supported path is a raw Unstorage storage instance created with
+`createStorage(...)`.
+
+That makes it a good fit for:
+
+- sessions
+- verification tokens
+- lightweight user/account records
+- framework-owned state
+- prototypes and smaller storage footprints
+
+It is **not** the runtime to reach for when the workload is highly relational,
+join-heavy, or dependent on strong database transaction guarantees.
+
+## What this gives you
+
+You still write the schema and storage layer once.
+
+Then the runtime translates that layer into Unstorage operations with:
+
+- one schema definition
+- one query API
+- one runtime-helper path
+- one capability surface
+- one normalized error surface
+
+## Create the runtime directly
+
+```ts title="unstorage-runtime.ts"
+import { createOrm } from "@farming-labs/orm";
+import { createUnstorageDriver } from "@farming-labs/orm-unstorage";
+import { createStorage } from "unstorage";
+import memoryDriver from "unstorage/drivers/memory";
+import { appSchema } from "./schema";
+
+const storage = createStorage({
+  driver: memoryDriver(),
+});
+
+const orm = createOrm({
+  schema: appSchema,
+  driver: createUnstorageDriver({
+    storage,
+  }),
+});
+```
+
+You can use any Unstorage storage instance that exposes the standard
+`getItem(...)`, `setItem(...)`, `removeItem(...)`, and `getKeys(...)` shape.
+
+## Use the runtime helper path
+
+If a framework or shared package wants to accept a raw Unstorage instance and
+normalize it later, use the runtime helpers instead:
+
+```ts
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const orm = await createOrmFromRuntime({
+  schema: appSchema,
+  client: storage,
+});
+```
+
+That keeps the package boundary generic instead of forcing a storage-specific
+branch.
+
+## Setup helpers
+
+The setup helpers are intentionally conservative here:
+
+- `pushSchema(...)` is a no-op
+- `applySchema(...)` is a no-op
+- `bootstrapDatabase(...)` still works and returns the ORM client after that
+  no-op setup stage
+
+```ts
+import { bootstrapDatabase } from "@farming-labs/orm-runtime/setup";
+
+const orm = await bootstrapDatabase({
+  schema: appSchema,
+  client: storage,
+});
+```
+
+That reflects the real backend shape: Unstorage is a generic key-value/document
+abstraction, not a SQL-style schema engine.
+
+## Joins, relations, and transactions
+
+Unstorage does not have native joins.
+
+That does **not** mean relation selections stop working. The ORM resolves
+relation branches through follow-up reads, so the same higher-level storage code
+can still select related records.
+
+It is still important to be honest about the boundary:
+
+- relation loading is fallback-based, not native-join based
+- `orm.$driver.capabilities.supportsTransactions` is `false`
+- `orm.transaction(...)` stays available as a storage-layer boundary, not as a
+  promise of full database transaction semantics
+
+So this runtime works well for shared package logic that needs one consistent
+storage contract, but it is not the best fit for workloads that are deeply
+relational or centered around complex join-heavy query plans.
+
+## What is supported well
+
+- string ids
+- manual numeric ids
+- `integer()`
+- `json()`
+- `enumeration()`
+- `bigint()`
+- `decimal()`
+- compound unique lookups and upserts
+- relation selections through follow-up queries
+- raw client detection
+- `createOrmFromRuntime(...)`
+- normalized duplicate-key errors
+
+## Important limits
+
+- generated integer ids are not supported on Unstorage
+- schema-qualified table names are not supported
+- relation loading is fallback-based, not native-join based
+- setup helpers do not create real tables or indexes
+- non-unique filtering is key-scan based
+- this runtime is not meant for highly relational or join-heavy database
+  workloads
+
+## Real integration coverage
+
+The Unstorage package is verified through real local integration tests against:
+
+- the in-memory Unstorage driver
+- the `fs-lite` Unstorage driver
+
+That suite covers:
+
+- raw runtime detection
+- `createUnstorageDriver(...)`
+- `createOrmFromRuntime(...)`
+- `bootstrapDatabase(...)`
+- auth-style relation reads
+- mutation queries without native transaction guarantees
+- compound unique lookups and upserts
+- integer/json coverage
+- enum/bigint/decimal coverage
+- generated numeric-id rejection
+- schema-namespace rejection
+- normalized duplicate-key errors
+
+Run it with:
+
+```bash title="terminal"
+pnpm test:local:unstorage
+```
+
+## Why it matters
+
+This keeps Unstorage inside the same bigger ORM story:
+
+- write your storage layer once
+- keep one schema definition
+- let the app choose a lightweight Unstorage-backed store
+- avoid owning a separate adapter surface for every storage driver

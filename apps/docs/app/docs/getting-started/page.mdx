@@ -285,6 +285,26 @@ const orm = createOrm({
 });
 ```
 
+### Unstorage
+
+```ts title="unstorage-runtime.ts"
+import { createOrm } from "@farming-labs/orm";
+import { createUnstorageDriver } from "@farming-labs/orm-unstorage";
+import { createStorage } from "unstorage";
+import memoryDriver from "unstorage/drivers/memory";
+
+const storage = createStorage({
+  driver: memoryDriver(),
+});
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createUnstorageDriver({
+    storage,
+  }),
+});
+```
+
 ### Mongoose
 
 ```ts title="mongoose-runtime.ts"
@@ -321,7 +341,7 @@ const orm = await createOrmFromRuntime({
 
 That path is especially useful for higher-level integrations that want to
 accept a raw Prisma, Drizzle, Kysely, TypeORM, Sequelize, SQL, Firestore,
-DynamoDB, MongoDB, or Mongoose runtime.
+DynamoDB, Unstorage, MongoDB, or Mongoose runtime.
 
 ## 5. Use the client
 
@@ -363,6 +383,7 @@ pnpm test:local:mysql
 pnpm test:local:sequelize
 pnpm test:local:typeorm
 pnpm test:local:dynamodb
+pnpm test:local:unstorage
 pnpm test:local:mongodb
 ```
 
@@ -375,4 +396,5 @@ pnpm test:local:mongodb
 - [TypeORM integration](/docs/integrations/typeorm)
 - [SQL databases](/docs/integrations/sql-databases)
 - [DynamoDB](/docs/integrations/dynamodb)
+- [Unstorage](/docs/integrations/unstorage)
 - [MongoDB](/docs/integrations/mongodb)

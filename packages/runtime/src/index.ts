@@ -20,6 +20,7 @@ import type {
   SqliteDatabaseLike,
 } from "@farming-labs/orm-sql";
 import type { TypeormDriverConfig } from "@farming-labs/orm-typeorm";
+import type { UnstorageDriverConfig } from "@farming-labs/orm-unstorage";
 import {
   inferMongooseModels,
   resolveDialect,
@@ -105,6 +106,15 @@ export async function createDriverFromRuntime<
         documentClient: options.dynamodb?.documentClient,
         tables: options.dynamodb?.tables,
         transforms: options.dynamodb?.transforms as DynamoDbDriverConfig<TSchema>["transforms"],
+      }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
+    }
+    case "unstorage": {
+      const { createUnstorageDriver } = await import("@farming-labs/orm-unstorage");
+      return createUnstorageDriver<TSchema>({
+        storage: runtime.client as UnstorageDriverConfig<TSchema>["storage"],
+        base: options.unstorage?.base,
+        prefixes: options.unstorage?.prefixes,
+        transforms: options.unstorage?.transforms as UnstorageDriverConfig<TSchema>["transforms"],
       }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
     }
     case "sequelize": {

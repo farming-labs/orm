@@ -33,6 +33,7 @@ this page.
 | Direct SQL runtime  | Yes        | Yes   | Yes    | No                   | `@farming-labs/orm-sql`                          |
 | Firestore runtime   | No         | No    | No     | Yes                  | `@farming-labs/orm-firestore`                    |
 | DynamoDB runtime    | No         | No    | No     | Yes                  | `@farming-labs/orm-dynamodb`                     |
+| Unstorage runtime   | No         | No    | No     | Yes                  | lightweight key-value/document runtime           |
 | MongoDB runtime     | No         | No    | No     | Yes                  | `@farming-labs/orm-mongo`                        |
 | Mongoose runtime    | No         | No    | No     | Yes                  | `@farming-labs/orm-mongoose`                     |
 
@@ -41,15 +42,15 @@ this repo. PostgreSQL and MySQL are exercised against real local databases.
 
 ## Runtime helpers and setup helpers
 
-| Helper                         | Prisma | Drizzle | Kysely | TypeORM | Sequelize | SQL | MongoDB | Mongoose | Firestore | DynamoDB |
-| ------------------------------ | ------ | ------- | ------ | ------- | --------- | --- | ------- | -------- | --------- | -------- |
-| `detectDatabaseRuntime(...)`   | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       | Yes      |
-| `inspectDatabaseRuntime(...)`  | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       | Yes      |
-| `createDriverFromRuntime(...)` | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       | Yes      |
-| `createOrmFromRuntime(...)`    | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       | Yes      |
-| `pushSchema(...)`              | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | No-op     | Yes      |
-| `applySchema(...)`             | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | No-op     | Yes      |
-| `bootstrapDatabase(...)`       | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       | Yes      |
+| Helper                         | Prisma | Drizzle | Kysely | TypeORM | Sequelize | SQL | MongoDB | Mongoose | Firestore | DynamoDB | Unstorage |
+| ------------------------------ | ------ | ------- | ------ | ------- | --------- | --- | ------- | -------- | --------- | -------- | --------- |
+| `detectDatabaseRuntime(...)`   | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       | Yes      | Yes       |
+| `inspectDatabaseRuntime(...)`  | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       | Yes      | Yes       |
+| `createDriverFromRuntime(...)` | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       | Yes      | Yes       |
+| `createOrmFromRuntime(...)`    | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       | Yes      | Yes       |
+| `pushSchema(...)`              | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | No-op     | Yes      | No-op     |
+| `applySchema(...)`             | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | No-op     | Yes      | No-op     |
+| `bootstrapDatabase(...)`       | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       | Yes      | Yes       |
 
 Important nuance:
 
@@ -59,16 +60,18 @@ Important nuance:
 - Supabase fits through the PostgreSQL path, not a separate runtime family
 - DynamoDB setup creates one table per model and uses internal record and
   unique-lock items inside that table
+- Unstorage setup is intentionally a no-op because the shared Unstorage contract
+  is key-value/document oriented rather than a database DDL surface
 
 ## Query and relation behavior
 
-| Feature                                        | SQL / Drizzle / Kysely | Prisma  | TypeORM | Sequelize | MongoDB / Mongoose | Firestore | DynamoDB |
-| ---------------------------------------------- | ---------------------- | ------- | ------- | --------- | ------------------ | --------- | -------- |
-| `create`, `update`, `delete`, `find*`, `count` | Yes                    | Yes     | Yes     | Yes       | Yes                | Yes       | Yes      |
-| transactions                                   | Yes                    | Yes     | Yes     | Yes       | Yes                | Yes       | No       |
-| compound unique lookups                        | Yes                    | Yes     | Yes     | Yes       | Yes                | Yes       | Yes      |
-| native relation loading                        | Partial                | Partial | Partial | Partial   | No                 | No        | No       |
-| fallback relation resolver                     | Yes                    | Yes     | Yes     | Yes       | Yes                | Yes       | Yes      |
+| Feature                                        | SQL / Drizzle / Kysely | Prisma  | TypeORM | Sequelize | MongoDB / Mongoose | Firestore | DynamoDB | Unstorage |
+| ---------------------------------------------- | ---------------------- | ------- | ------- | --------- | ------------------ | --------- | -------- | --------- |
+| `create`, `update`, `delete`, `find*`, `count` | Yes                    | Yes     | Yes     | Yes       | Yes                | Yes       | Yes      | Yes       |
+| transactions                                   | Yes                    | Yes     | Yes     | Yes       | Yes                | Yes       | No       | No        |
+| compound unique lookups                        | Yes                    | Yes     | Yes     | Yes       | Yes                | Yes       | Yes      | Yes       |
+| native relation loading                        | Partial                | Partial | Partial | Partial   | No                 | No        | No       | No        |
+| fallback relation resolver                     | Yes                    | Yes     | Yes     | Yes       | Yes                | Yes       | Yes      | Yes       |
 
 “Partial” here means the native path covers the safest direct branches first,
 and more complex relation shapes still fall back to the shared resolver.
@@ -78,24 +81,28 @@ correctly through the same higher-level storage layer: the ORM handles the
 necessary consecutive reads and write orchestration instead of requiring the
 consumer package to fork its logic.
 
+Unstorage belongs in that same category. It can support a unified storage layer
+through fallback relation loading and ORM-managed uniqueness, but it is not the
+recommended runtime for highly relational or join-heavy workloads.
+
 ## Scalar and schema support
 
-| Feature                                            | SQL-family / Prisma / TypeORM / Sequelize | MongoDB / Mongoose | Firestore | DynamoDB |
-| -------------------------------------------------- | ----------------------------------------- | ------------------ | --------- | -------- |
-| `integer()`                                        | Yes                                       | Yes                | Yes       | Yes      |
-| `json()`                                           | Yes                                       | Yes                | Yes       | Yes      |
-| `enumeration()`                                    | Yes                                       | Yes                | Yes       | Yes      |
-| `bigint()`                                         | Yes                                       | Yes                | Yes       | Yes      |
-| `decimal()`                                        | Yes                                       | Yes                | Yes       | Yes      |
-| manual numeric IDs                                 | Yes                                       | Yes                | Yes       | Yes      |
-| generated numeric IDs                              | Yes                                       | No                 | No        | No       |
-| schema namespaces via `tableName(..., { schema })` | PostgreSQL-family only                    | No                 | No        | No       |
+| Feature                                            | SQL-family / Prisma / TypeORM / Sequelize | MongoDB / Mongoose | Firestore | DynamoDB | Unstorage |
+| -------------------------------------------------- | ----------------------------------------- | ------------------ | --------- | -------- | --------- |
+| `integer()`                                        | Yes                                       | Yes                | Yes       | Yes      | Yes       |
+| `json()`                                           | Yes                                       | Yes                | Yes       | Yes      | Yes       |
+| `enumeration()`                                    | Yes                                       | Yes                | Yes       | Yes      | Yes       |
+| `bigint()`                                         | Yes                                       | Yes                | Yes       | Yes      | Yes       |
+| `decimal()`                                        | Yes                                       | Yes                | Yes       | Yes      | Yes       |
+| manual numeric IDs                                 | Yes                                       | Yes                | Yes       | Yes      | Yes       |
+| generated numeric IDs                              | Yes                                       | No                 | No        | No       | No        |
+| schema namespaces via `tableName(..., { schema })` | PostgreSQL-family only                    | No                 | No        | No       | No        |
 
 Important boundaries:
 
 - generated integer IDs are first-class on SQL-family runtimes, Prisma,
   TypeORM, Sequelize, and memory
-- MongoDB, Mongoose, Firestore, and DynamoDB keep numeric IDs manual-only
+- MongoDB, Mongoose, Firestore, DynamoDB, and Unstorage keep numeric IDs manual-only
 - schema-qualified tables are Postgres-style only
 - flat strings like `"auth.users"` are intentionally rejected; use
   `tableName("users", { schema: "auth" })`

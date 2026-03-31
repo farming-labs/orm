@@ -1,6 +1,6 @@
 ---
 title: "Integrations"
-description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, TypeORM, Sequelize, SQL-first, Supabase, Firestore, DynamoDB, and MongoDB-oriented workflows."
+description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, TypeORM, Sequelize, SQL-first, Supabase, Firestore, DynamoDB, Unstorage, and MongoDB-oriented workflows."
 order: 6
 icon: package
 ---
@@ -34,6 +34,7 @@ If you want the quickest “what works where?” answer, start with the
 | Kysely runtime      | Yes        | Yes   | Yes    | No                   | `@farming-labs/orm-kysely`                |
 | Firestore runtime   | No         | No    | No     | Yes                  | `@farming-labs/orm-firestore`             |
 | DynamoDB runtime    | No         | No    | No     | Yes                  | `@farming-labs/orm-dynamodb`              |
+| Unstorage runtime   | No         | No    | No     | Yes                  | `@farming-labs/orm-unstorage`             |
 | MongoDB runtime     | No         | No    | No     | Yes                  | `@farming-labs/orm-mongo`                 |
 | Mongoose runtime    | No         | No    | No     | Yes                  | `@farming-labs/orm-mongoose`              |
 
@@ -64,6 +65,18 @@ DynamoDB is now a first-class key-value/document runtime in this repo through
   making consumer packages own that logic
 - relation selections resolve through follow-up ORM queries rather than native joins
 - `pushSchema(...)` creates one table per model through the runtime setup layer
+
+Unstorage is now a first-class lightweight key-value/document runtime in this
+repo through `@farming-labs/orm-unstorage`.
+
+- it works with raw Unstorage instances created by `createStorage(...)`
+- it keeps the same schema and query API surface as the SQL, Mongo, Firestore,
+  and DynamoDB runtimes
+- relation selections resolve through follow-up ORM queries rather than native joins
+- `pushSchema(...)` and `applySchema(...)` are intentional no-ops because
+  Unstorage is not a SQL-style schema engine
+- it is a strong fit for lightweight records, sessions, and package-owned state,
+  but not for highly relational or join-heavy database workloads
 
 ## Scalar field coverage
 
@@ -253,6 +266,15 @@ Examples:
   linkLabel="Open DynamoDB guide"
 >
   DynamoDB integration
+</HoverLink>
+
+<HoverLink
+  href="/docs/integrations/unstorage"
+  title="Unstorage"
+  description="See how Farming Labs ORM translates one schema and one storage layer into Unstorage-backed key-value workflows, with clear limits around relational workloads."
+  linkLabel="Open Unstorage guide"
+>
+  Unstorage integration
 </HoverLink>
 
 <HoverLink
