@@ -1,0 +1,231 @@
+import Link from "next/link";
+import BeamBackground from "@/components/ui/beam-background";
+import { changelogEntries, latestChangelogEntry } from "@/lib/changelog";
+import { cn } from "@/lib/utils";
+import { GitBranch } from "lucide-react";
+
+function IconDocs({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinecap="round"
+      />
+      <path
+        d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinejoin="round"
+      />
+      <path d="M8 7h8M8 11h6" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function FooterNavLabel({ text }: { text: string }) {
+  return (
+    <span
+      className={cn(
+        "underline decoration-dotted decoration-from-font underline-offset-[7px]",
+        "decoration-transparent [text-decoration-skip-ink:none]",
+        "transition-[text-decoration-color,text-underline-offset]",
+        footerNavTransition,
+        "group-hover:decoration-slate-200/85 group-hover:underline-offset-[9px]",
+        "group-focus-visible:decoration-slate-200/85 group-focus-visible:underline-offset-[9px]",
+      )}
+    >
+      <span className="inline-flex items-baseline">
+        <span
+          className={cn(
+            "text-[1.2em] font-medium leading-none tracking-tight text-current",
+            "opacity-40 transition-opacity",
+            footerNavTransition,
+            "group-hover:opacity-100 group-focus-visible:opacity-100",
+          )}
+        >
+          [
+        </span>
+        <span className={cn("px-[0.3em] transition-colors", footerNavTransition)}>{text}</span>
+        <span
+          className={cn(
+            "text-[1.2em] font-medium leading-none tracking-tight text-current",
+            "opacity-40 transition-opacity",
+            footerNavTransition,
+            "group-hover:opacity-100 group-focus-visible:opacity-100",
+          )}
+        >
+          ]
+        </span>
+      </span>
+    </span>
+  );
+}
+const footerNavTransition =
+  "duration-300 ease-out motion-reduce:transition-none motion-reduce:duration-0";
+
+const footerLinkClass = cn(
+  "group font-mono text-[0.72rem] font-light uppercase tracking-tight text-slate-400/55",
+  "inline-flex min-h-10 items-center gap-1.5 py-1.5 transition-colors",
+  footerNavTransition,
+  "hover:text-slate-100/92 sm:min-h-0 sm:py-0",
+  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white/35",
+);
+
+const iconClass = cn(
+  "size-3.5 shrink-0 opacity-55 transition-opacity",
+  footerNavTransition,
+  "group-hover:opacity-90 group-focus-visible:opacity-90",
+);
+
+export function ChangelogPage() {
+  return (
+    <div className="not-prose">
+      <div className="w-full lg:grid lg:min-h-svh lg:grid-cols-[42vw_58vw]">
+        <aside className="lg:min-h-svh lg:border-r lg:border-white/12">
+          <div className="lg:sticky lg:top-0 lg:h-svh">
+            <section className="relative isolate h-full overflow-hidden border-b border-white/12 bg-[#050507] lg:border-b-0">
+              <div className="pointer-events-none absolute inset-y-0 left-8 z-[3] hidden w-px bg-white/12 sm:block" />
+              <div className="pointer-events-none absolute inset-y-0 right-8 z-[3] hidden w-px bg-white/12 sm:block" />
+
+              <div
+                className="pointer-events-none absolute inset-0 opacity-[0.38]"
+                aria-hidden="true"
+              >
+                <BeamBackground
+                  beamWidth={1}
+                  beamHeight={20}
+                  beamNumber={14}
+                  lightColor="#ffffff"
+                  speed={1.35}
+                  noiseIntensity={0.2}
+                  scale={0.2}
+                  rotation={0}
+                />
+              </div>
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-[clamp(4.5rem,16vw,12rem)] bg-gradient-to-r from-[#050507] via-[#050507]/85 to-transparent"
+              />
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-[clamp(4.5rem,16vw,12rem)] bg-gradient-to-l from-[#050507] via-[#050507]/85 to-transparent"
+              />
+              {/* <div
+                aria-hidden
+                className="home-hero-gutter-pattern pointer-events-none absolute inset-y-0 left-[calc(1.25rem+13px)] z-[1] hidden w-[max(0px,calc(clamp(20px,6vw,72px)-1.25rem-1px))] sm:block"
+              />
+              
+              */}
+              <div
+                aria-hidden
+                className="home-hero-gutter-pattern opacity-55 pointer-events-none absolute inset-y-0 right-[0] z-[1] hidden w-[max(0px,calc(clamp(20px,6vw,72px)-1.25rem-20px))] sm:block"
+              />
+              <div className="relative z-10 flex h-full flex-col pb-12 justify-between px-10 py-10">
+                <div className="flex min-h-full flex-col justify-end">
+                  <div className="mt-auto pt-16 space-y-5 lg:pb-8">
+                    <div className="font flex items-center gap-3">
+                      <Link href="/docs" className={footerLinkClass}>
+                        <IconDocs className={iconClass} />
+                        <FooterNavLabel text="DOCS" />
+                      </Link>
+                      <Link href="/docs" className={cn(footerLinkClass, "mb-0.5 lowercase")}>
+                        <GitBranch className={iconClass} />
+                        <FooterNavLabel text={latestChangelogEntry.version} />
+                      </Link>
+                    </div>
+                    <h1 className="m-0 font-mono text-[4rem] uppercase leading-[0.92] tracking-[-0.08em] text-white">
+                      Changelogs
+                    </h1>
+                    <p className="m-0 max-w-full text-[clamp(0.95rem,1.15vw,1.08rem)] leading-7 text-slate-300/84">
+                      <span className="font-mono text-xs uppercase tracking-tighter text-white/60">
+                        Track the latest updates, bug fixes, and improvements for{" "}
+                      </span>
+                      <code className="font-mono text-xs leading-7 text-white">
+                        @farming-labs/orm
+                      </code>
+                      .
+                    </p>
+
+                  </div>
+                </div>
+                <div
+                  className="-mx-[clamp(24px,5vw,72px)] border-y border-white/12 px-[clamp(24px,5vw,72px)] py-4"
+                  style={{
+                    backgroundImage:
+                      "repeating-linear-gradient(-45deg, color-mix(in srgb, var(--color-fd-border) 7%, transparent), color-mix(in srgb, var(--color-fd-foreground) 5%, transparent) 1px, transparent 1px, transparent 6px)",
+                  }}
+                  aria-label="Changelog versions"
+                >
+                  <div className="flex flex-wrap gap-2 text-white/50 font-mono text-[8px] justify-start">
+                    {changelogEntries.map((entry) => (
+                      <Link className="border border-white/10 text-white/50 border-dashed px-2 py-1" key={entry.version} href={`/changelogs#${entry.anchor}`}>
+                        [{entry.version}]
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </aside>
+
+        <div className="px-[clamp(24px,5vw,72px)] md:px-5 py-10 lg:py-12">
+          {changelogEntries.map((entry) => (
+            <section
+              key={entry.version}
+              id={entry.anchor}
+              className="relative border-b border-white/10 py-10 last:border-b-0"
+            >
+              <div className="grid gap-y-6 md:grid-cols-[9.5rem_minmax(0,1fr)] md:gap-x-8 md:items-start">
+                <div className="mb-6 h-fit md:mb-0 md:sticky md:top-8 md:self-start">
+                  <time className="block font-mono text-[0.66rem] uppercase tracking-[0.16em] text-slate-500/80">
+                    {entry.date}
+                  </time>
+                  <div className="mt-4 inline-flex border border-white/10 bg-[rgba(255,255,255,0.02)] px-3 py-2 font-mono text-[0.66rem] uppercase tracking-[0.14em] text-white/45">
+                    [{entry.version}]
+                  </div>
+                </div>
+
+                <div className="relative pb-2 md:pl-8">
+                  <div className="absolute bottom-0 left-0 top-2 hidden w-px bg-white/10 md:block">
+                    <div className="absolute left-1/2 top-0 size-3 -translate-x-1/2 rounded-full bg-[var(--color-fd-primary)] shadow-[0_0_0_4px_rgba(5,5,7,1)]" />
+                  </div>
+                  <div className="relative z-10 space-y-5">
+                    <div className="space-y-3">
+                      <h2 className="m-0 font-mono text-[0.9rem] font-medium uppercase tracking-[0.14em] text-white sm:text-[0.98rem]">
+                        {entry.title}
+                      </h2>
+
+                      <div className="flex flex-wrap gap-2">
+                        {entry.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="border border-white/10 bg-white/[0.025] px-2 py-1 font-mono text-[0.58rem] uppercase tracking-[0.12em] text-slate-500"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <p className="m-0 max-w-3xl text-[0.93rem] leading-7 text-slate-300/82">
+                      {entry.summary}
+                    </p>
+
+                    <ul className="space-y-3 pl-5 text-[0.92rem] leading-7 text-slate-300/78 marker:text-white/32">
+                      {entry.highlights.map((highlight) => (
+                        <li key={highlight}>{highlight}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </section>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
