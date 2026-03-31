@@ -27,6 +27,7 @@ import type {
   MongooseSessionSourceLike,
 } from "@farming-labs/orm-mongoose";
 import type { KyselyDialect } from "@farming-labs/orm-kysely";
+import type { MikroormDriverHandle } from "@farming-labs/orm-mikroorm";
 import type { PrismaDriverConfig, PrismaDriverHandle } from "@farming-labs/orm-prisma";
 import type { SequelizeDriverDialect, SequelizeDriverHandle } from "@farming-labs/orm-sequelize";
 import type { SqlDriverHandle } from "@farming-labs/orm-sql";
@@ -42,6 +43,7 @@ export type AutoDriverHandle<TClient = unknown> =
   | DynamoDbDriverHandle<any>
   | FirestoreDriverHandle<any>
   | OrmDriverHandle<"kysely", TClient, KyselyDialect>
+  | MikroormDriverHandle<TClient, AutoDialect>
   | OrmDriverHandle<"mongo", unknown>
   | OrmDriverHandle<"mongoose", unknown>
   | SequelizeDriverHandle<TClient, SequelizeDriverDialect>

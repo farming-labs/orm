@@ -35,6 +35,7 @@ If you want the full story for one stack, use
 | Prisma     | Yes        | Yes     | Full    | Generated `schema.prisma` plus live `PrismaClient` runtime |
 | Drizzle    | Yes        | Yes     | Full    | Generated schema files plus live Drizzle runtime           |
 | Kysely     | No         | Yes     | Full    | Runtime-first relational integration                       |
+| MikroORM   | No         | Yes     | Full    | Runtime-first relational integration                       |
 | TypeORM    | No         | Yes     | Full    | Runtime-first relational integration                       |
 | Sequelize  | No         | Yes     | Full    | Runtime-first relational integration                       |
 | Direct SQL | Yes        | Yes     | Full    | Safe SQL generation plus direct SQL runtime                |
@@ -49,8 +50,8 @@ If you want the full story for one stack, use
 
 ### Relational stacks
 
-Prisma, Drizzle, Kysely, TypeORM, Sequelize, and direct SQL are the strongest
-fit when the data model is relational or join-heavy.
+Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, and direct SQL are the
+strongest fit when the data model is relational or join-heavy.
 
 They also carry the best support for:
 

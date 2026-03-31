@@ -12,7 +12,7 @@ export default defineConfig({
       "@farming-labs/orm-drizzle": path.resolve(dirname, "../drizzle/src/index.ts"),
       "@farming-labs/orm-firestore": path.resolve(dirname, "../firestore/src/index.ts"),
       "@farming-labs/orm-kysely": path.resolve(dirname, "../kysely/src/index.ts"),
-      "@farming-labs/orm-mikroorm": path.resolve(dirname, "../mikroorm/src/index.ts"),
+      "@farming-labs/orm-mikroorm": path.resolve(dirname, "./src/index.ts"),
       "@farming-labs/orm-mongo": path.resolve(dirname, "../mongo/src/index.ts"),
       "@farming-labs/orm-mongoose": path.resolve(dirname, "../mongoose/src/index.ts"),
       "@farming-labs/orm-prisma": path.resolve(dirname, "../prisma/src/index.ts"),
@@ -21,7 +21,7 @@ export default defineConfig({
       "@farming-labs/orm-sequelize": path.resolve(dirname, "../sequelize/src/index.ts"),
       "@farming-labs/orm-sql": path.resolve(dirname, "../sql/src/index.ts"),
       "@farming-labs/orm-typeorm": path.resolve(dirname, "../typeorm/src/index.ts"),
-      "@farming-labs/orm-unstorage": path.resolve(dirname, "./src/index.ts"),
+      "@farming-labs/orm-unstorage": path.resolve(dirname, "../unstorage/src/index.ts"),
     },
   },
   test: {

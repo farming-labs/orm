@@ -1,6 +1,6 @@
 ---
 title: "Integrations"
-description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, TypeORM, Sequelize, SQL-first, Supabase, Firestore, DynamoDB, Unstorage, and MongoDB-oriented workflows."
+description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, SQL-first, Supabase, Firestore, DynamoDB, Unstorage, and MongoDB-oriented workflows."
 order: 6
 icon: package
 ---
@@ -44,6 +44,7 @@ Use these when the app already owns a live relational client:
 - Prisma
 - Drizzle
 - Kysely
+- MikroORM
 - TypeORM
 - Sequelize
 - direct SQL clients
@@ -95,6 +96,7 @@ Examples:
 - `@farming-labs/orm-prisma` translates into Prisma delegate calls
 - `@farming-labs/orm-drizzle` translates into Drizzle-backed queries
 - `@farming-labs/orm-kysely` translates into Kysely-backed queries
+- `@farming-labs/orm-mikroorm` translates into MikroORM-backed relational operations
 - `@farming-labs/orm-sql` translates into direct SQL operations
 - `@farming-labs/orm-typeorm` translates into TypeORM-backed relational operations
 - `@farming-labs/orm-sequelize` translates into Sequelize-backed relational operations
@@ -134,6 +136,17 @@ Examples:
   linkLabel="Open Kysely guide"
 >
   Kysely integration
+</HoverLink>
+
+<span>·</span>
+
+<HoverLink
+  href="/docs/integrations/mikroorm"
+  title="MikroORM"
+  description="See how a real MikroORM instance or EntityManager can power the unified Farming ORM runtime without rewriting package-level storage code."
+  linkLabel="Open MikroORM guide"
+>
+  MikroORM integration
 </HoverLink>
 
 <span>·</span>

@@ -190,6 +190,7 @@ export default defineDocs({
         { slug: "prisma" },
         { slug: "drizzle" },
         { slug: "kysely" },
+        { slug: "mikroorm" },
         { slug: "typeorm" },
         { slug: "sequelize" },
         { slug: "sql-databases" },

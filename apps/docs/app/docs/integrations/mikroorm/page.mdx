@@ -1,0 +1,244 @@
+---
+title: "MikroORM"
+description: "How the unified schema and runtime fit into MikroORM-based PostgreSQL and MySQL apps."
+order: 4
+icon: database
+---
+
+# MikroORM
+
+MikroORM integration is runtime-first.
+
+Use `@farming-labs/orm-mikroorm` when:
+
+- the app already owns a real MikroORM instance or `EntityManager`
+- a shared package wants to keep one storage layer across MikroORM, Prisma,
+  Drizzle, Kysely, TypeORM, Sequelize, direct SQL, Firestore, DynamoDB, or
+  MongoDB-style runtimes
+- you want one schema definition and one query surface while still letting the
+  app use MikroORM underneath
+
+## Supported MikroORM dialect families
+
+- `postgresql`
+- `mysql` / `mariadb`
+
+The current repo verifies the live matrix on PostgreSQL and MySQL.
+
+## Runtime setup
+
+```ts title="mikroorm-runtime.ts"
+import { createOrm } from "@farming-labs/orm";
+import { createMikroormDriver } from "@farming-labs/orm-mikroorm";
+import { MikroORM } from "@mikro-orm/postgresql";
+import { authSchema } from "./schema";
+
+const mikroorm = await MikroORM.init({
+  clientUrl: process.env.DATABASE_URL,
+  entities: [],
+  discovery: {
+    warnWhenNoEntities: false,
+  },
+});
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createMikroormDriver({
+    orm: mikroorm,
+  }),
+});
+```
+
+From there, shared code keeps using the same unified API:
+
+```ts
+const user = await orm.user.findUnique({
+  where: {
+    email: "ada@farminglabs.dev",
+  },
+  select: {
+    id: true,
+    email: true,
+    profile: {
+      select: {
+        bio: true,
+      },
+    },
+    sessions: {
+      select: {
+        token: true,
+      },
+    },
+  },
+});
+```
+
+## What the MikroORM driver is doing
+
+The MikroORM driver does not invent another schema system.
+
+It:
+
+1. accepts the app's real MikroORM instance or `EntityManager`
+2. executes through MikroORM connections and MikroORM transactions
+3. reuses the shared SQL runtime semantics for filtering, mutations, relation
+   loading, compound unique lookups, numeric IDs, namespaces, and normalized
+   errors
+
+That means a package can write its storage layer once while each app decides
+whether the actual execution stack is MikroORM, Prisma, Drizzle, Kysely,
+TypeORM, Sequelize, direct SQL, Firestore, DynamoDB, MongoDB, or Mongoose.
+
+## Runtime helper path
+
+If a framework or shared package wants to accept the raw MikroORM client
+directly, use the runtime helpers:
+
+```ts
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const orm = await createOrmFromRuntime({
+  schema: authSchema,
+  client: mikroorm,
+});
+```
+
+You can also pass a forked `EntityManager` directly:
+
+```ts
+const orm = await createOrmFromRuntime({
+  schema: authSchema,
+  client: mikroorm.em,
+});
+```
+
+That is the cleanest path for higher-level integrations that do not want to
+branch on MikroORM specifically.
+
+## Setup helpers
+
+The setup helpers work with MikroORM too:
+
+```ts
+import { bootstrapDatabase, pushSchema } from "@farming-labs/orm-runtime/setup";
+
+await pushSchema({
+  schema: authSchema,
+  client: mikroorm,
+});
+
+const orm = await bootstrapDatabase({
+  schema: authSchema,
+  client: mikroorm,
+});
+```
+
+For MikroORM runtimes, that setup path renders safe SQL from the Farming Labs
+schema and applies it through the live MikroORM connection.
+
+That is especially useful when a package or framework wants:
+
+- repeatable test setup
+- one bootstrap path across runtime families
+- no separate MikroORM-only schema-push API at the package boundary
+
+## Relation support
+
+The MikroORM runtime inherits the current SQL-family relation behavior:
+
+- native single-query loading for supported singular chains
+- native single-query loading for simple `hasMany(...)` and explicit join-table
+  `manyToMany(...)` branches without relation-level modifiers
+- shared fallback relation resolution for more complex relation branches that
+  add their own `where`, `orderBy`, `take`, or `skip`
+
+That means auth-style and framework-style relation reads still work through the
+same unified API surface.
+
+## Transactions and mutations
+
+MikroORM transactions map into the unified ORM transaction surface:
+
+```ts
+await orm.transaction(async (tx) => {
+  const user = await tx.user.create({
+    data: {
+      email: "ada@farminglabs.dev",
+      name: "Ada",
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  await tx.session.upsert({
+    where: {
+      token: "session-token",
+    },
+    create: {
+      userId: user.id,
+      token: "session-token",
+      expiresAt: new Date("2027-01-01T00:00:00.000Z"),
+    },
+    update: {
+      expiresAt: new Date("2027-01-01T00:00:00.000Z"),
+    },
+  });
+});
+```
+
+The same runtime also supports:
+
+- `create`
+- `createMany`
+- `update`
+- `updateMany`
+- `upsert`
+- `delete`
+- `deleteMany`
+- compound-unique lookups
+- model-level constraint enforcement
+
+## Local verification
+
+The repo verifies MikroORM locally against PostgreSQL and MySQL.
+
+Run it with:
+
+```bash title="terminal"
+pnpm test:local:mikroorm
+```
+
+If you want to point the suite at your own local database URLs, use:
+
+```bash
+export FARM_ORM_LOCAL_PG_ADMIN_URL=postgres://postgres:postgres@127.0.0.1:5432/postgres
+export FARM_ORM_LOCAL_MYSQL_ADMIN_URL=mysql://root:root@127.0.0.1:3306
+
+pnpm test:local:mikroorm
+```
+
+You can also target a single MikroORM family while debugging:
+
+```bash
+FARM_ORM_LOCAL_MIKROORM_TARGETS=postgresql pnpm --filter @farming-labs/orm-mikroorm test
+FARM_ORM_LOCAL_MIKROORM_TARGETS=mysql pnpm --filter @farming-labs/orm-mikroorm test
+```
+
+The PostgreSQL and MySQL paths create isolated temporary databases during the
+run and clean those databases up afterward.
+
+## Why it fits well
+
+MikroORM already gives apps a strong relational runtime abstraction.
+
+Farming Labs ORM sits one layer above that:
+
+- app code keeps MikroORM
+- package code keeps one schema and one storage layer
+- runtime helpers can still accept the raw MikroORM instance or `EntityManager`
+- setup helpers can still bootstrap the live database
+
+That is the main value: MikroORM apps can participate in the same package-level
+storage contract as Prisma, Drizzle, Kysely, TypeORM, Sequelize, direct SQL,
+Firestore, DynamoDB, MongoDB, and Mongoose apps.

@@ -7,6 +7,7 @@ export type DetectedDatabaseRuntime<TClient = unknown> = Readonly<{
     | "prisma"
     | "drizzle"
     | "kysely"
+    | "mikroorm"
     | "dynamodb"
     | "unstorage"
     | "sequelize"
@@ -125,6 +126,67 @@ function detectSequelizeDialect(client: Record<string, unknown>) {
   return normalizeDialect((client.options as Record<string, unknown> | undefined)?.dialect);
 }
 
+function getConfigValue(config: unknown, key: string) {
+  if (!isRecord(config) || typeof config.get !== "function") {
+    return undefined;
+  }
+
+  try {
+    return config.get(key);
+  } catch {
+    return undefined;
+  }
+}
+
+function normalizeMikroormDialect(value: unknown): DetectedDatabaseDialect | undefined {
+  if (typeof value === "string") {
+    return normalizeDialect(value);
+  }
+
+  const constructorName = getConstructorName(value);
+  if (/postgre|pgsql|pg/i.test(constructorName)) return "postgres";
+  if (/mysql|maria/i.test(constructorName)) return "mysql";
+  if (/sqlite|sqljs|better.?sqlite/i.test(constructorName)) return "sqlite";
+  return undefined;
+}
+
+function detectMikroormDialect(client: Record<string, unknown>) {
+  const entityManager = isRecord(client.em) ? client.em : undefined;
+  const driver = isRecord(client.driver) ? client.driver : undefined;
+  const config = isRecord(client.config) ? client.config : undefined;
+  const connection = hasFunction(client, "getConnection")
+    ? client.getConnection()
+    : hasFunction(entityManager, "getConnection")
+      ? entityManager.getConnection()
+      : hasFunction(driver, "getConnection")
+        ? driver.getConnection()
+        : undefined;
+  const platform = hasFunction(client, "getPlatform")
+    ? client.getPlatform()
+    : hasFunction(entityManager, "getPlatform")
+      ? entityManager.getPlatform()
+      : hasFunction(driver, "getPlatform")
+        ? driver.getPlatform()
+        : undefined;
+
+  const candidates = [
+    client,
+    entityManager,
+    driver,
+    connection,
+    platform,
+    getConfigValue(config, "type"),
+    getConfigValue(config, "driver"),
+  ];
+
+  for (const candidate of candidates) {
+    const dialect = normalizeMikroormDialect(candidate);
+    if (dialect) return dialect;
+  }
+
+  return undefined;
+}
+
 function isDynamoDbClient(client: unknown): client is Record<string, unknown> {
   const constructorName = getConstructorName(client);
   return (
@@ -190,6 +252,29 @@ function isSequelizeClient(client: unknown): client is Record<string, unknown> {
     isRecord(client) &&
     isRecord(record.options) &&
     "dialect" in record.options
+  );
+}
+
+function isMikroormInstance(client: unknown): client is Record<string, unknown> {
+  const record = client as Record<string, unknown>;
+
+  return (
+    hasFunction(client, "connect") &&
+    hasFunction(client, "close") &&
+    hasFunction(client, "isConnected") &&
+    isRecord(client) &&
+    isRecord(record.em) &&
+    hasFunction(record.em, "getConnection") &&
+    hasFunction(record.em, "transactional")
+  );
+}
+
+function isMikroormEntityManager(client: unknown): client is Record<string, unknown> {
+  return (
+    hasFunction(client, "getConnection") &&
+    hasFunction(client, "transactional") &&
+    hasFunction(client, "fork") &&
+    (hasFunction(client, "getDriver") || hasFunction(client, "getPlatform"))
   );
 }
 
@@ -299,6 +384,18 @@ export function detectDatabaseRuntime<TClient>(
       dialect: detectKyselyDialect(client),
       source: "db",
     });
+  }
+
+  if (isMikroormInstance(client) || isMikroormEntityManager(client)) {
+    const dialect = detectMikroormDialect(client as Record<string, unknown>);
+    if (dialect) {
+      return Object.freeze({
+        kind: "mikroorm",
+        client,
+        dialect,
+        source: "connection",
+      });
+    }
   }
 
   if (isDynamoDbClient(client)) {
@@ -452,6 +549,22 @@ export function inspectDatabaseRuntime<TClient>(
         "transaction",
         "getExecutor",
       ]),
+    },
+    {
+      kind: "mikroorm",
+      matched:
+        (isMikroormInstance(client) || isMikroormEntityManager(client)) &&
+        !!detectMikroormDialect(client as Record<string, unknown>),
+      reasons:
+        isMikroormInstance(client) || isMikroormEntityManager(client)
+          ? detectMikroormDialect(client as Record<string, unknown>)
+            ? []
+            : [
+                "unsupported MikroORM dialect; expected a PostgreSQL, MySQL/MariaDB, or SQLite-family SQL driver",
+              ]
+          : missingFunctions(client, ["getConnection", "transactional"]).concat([
+              'expected either a MikroORM instance ("em", "connect", "close") or an EntityManager-like runtime',
+            ]),
     },
     {
       kind: "dynamodb",

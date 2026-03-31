@@ -14,6 +14,7 @@ export default defineConfig({
       "@farming-labs/orm-runtime": path.resolve(dirname, "../runtime/src/index.ts"),
       "@farming-labs/orm-drizzle": path.resolve(dirname, "../drizzle/src/index.ts"),
       "@farming-labs/orm-kysely": path.resolve(dirname, "../kysely/src/index.ts"),
+      "@farming-labs/orm-mikroorm": path.resolve(dirname, "../mikroorm/src/index.ts"),
       "@farming-labs/orm-mongo": path.resolve(dirname, "../mongo/src/index.ts"),
       "@farming-labs/orm-mongoose": path.resolve(dirname, "../mongoose/src/index.ts"),
       "@farming-labs/orm-prisma": path.resolve(dirname, "../prisma/src/index.ts"),

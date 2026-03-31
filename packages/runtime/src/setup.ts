@@ -61,6 +61,28 @@ type InitializableConnectionLike = {
   initialize?(): Promise<unknown>;
 };
 
+type MikroormConnectionLike = {
+  connect?(options?: { skipOnConnect?: boolean }): Promise<unknown> | unknown;
+  ensureConnection?(): Promise<unknown> | unknown;
+  execute(
+    sql: string,
+    params?: readonly unknown[],
+    method?: "all" | "get" | "run",
+    ctx?: unknown,
+  ): Promise<unknown> | unknown;
+  isConnected?(): Promise<boolean> | boolean;
+};
+
+type MikroormEntityManagerLike = {
+  getConnection(type?: "read" | "write"): MikroormConnectionLike;
+};
+
+type MikroormRuntimeLike = {
+  connect?(): Promise<unknown>;
+  em?: MikroormEntityManagerLike;
+  isConnected?(): Promise<boolean>;
+};
+
 type KyselyExecuteClient = {
   executeQuery(query: {
     sql: string;
@@ -443,6 +465,42 @@ async function ensureInitializedConnection(client: unknown) {
   }
 }
 
+function resolveMikroormConnection(client: unknown) {
+  if (hasFunction(client, "getConnection")) {
+    return (client as MikroormEntityManagerLike).getConnection();
+  }
+
+  if (isRecord(client) && isRecord(client.em) && hasFunction(client.em, "getConnection")) {
+    return (client.em as MikroormEntityManagerLike).getConnection();
+  }
+
+  throw new Error("Could not resolve a MikroORM SQL connection from the provided runtime client.");
+}
+
+async function ensureConnectedMikroorm(client: unknown) {
+  if (isRecord(client) && hasFunction(client, "isConnected") && hasFunction(client, "connect")) {
+    if (!(await (client as MikroormRuntimeLike).isConnected?.())) {
+      await (client as MikroormRuntimeLike).connect?.();
+    }
+    return;
+  }
+
+  const connection = resolveMikroormConnection(client);
+  if (hasFunction(connection, "isConnected")) {
+    const connected = await connection.isConnected();
+    if (connected) return;
+  }
+
+  if (hasFunction(connection, "ensureConnection")) {
+    await connection.ensureConnection();
+    return;
+  }
+
+  if (hasFunction(connection, "connect")) {
+    await connection.connect({ skipOnConnect: false });
+  }
+}
+
 async function runPrismaDbPush(schemaPath: string, databaseUrl: string, packageRoot: string) {
   await execFileAsync(
     "pnpm",
@@ -655,6 +713,12 @@ async function applySchemaInternal<TSchema extends SchemaDefinition<any>, TClien
     if (runtime.kind === "typeorm") {
       await ensureInitializedConnection(runtime.client);
       await applySqlSchemaToClient(runtime.client, dialect, sql);
+      return;
+    }
+
+    if (runtime.kind === "mikroorm") {
+      await ensureConnectedMikroorm(runtime.client);
+      await applySqlSchemaToClient(resolveMikroormConnection(runtime.client), dialect, sql);
       return;
     }
 

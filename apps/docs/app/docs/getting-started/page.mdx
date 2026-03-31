@@ -227,6 +227,29 @@ const orm = createOrm({
 });
 ```
 
+### MikroORM
+
+```ts title="mikroorm-runtime.ts"
+import { createOrm } from "@farming-labs/orm";
+import { createMikroormDriver } from "@farming-labs/orm-mikroorm";
+import { MikroORM } from "@mikro-orm/postgresql";
+
+const mikroorm = await MikroORM.init({
+  clientUrl: process.env.DATABASE_URL,
+  entities: [],
+  discovery: {
+    warnWhenNoEntities: false,
+  },
+});
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createMikroormDriver({
+    orm: mikroorm,
+  }),
+});
+```
+
 ### Sequelize
 
 ```ts title="sequelize-runtime.ts"
@@ -340,8 +363,8 @@ const orm = await createOrmFromRuntime({
 ```
 
 That path is especially useful for higher-level integrations that want to
-accept a raw Prisma, Drizzle, Kysely, TypeORM, Sequelize, SQL, Firestore,
-DynamoDB, Unstorage, MongoDB, or Mongoose runtime.
+accept a raw Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, SQL,
+Firestore, DynamoDB, Unstorage, MongoDB, or Mongoose runtime.
 
 ## 5. Use the client
 
@@ -382,6 +405,7 @@ pnpm test:local:postgres
 pnpm test:local:mysql
 pnpm test:local:sequelize
 pnpm test:local:typeorm
+pnpm test:local:mikroorm
 pnpm test:local:dynamodb
 pnpm test:local:unstorage
 pnpm test:local:mongodb
@@ -394,6 +418,7 @@ pnpm test:local:mongodb
 - [Drizzle integration](/docs/integrations/drizzle)
 - [Sequelize integration](/docs/integrations/sequelize)
 - [TypeORM integration](/docs/integrations/typeorm)
+- [MikroORM integration](/docs/integrations/mikroorm)
 - [SQL databases](/docs/integrations/sql-databases)
 - [DynamoDB](/docs/integrations/dynamodb)
 - [Unstorage](/docs/integrations/unstorage)

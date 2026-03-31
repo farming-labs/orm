@@ -4,7 +4,7 @@ description: |
   Use when working in the Farming Labs ORM monorepo. Covers the schema DSL,
   runtime drivers, relation translation, docs updates, release flow, and real
   local database integration tests. Triggers: createOrm, Prisma driver,
-  Drizzle driver, Kysely driver, TypeORM driver, Sequelize driver, Firestore,
+  Drizzle driver, Kysely driver, MikroORM driver, TypeORM driver, Sequelize driver, Firestore,
   DynamoDB, Unstorage, Mongo runtime, Mongoose runtime, update docs,
   test:local, release latest, compound unique, native relation loading.
 ---
@@ -26,6 +26,8 @@ repo-specific knowledge about the unified ORM API.
   Drizzle runtime driver
 - `packages/kysely`
   Kysely runtime driver
+- `packages/mikroorm`
+  MikroORM runtime driver
 - `packages/typeorm`
   TypeORM runtime driver
 - `packages/sequelize`
@@ -94,6 +96,7 @@ Targeted commands:
 pnpm test:local:sql
 pnpm test:local:drizzle
 pnpm test:local:kysely
+pnpm test:local:mikroorm
 pnpm test:local:sequelize
 pnpm test:local:typeorm
 pnpm test:local:dynamodb
@@ -160,6 +163,8 @@ Current runtime packages in this repo:
   - Drizzle-backed runtime using the SQL runtime underneath
 - `@farming-labs/orm-kysely`
   - Kysely-backed runtime using the SQL runtime underneath
+- `@farming-labs/orm-mikroorm`
+  - MikroORM-backed runtime using the SQL runtime underneath
 - `@farming-labs/orm-typeorm`
   - TypeORM runtime
 - `@farming-labs/orm-sequelize`

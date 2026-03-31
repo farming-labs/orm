@@ -121,9 +121,9 @@ The setup helpers now live on the Node-only subpath:
 - `bootstrapDatabase(...)`
 
 Import them from `@farming-labs/orm-runtime/setup`. They use the same runtime
-detection layer to prepare direct SQL, Prisma, TypeORM, Sequelize, MongoDB,
-Mongoose, Firestore, DynamoDB, Unstorage, Drizzle, and Kysely runtimes without
-inventing a separate config surface.
+detection layer to prepare direct SQL, Prisma, Drizzle, Kysely, MikroORM,
+TypeORM, Sequelize, MongoDB, Mongoose, Firestore, DynamoDB, and Unstorage
+runtimes without inventing a separate config surface.
 
 There is also a dedicated guide for this flow:
 
@@ -224,6 +224,7 @@ the stage, runtime kind, dialect, and underlying cause available.
 - `createPrismaDriver(...)` from `@farming-labs/orm-prisma`
 - `createDrizzleDriver(...)` from `@farming-labs/orm-drizzle`
 - `createKyselyDriver(...)` from `@farming-labs/orm-kysely`
+- `createMikroormDriver(...)` from `@farming-labs/orm-mikroorm`
 - `createTypeormDriver(...)` from `@farming-labs/orm-typeorm`
 - `createSequelizeDriver(...)` from `@farming-labs/orm-sequelize`
 - `createSqliteDriver(...)` from `@farming-labs/orm-sql`

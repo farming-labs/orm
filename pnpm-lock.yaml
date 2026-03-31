@@ -63,7 +63,7 @@ importers:
         version: 6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3)
       drizzle-orm:
         specifier: ^0.44.6
-        version: 0.44.7(@opentelemetry/api@1.9.1)(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(@types/sql.js@1.4.11)(better-sqlite3@11.10.0)(kysely@0.28.14)(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0)(prisma@6.19.2(typescript@5.9.3))(sql.js@1.14.1)
+        version: 0.44.7(@opentelemetry/api@1.9.1)(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(@types/sql.js@1.4.11)(better-sqlite3@11.10.0)(kysely@0.28.15)(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0)(prisma@6.19.2(typescript@5.9.3))(sql.js@1.14.1)
       mongodb:
         specifier: ^6.20.0
         version: 6.20.0
@@ -184,7 +184,7 @@ importers:
         version: 8.20.0
       drizzle-orm:
         specifier: ^0.44.6
-        version: 0.44.7(@opentelemetry/api@1.9.1)(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(@types/sql.js@1.4.11)(better-sqlite3@11.10.0)(kysely@0.28.14)(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0)(prisma@6.19.2(typescript@5.9.3))(sql.js@1.14.1)
+        version: 0.44.7(@opentelemetry/api@1.9.1)(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(@types/sql.js@1.4.11)(better-sqlite3@11.10.0)(kysely@0.28.15)(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0)(prisma@6.19.2(typescript@5.9.3))(sql.js@1.14.1)
       mysql2:
         specifier: ^3.15.2
         version: 3.20.0(@types/node@22.19.15)
@@ -242,6 +242,37 @@ importers:
       kysely:
         specifier: ^0.28.14
         version: 0.28.14
+      mysql2:
+        specifier: ^3.15.2
+        version: 3.20.0(@types/node@22.19.15)
+      pg:
+        specifier: ^8.16.3
+        version: 8.20.0
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)
+
+  packages/mikroorm:
+    dependencies:
+      '@farming-labs/orm':
+        specifier: workspace:*
+        version: link:../orm
+      '@farming-labs/orm-sql':
+        specifier: workspace:*
+        version: link:../sql
+    devDependencies:
+      '@mikro-orm/core':
+        specifier: ^7.0.7
+        version: 7.0.7
+      '@mikro-orm/mysql':
+        specifier: ^7.0.7
+        version: 7.0.7(@mikro-orm/core@7.0.7)(@types/node@22.19.15)
+      '@mikro-orm/postgresql':
+        specifier: ^7.0.7
+        version: 7.0.7(@mikro-orm/core@7.0.7)
+      '@types/pg':
+        specifier: ^8.15.6
+        version: 8.20.0
       mysql2:
         specifier: ^3.15.2
         version: 3.20.0(@types/node@22.19.15)
@@ -332,6 +363,9 @@ importers:
       '@farming-labs/orm-kysely':
         specifier: workspace:*
         version: link:../kysely
+      '@farming-labs/orm-mikroorm':
+        specifier: workspace:*
+        version: link:../mikroorm
       '@farming-labs/orm-mongo':
         specifier: workspace:*
         version: link:../mongo
@@ -1022,6 +1056,33 @@ packages:
 
   '@mediapipe/tasks-vision@0.10.17':
     resolution: {integrity: sha512-CZWV/q6TTe8ta61cZXjfnnHsfWIdFhms03M9T7Cnd5y2mdpylJM0rF1qRq+wsQVRMLz1OYPVEBU9ph2Bx8cxrg==}
+
+  '@mikro-orm/core@7.0.7':
+    resolution: {integrity: sha512-5G2aEuSbgLhqZGGr6KP6Cl7NktK13Sc+07IUdwcYLanEOUDkdSDccjl/P6DBWleA5MmWQSOyGgKChLkVSDRSqQ==}
+    engines: {node: '>= 22.17.0'}
+    peerDependencies:
+      dataloader: 2.2.3
+    peerDependenciesMeta:
+      dataloader:
+        optional: true
+
+  '@mikro-orm/mysql@7.0.7':
+    resolution: {integrity: sha512-EGcnXir8S4Omxi3xg/0bWZpO0TyRgc4IAhTE4BJNeW074z+0y5RwIeMIJPtLiHSt1kcjoclkcUJpUA0IjDKJig==}
+    engines: {node: '>= 22.17.0'}
+    peerDependencies:
+      '@mikro-orm/core': 7.0.7
+
+  '@mikro-orm/postgresql@7.0.7':
+    resolution: {integrity: sha512-b3ScT7E4i0lLpZQ01ZExTf3coCTUk9rDX+V+ojyBH4VuFoM6z9xR1TDCinQ2mIhN8of8Gwfk1ROV5Bgi0ThN7Q==}
+    engines: {node: '>= 22.17.0'}
+    peerDependencies:
+      '@mikro-orm/core': 7.0.7
+
+  '@mikro-orm/sql@7.0.7':
+    resolution: {integrity: sha512-jJV+e3BwsncP190jCQqRAGaomiMU72lQjHXYhkIUkS8za/coLI0XGzT0Jd1ck3tRBxbJuZ2CoNibXu4FhyJbEQ==}
+    engines: {node: '>= 22.17.0'}
+    peerDependencies:
+      '@mikro-orm/core': 7.0.7
 
   '@mongodb-js/saslprep@1.4.6':
     resolution: {integrity: sha512-y+x3H1xBZd38n10NZF/rEBlvDOOMQ6LKUTHqr8R9VkJ+mmQOYtJFxIlkkK8fZrtOiL6VixbOBWMbZGBdal3Z1g==}
@@ -3460,6 +3521,10 @@ packages:
     resolution: {integrity: sha512-SU3lgh0rPvq7upc6vvdVrCsSMUG1h3ChvHVOY7wJ2fw4C9QEB7X3d5eyYEyULUX7UQtxZJtZXGuT6U2US72UYA==}
     engines: {node: '>=20.0.0'}
 
+  kysely@0.28.15:
+    resolution: {integrity: sha512-r2clcf7HLWvDXaVUEvQymXJY4i3bSOIV3xsL/Upy3ZfSv5HeKsk9tsqbBptLvth5qHEIhxeHTA2jNLyQABkLBA==}
+    engines: {node: '>=20.0.0'}
+
   lazy@1.0.11:
     resolution: {integrity: sha512-Y+CjUfLmIpoUCCRl0ub4smrYtGGr5AOa2AKOaWelGHOGz33X/Y/KizefGqbkwfz44+cnq/+9habclf8vOmu2LA==}
     engines: {node: '>=0.2.0'}
@@ -4084,6 +4149,11 @@ packages:
   pg-connection-string@2.12.0:
     resolution: {integrity: sha512-U7qg+bpswf3Cs5xLzRqbXbQl85ng0mfSV/J0nnA31MCLgvEaAo7CIhmeyrmJpOr7o+zm0rXK+hNnT5l9RHkCkQ==}
 
+  pg-cursor@2.19.0:
+    resolution: {integrity: sha512-J5cF1MUz7LRJ9emOqF/06QjabMHMZy587rSPF0UuA8rCwKeeYl2co8Pp+6k5UU9YrAYHMzWkLxilfZB0hqsWWw==}
+    peerDependencies:
+      pg: ^8
+
   pg-int8@1.0.1:
     resolution: {integrity: sha512-WCtabS6t3c8SkpDBUlb1kjOs7l66xsGdKpIPZsg4wR+B3+u9UAum2odSsF9tnvxg80h4ZxLWMy4pRjOsFIqQpw==}
     engines: {node: '>=4.0.0'}
@@ -4167,6 +4237,10 @@ packages:
     resolution: {integrity: sha512-VpZrUqU5A69eQyW2c5CA1jtLecCsN2U/bD6VilrFDWq5+5UIEVO7nazS3TEcHf1zuPYO/sqGvUvW62g86RXZuA==}
     engines: {node: '>=4'}
 
+  postgres-array@3.0.4:
+    resolution: {integrity: sha512-nAUSGfSDGOaOAEGwqsRY27GPOea7CNipJPOA7lPbdEpx5Kg3qzdP0AaWC5MlhTWV9s4hFX39nomVZ+C4tnGOJQ==}
+    engines: {node: '>=12'}
+
   postgres-bytea@1.0.1:
     resolution: {integrity: sha512-5+5HqXnsZPE65IJZSMkZtURARZelel2oXUEO8rH83VS/hxH5vv1uHquPg5wZs8yMAfdv971IU+kcPUczi7NVBQ==}
     engines: {node: '>=0.10.0'}
@@ -4175,9 +4249,17 @@ packages:
     resolution: {integrity: sha512-suDmjLVQg78nMK2UZ454hAG+OAW+HQPZ6n++TNDUX+L0+uUlLywnoxJKDou51Zm+zTCjrCl0Nq6J9C5hP9vK/Q==}
     engines: {node: '>=0.10.0'}
 
+  postgres-date@2.1.0:
+    resolution: {integrity: sha512-K7Juri8gtgXVcDfZttFKVmhglp7epKb1K4pgrkLxehjqkrgPhfG6OO8LHLkfaqkbpjNRnra018XwAr1yQFWGcA==}
+    engines: {node: '>=12'}
+
   postgres-interval@1.2.0:
     resolution: {integrity: sha512-9ZhXKM/rw350N1ovuWHbGxnGh/SNJ4cnxHiM0rxE4VN41wsg8P8zWn9hv/buK00RP4WvlOyr/RBDiptyxVbkZQ==}
     engines: {node: '>=0.10.0'}
+
+  postgres-interval@4.0.2:
+    resolution: {integrity: sha512-EMsphSQ1YkQqKZL2cuG0zHkmjCCzQqQ71l2GXITqRwjhRleCdv00bDk/ktaSi0LnlaPzAc3535KTrjXsTdtx7A==}
+    engines: {node: '>=12'}
 
   potpack@1.0.2:
     resolution: {integrity: sha512-choctRBIV9EMT9WGAZHn3V7t0Z2pMQyl0EZE6pFc/6ml3ssw7Dlf/oAOvFwjm1HVsqfQN8GfeFyJ+d8tRzqueQ==}
@@ -4521,6 +4603,10 @@ packages:
 
   sql.js@1.14.1:
     resolution: {integrity: sha512-gcj8zBWU5cFsi9WUP+4bFNXAyF1iRpA3LLyS/DP5xlrNzGmPIizUeBggKa8DbDwdqaKwUcTEnChtd2grWo/x/A==}
+
+  sqlstring@2.3.3:
+    resolution: {integrity: sha512-qC9iz2FlN7DQl3+wjwn3802RTyjCx7sDvfQEXchwa6CWOx07/WVfh91gBmQ9fahw8snwGEWU3xGzOt4tFyHLxg==}
+    engines: {node: '>= 0.6'}
 
   stackback@0.0.2:
     resolution: {integrity: sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==}
@@ -5953,6 +6039,36 @@ snapshots:
       react: 19.2.0
 
   '@mediapipe/tasks-vision@0.10.17': {}
+
+  '@mikro-orm/core@7.0.7': {}
+
+  '@mikro-orm/mysql@7.0.7(@mikro-orm/core@7.0.7)(@types/node@22.19.15)':
+    dependencies:
+      '@mikro-orm/core': 7.0.7
+      '@mikro-orm/sql': 7.0.7(@mikro-orm/core@7.0.7)
+      kysely: 0.28.15
+      mysql2: 3.20.0(@types/node@22.19.15)
+      sqlstring: 2.3.3
+    transitivePeerDependencies:
+      - '@types/node'
+
+  '@mikro-orm/postgresql@7.0.7(@mikro-orm/core@7.0.7)':
+    dependencies:
+      '@mikro-orm/core': 7.0.7
+      '@mikro-orm/sql': 7.0.7(@mikro-orm/core@7.0.7)
+      kysely: 0.28.15
+      pg: 8.20.0
+      pg-cursor: 2.19.0(pg@8.20.0)
+      postgres-array: 3.0.4
+      postgres-date: 2.1.0
+      postgres-interval: 4.0.2
+    transitivePeerDependencies:
+      - pg-native
+
+  '@mikro-orm/sql@7.0.7(@mikro-orm/core@7.0.7)':
+    dependencies:
+      '@mikro-orm/core': 7.0.7
+      kysely: 0.28.15
 
   '@mongodb-js/saslprep@1.4.6':
     dependencies:
@@ -7612,14 +7728,14 @@ snapshots:
 
   draco3d@1.5.7: {}
 
-  drizzle-orm@0.44.7(@opentelemetry/api@1.9.1)(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(@types/sql.js@1.4.11)(better-sqlite3@11.10.0)(kysely@0.28.14)(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0)(prisma@6.19.2(typescript@5.9.3))(sql.js@1.14.1):
+  drizzle-orm@0.44.7(@opentelemetry/api@1.9.1)(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(@types/sql.js@1.4.11)(better-sqlite3@11.10.0)(kysely@0.28.15)(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0)(prisma@6.19.2(typescript@5.9.3))(sql.js@1.14.1):
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
       '@prisma/client': 6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3)
       '@types/pg': 8.20.0
       '@types/sql.js': 1.4.11
       better-sqlite3: 11.10.0
-      kysely: 0.28.14
+      kysely: 0.28.15
       mysql2: 3.20.0(@types/node@22.19.15)
       pg: 8.20.0
       prisma: 6.19.2(typescript@5.9.3)
@@ -8339,6 +8455,8 @@ snapshots:
   kind-of@6.0.3: {}
 
   kysely@0.28.14: {}
+
+  kysely@0.28.15: {}
 
   lazy@1.0.11: {}
 
@@ -9209,6 +9327,10 @@ snapshots:
 
   pg-connection-string@2.12.0: {}
 
+  pg-cursor@2.19.0(pg@8.20.0):
+    dependencies:
+      pg: 8.20.0
+
   pg-int8@1.0.1: {}
 
   pg-pool@3.13.0(pg@8.20.0):
@@ -9287,13 +9409,19 @@ snapshots:
 
   postgres-array@2.0.0: {}
 
+  postgres-array@3.0.4: {}
+
   postgres-bytea@1.0.1: {}
 
   postgres-date@1.0.7: {}
 
+  postgres-date@2.1.0: {}
+
   postgres-interval@1.2.0:
     dependencies:
       xtend: 4.0.2
+
+  postgres-interval@4.0.2: {}
 
   potpack@1.0.2: {}
 
@@ -9749,6 +9877,8 @@ snapshots:
   sql-highlight@6.1.0: {}
 
   sql.js@1.14.1: {}
+
+  sqlstring@2.3.3: {}
 
   stackback@0.0.2: {}
 

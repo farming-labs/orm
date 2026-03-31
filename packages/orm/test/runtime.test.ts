@@ -310,6 +310,61 @@ describe("runtime contract", () => {
     expect(inspectDatabaseRuntime(dataSource).runtime?.kind).toBe("typeorm");
   });
 
+  it("detects MikroORM runtimes from ORM and EntityManager shapes", () => {
+    const connection = {
+      constructor: {
+        name: "PostgreSqlConnection",
+      },
+      execute: async () => undefined,
+    };
+    const entityManager = {
+      config: {
+        get: () => undefined,
+      },
+      fork() {
+        return this;
+      },
+      getConnection() {
+        return connection;
+      },
+      getDriver() {
+        return {
+          getPlatform() {
+            return {
+              constructor: {
+                name: "PostgreSqlPlatform",
+              },
+            };
+          },
+        };
+      },
+      transactional: async <TResult>(run: () => Promise<TResult>) => run(),
+    };
+    const mikroorm = {
+      config: {
+        get: () => undefined,
+      },
+      connect: async () => undefined,
+      close: async () => undefined,
+      em: entityManager,
+      isConnected: async () => true,
+    };
+
+    expect(detectDatabaseRuntime(mikroorm)).toEqual({
+      kind: "mikroorm",
+      client: mikroorm,
+      dialect: "postgres",
+      source: "connection",
+    });
+    expect(detectDatabaseRuntime(entityManager)).toEqual({
+      kind: "mikroorm",
+      client: entityManager,
+      dialect: "postgres",
+      source: "connection",
+    });
+    expect(inspectDatabaseRuntime(mikroorm).runtime?.kind).toBe("mikroorm");
+  });
+
   it("detects Sequelize runtimes from the connection shape", () => {
     const sequelize = {
       options: {

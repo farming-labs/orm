@@ -1,0 +1,42 @@
+{
+  "name": "@farming-labs/orm-mikroorm",
+  "version": "0.0.39",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsx ./scripts/build.ts",
+    "test": "vitest run --config vitest.local.config.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@farming-labs/orm": "workspace:*",
+    "@farming-labs/orm-sql": "workspace:*"
+  },
+  "devDependencies": {
+    "@mikro-orm/core": "^7.0.7",
+    "@mikro-orm/mysql": "^7.0.7",
+    "@mikro-orm/postgresql": "^7.0.7",
+    "@types/pg": "^8.15.6",
+    "mysql2": "^3.15.2",
+    "pg": "^8.16.3",
+    "tsup": "^8.4.0"
+  },
+  "peerDependencies": {
+    "@mikro-orm/core": "^7.0.7"
+  }
+}

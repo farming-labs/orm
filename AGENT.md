@@ -14,6 +14,8 @@ This repository is a TypeScript monorepo for @farming-labs/orm
   Drizzle runtime driver
 - `packages/kysely`
   Kysely runtime driver
+- `packages/mikroorm`
+  MikroORM runtime driver
 - `packages/typeorm`
   TypeORM runtime driver
 - `packages/sequelize`
@@ -64,6 +66,7 @@ Targeted local suites:
 pnpm test:local:sql
 pnpm test:local:drizzle
 pnpm test:local:kysely
+pnpm test:local:mikroorm
 pnpm test:local:sequelize
 pnpm test:local:typeorm
 pnpm test:local:dynamodb
