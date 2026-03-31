@@ -3,6 +3,7 @@ import { RootProvider } from "@farming-labs/theme";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Databuddy } from "@databuddy/sdk/react";
+import { buildOgImageUrl } from "@/lib/og";
 
 const heading = Geist({
   subsets: ["latin"],
@@ -14,11 +15,30 @@ const mono = Geist_Mono({
   variable: "--app-font-mono",
 });
 
+const baseUrl =
+  process.env.NEXT_PUBLIC_BASE_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://docs.farming-labs.dev"),
-  title: "Farming Labs ORM",
+  metadataBase: baseUrl ? new URL(baseUrl) : undefined,
+  title: {
+    default: "@farming-labs/docs",
+    template: "%s – @farming-labs/docs",
+  },
   description:
     "Unified schema, typed runtime, and generator-first tooling for Prisma, Drizzle, and safe SQL.",
+  openGraph: {
+    title: "@farming-labs/orm",
+    description:
+      "Unified schema, typed runtime, and generator-first tooling for Prisma, Drizzle, and safe SQL.",
+    images: [{ url: "/og.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "@farming-labs/orm",
+    description:
+      "Unified schema, typed runtime, and generator-first tooling for Prisma, Drizzle, and safe SQL.",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
