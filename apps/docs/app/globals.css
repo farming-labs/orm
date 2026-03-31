@@ -407,3 +407,28 @@ article p {
   text-transform: uppercase !important;
   letter-spacing: 0.05em;
 }
+/* TOC only */
+#nd-toc,
+#nd-toc h3,
+#nd-toc a,
+[data-toc-popover-trigger],
+[data-toc-popover-content],
+[data-toc-popover-content] a {
+  font-family: var(--app-font-mono), ui-monospace, SFMono-Regular, Menlo, monospace !important;
+}
+
+#nd-toc h3,
+[data-toc-popover-trigger] {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+}
+
+#nd-toc a,
+[data-toc-popover-content] a {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.5;
+  line-height: 1.35;
+}
