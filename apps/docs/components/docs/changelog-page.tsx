@@ -135,7 +135,7 @@ export function ChangelogPage() {
                         <FooterNavLabel text={latestChangelogEntry.version} />
                       </Link>
                     </div>
-                    <h1 className="m-0 font-mono text-[clamp(2.8rem,16vw,4rem)] uppercase leading-[0.9] tracking-[-0.07em] text-white sm:text-[clamp(3.25rem,11vw,4.2rem)] lg:text-[4rem] lg:leading-[0.92] lg:tracking-[-0.08em]">
+                    <h1 className="m-0 text-[clamp(2.8rem,16vw,4rem)] uppercase leading-[0.9] tracking-[-0.07em] text-white sm:text-[clamp(3.25rem,11vw,4.2rem)] lg:text-[4rem] lg:leading-[0.92] lg:tracking-[-0.08em]">
                       Changelogs
                     </h1>
                     <p className="m-0 max-w-md text-[0.92rem] leading-6 text-slate-300/84 sm:text-[0.96rem] sm:leading-7 lg:max-w-full lg:text-[clamp(0.95rem,1.15vw,1.08rem)] lg:leading-7">
@@ -150,7 +150,7 @@ export function ChangelogPage() {
                   </div>
                 </div>
                 <div
-                  className="-mx-5 mt-8 border-y border-white/12 px-5 py-3 sm:-mx-8 sm:px-8 lg:-mx-[clamp(24px,5vw,72px)] lg:px-[clamp(24px,5vw,72px)] lg:py-2"
+                  className="-mx-5 mt-8 md:mt-2 border-y border-white/12 px-5 py-3 sm:-mx-8 sm:px-8 lg:-mx-[clamp(24px,5vw,72px)] lg:px-[clamp(24px,5vw,72px)] lg:py-2"
                   style={{
                     backgroundImage:
                       "repeating-linear-gradient(-45deg, color-mix(in srgb, var(--color-fd-border) 7%, transparent), color-mix(in srgb, var(--color-fd-foreground) 5%, transparent) 1px, transparent 1px, transparent 6px)",
