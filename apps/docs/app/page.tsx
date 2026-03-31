@@ -377,10 +377,10 @@ export default function HomePage() {
                           href={`/changelogs#${entry.anchor}`}
                           className="group/item flex items-center justify-between border border-white/8 px-3 py-2 transition-colors hover:border-white/18 hover:bg-white/[0.035] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/25"
                         >
-                          <span className="font-mono text-[0.69rem] uppercase tracking-[0.12em] text-slate-200/92">
+                          <span className="font-mono text-[0.69rem] lowercase tracking-[0.12em] text-slate-200/92">
                             [{entry.version}]
                           </span>
-                          <span className="text-[0.69rem] text-slate-500 transition-colors group-hover/item:text-slate-300 group-focus-visible/item:text-slate-300">
+                          <span className="text-[0.6rem] text-white/50 font-mono uppercase transition-colors group-hover/item:text-slate-300 group-focus-visible/item:text-slate-300">
                             {entry.date}
                           </span>
                         </Link>
