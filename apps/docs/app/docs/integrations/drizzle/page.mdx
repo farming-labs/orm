@@ -183,16 +183,9 @@ runtime already covers:
 Generated Drizzle output still keeps many-to-many relationships explicit through the
 join model, which matches how Drizzle teams usually model those tables anyway.
 
-## Verification in this repo
+## Local verification
 
-The local Drizzle suite runs against real:
-
-- PostgreSQL
-- MySQL
-- SQLite
-
-and includes the same auth-style `integer()` / `json()` coverage used by the
-other live runtimes.
+The repo verifies Drizzle locally against PostgreSQL, MySQL, and SQLite.
 
 Run it with:
 

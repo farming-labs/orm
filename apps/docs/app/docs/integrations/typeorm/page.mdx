@@ -190,26 +190,10 @@ The same runtime also supports:
 - compound-unique lookups
 - model-level constraint enforcement
 
-## Real integration coverage
+## Local verification
 
-The TypeORM package is verified against:
-
-- SQL.js-backed SQLite smoke coverage for bootstrap and runtime creation
-- PostgreSQL through a real local TypeORM `DataSource`
-- MySQL through a real local TypeORM `DataSource`
-
-The local suite includes:
-
-- raw runtime detection
-- `createTypeormDriver(...)`
-- `createOrmFromRuntime(...)`
-- `pushSchema(...)`
-- `bootstrapDatabase(...)`
-- auth-style relation queries
-- mutation and transaction behavior
-- compound unique lookups
-- integer/json coverage
-- enum/bigint/decimal coverage on the relational matrix
+The repo verifies TypeORM locally against PostgreSQL and MySQL, with SQLite
+smoke coverage for runtime and bootstrap creation.
 
 Run it with:
 

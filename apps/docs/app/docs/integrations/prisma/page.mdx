@@ -276,17 +276,10 @@ prisma: {
 }
 ```
 
-## Verification in this repo
+## Local verification
 
-The repo currently verifies Prisma support through a real local integration test
-that generates a real `PrismaClient` and runs one-to-one, one-to-many,
-belongs-to, native simple many-to-many delegate translation, mutations, and
-transaction rollback against local SQLite, PostgreSQL, and MySQL.
-
-The same suite also exercises the new scalar support through:
-
-- `user.loginCount: integer()`
-- `account.metadata: json(...).nullable()`
+The repo verifies Prisma locally against SQLite, PostgreSQL, and MySQL with a
+real generated `PrismaClient`.
 
 Run it with:
 

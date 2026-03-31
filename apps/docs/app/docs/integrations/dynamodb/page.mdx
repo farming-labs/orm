@@ -187,26 +187,10 @@ SQL-style transactions.
 - non-unique filtering is scan-based, so very large-table access patterns should
   prefer `id`, unique, or compound-unique lookups when possible
 
-## Real integration coverage
+## Local verification
 
-The DynamoDB package is verified through a local Dynalite-backed integration
-suite.
-
-That suite covers:
-
-- raw runtime detection
-- `createDynamodbDriver(...)`
-- `createOrmFromRuntime(...)`
-- `pushSchema(...)`
-- `bootstrapDatabase(...)`
-- auth-style relation reads
-- mutation queries without native transaction guarantees
-- compound unique lookups and upserts
-- integer/json coverage
-- enum/bigint/decimal coverage
-- generated numeric-id rejection
-- schema-namespace rejection
-- normalized duplicate-key errors
+The repo verifies the DynamoDB runtime locally through a Dynalite-backed
+integration suite.
 
 Run it with:
 

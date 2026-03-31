@@ -182,20 +182,9 @@ The same live Kysely matrix also verifies:
 - compound-unique lookups and upserts
 - JSON mutation round-trips
 
-## Real integration coverage
+## Local verification
 
-The Kysely package is tested against real local databases in:
-
-- SQLite
-- PostgreSQL
-- MySQL
-
-That suite includes the auth-style `user.loginCount` and `account.metadata`
-fixture used across the other runtimes.
-
-The integration suite lives at:
-
-- `packages/kysely/test/local.integration.ts`
+The repo verifies Kysely locally against SQLite, PostgreSQL, and MySQL.
 
 Run it with:
 

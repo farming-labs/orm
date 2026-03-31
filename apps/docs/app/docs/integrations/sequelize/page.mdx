@@ -193,25 +193,9 @@ The same runtime also supports:
 - compound-unique lookups
 - model-level constraint enforcement
 
-## Real integration coverage
+## Local verification
 
-The Sequelize package is verified against:
-
-- PostgreSQL through a real local Sequelize connection
-- MySQL through a real local Sequelize connection
-
-The local suite includes:
-
-- raw runtime detection
-- `createSequelizeDriver(...)`
-- `createOrmFromRuntime(...)`
-- `pushSchema(...)`
-- `bootstrapDatabase(...)`
-- auth-style relation queries
-- mutation and transaction behavior
-- compound unique lookups
-- integer/json coverage
-- enum/bigint/decimal coverage on the relational matrix
+The repo verifies Sequelize locally against PostgreSQL and MySQL.
 
 Run it with:
 
@@ -236,8 +220,7 @@ FARM_ORM_LOCAL_SEQUELIZE_TARGETS=mysql pnpm --filter @farming-labs/orm-sequelize
 ```
 
 The PostgreSQL and MySQL paths create isolated temporary databases during the
-run, execute the real Sequelize-backed runtime against them, and then clean
-those databases up afterward.
+run and clean those databases up afterward.
 
 ## Why it fits well
 

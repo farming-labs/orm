@@ -140,10 +140,9 @@ That is why the repo ships:
 Both use the same schema contract and typed API, but they plug into different
 MongoDB application stacks.
 
-## Verification in this repo
+## Local verification
 
-The repo verifies both Mongo runtime packages through real local integration
-tests:
+The repo verifies both Mongo runtimes locally:
 
 - native MongoDB runtime: `pnpm --filter @farming-labs/orm-mongo test:local`
 - Mongoose runtime: `pnpm --filter @farming-labs/orm-mongoose test:local`

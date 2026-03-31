@@ -209,15 +209,10 @@ full migration system with every advanced schema transform built in.
 That is why the docs call it **safe SQL generation** rather than a complete
 migration framework.
 
-## Verification in this repo
+## Local verification
 
-The SQL local suite covers:
-
-- SQLite
-- PostgreSQL via `pg.Pool`
-- PostgreSQL via connected `pg` client
-- MySQL via pool
-- MySQL via connection
+The repo verifies the SQL runtime locally against SQLite, PostgreSQL, and
+MySQL.
 
 Run it with:
 

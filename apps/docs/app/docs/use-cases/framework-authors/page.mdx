@@ -18,6 +18,7 @@ That usually means the framework wants to own storage for things like:
 - independent key-value records
 - rate limits
 - audit or event logs
+- observability snapshots
 - feature flags
 - framework-owned metadata
 
@@ -120,6 +121,18 @@ export const frameworkSchema = defineSchema({
       payload: json(),
       createdAt: datetime().defaultNow(),
     },
+  }),
+
+  observabilitySnapshot: model({
+    table: "observability_snapshots",
+    fields: {
+      id: id(),
+      scope: string(),
+      kind: string(),
+      snapshot: json(),
+      capturedAt: datetime().defaultNow(),
+    },
+    unique: [unique(["scope", "kind"])],
   }),
 });
 ```
@@ -238,6 +251,26 @@ export function createFrameworkStore(orm: OrmClient<typeof frameworkSchema>) {
         data: {
           ...input,
           actorId: input.actorId ?? null,
+        },
+      });
+    },
+
+    recordObservabilitySnapshot(input: {
+      scope: string;
+      kind: string;
+      snapshot: Record<string, unknown>;
+    }) {
+      return orm.observabilitySnapshot.upsert({
+        where: {
+          scope_kind: {
+            scope: input.scope,
+            kind: input.kind,
+          },
+        },
+        create: input,
+        update: {
+          snapshot: input.snapshot,
+          capturedAt: new Date(),
         },
       });
     },

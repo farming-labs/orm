@@ -86,36 +86,14 @@ const orm = await bootstrapDatabase({
 });
 ```
 
-## Testing against a real Firestore backend
+## Live verification
 
-The Firestore package is verified against a real Firestore backend.
+The repo also includes an opt-in live Firestore check for emulator or cloud
+setups.
 
-The real suite is opt-in and only runs when one of the Firestore auth
-environments is present.
+Run it with:
 
-### Recommended: emulator
-
-```bash
-export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
-export GOOGLE_CLOUD_PROJECT=farm-orm-local
-
-pnpm --filter @farming-labs/orm-firestore test:real
-```
-
-### Cloud project
-
-If you want to verify against a real Firestore project, use either:
-
-- `GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account.json`
-- or `FARM_ORM_LOCAL_FIRESTORE_SERVICE_ACCOUNT_JSON='{"type":"service_account", ...}'`
-
-And provide the project id:
-
-```bash
-export GOOGLE_CLOUD_PROJECT=your-firestore-project
-# or:
-export FARM_ORM_LOCAL_FIRESTORE_PROJECT_ID=your-firestore-project
-
+```bash title="terminal"
 pnpm --filter @farming-labs/orm-firestore test:real
 ```
 

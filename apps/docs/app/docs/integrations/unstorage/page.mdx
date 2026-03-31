@@ -143,27 +143,10 @@ relational or centered around complex join-heavy query plans.
 - this runtime is not meant for highly relational or join-heavy database
   workloads
 
-## Real integration coverage
+## Local verification
 
-The Unstorage package is verified through real local integration tests against:
-
-- the in-memory Unstorage driver
-- the `fs-lite` Unstorage driver
-
-That suite covers:
-
-- raw runtime detection
-- `createUnstorageDriver(...)`
-- `createOrmFromRuntime(...)`
-- `bootstrapDatabase(...)`
-- auth-style relation reads
-- mutation queries without native transaction guarantees
-- compound unique lookups and upserts
-- integer/json coverage
-- enum/bigint/decimal coverage
-- generated numeric-id rejection
-- schema-namespace rejection
-- normalized duplicate-key errors
+The repo verifies the Unstorage runtime locally with the in-memory and
+`fs-lite` drivers.
 
 Run it with:
 
