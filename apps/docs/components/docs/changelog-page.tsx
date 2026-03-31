@@ -130,7 +130,7 @@ export function ChangelogPage() {
                         <IconDocs className={iconClass} />
                         <FooterNavLabel text="DOCS" />
                       </Link>
-                      <Link href="/docs" className={cn(footerLinkClass, "mb-0.5 lowercase")}>
+                      <Link href={`/changelogs#${latestChangelogEntry.anchor}`} className={cn(footerLinkClass, "mb-0.5 lowercase")}>
                         <GitBranch className={iconClass} />
                         <FooterNavLabel text={latestChangelogEntry.version} />
                       </Link>
