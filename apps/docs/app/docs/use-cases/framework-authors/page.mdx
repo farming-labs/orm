@@ -1,82 +1,130 @@
 ---
 title: "Framework Authors"
-description: "How libraries, frameworks, and reusable modules can build one storage layer and let apps bring the final runtime."
+description: "How frameworks and reusable platform layers can build one storage contract and let apps bring the final runtime."
 order: 1
-icon: rocket
+icon: boxes
 ---
 
 # Framework Authors
 
-This guide is for anyone building on top of Farming Labs ORM rather than just
-using it inside one app.
+This guide is for people building a framework, platform layer, or reusable
+module system on top of Farming Labs ORM.
 
-That includes:
+That usually means the framework wants to own storage for things like:
 
-- auth libraries
-- billing modules
-- platform packages
-- full-stack frameworks
-- reusable internal packages
+- auth state
+- billing state
+- cache entries
+- independent key-value records
+- rate limits
+- audit or event logs
+- feature flags
+- framework-owned metadata
 
-The main idea is simple:
+The goal is not to make the framework into its own database product. The goal
+is to keep one durable storage contract while letting the consuming app bring
+Prisma, Drizzle, Kysely, TypeORM, Sequelize, direct SQL, MongoDB, Firestore,
+DynamoDB, Unstorage, or another supported runtime.
 
-1. define the storage contract once
-2. accept a raw client from the consumer app
-3. normalize it with the runtime helpers
-4. write the storage logic once
-5. inspect capabilities and normalized errors instead of branching on backend-specific behavior
+## The problem frameworks usually run into
 
-## What you are trying to avoid
-
-Without a unifying layer, reusable packages often drift into:
+Without a unifying layer, framework-owned modules tend to drift into:
 
 - one Prisma implementation
 - one Drizzle implementation
-- one TypeORM or Sequelize implementation
-- one SQL-only test path
-- one MongoDB path
-- duplicated setup docs
+- one SQL-only setup path
+- one MongoDB implementation
+- one document-store implementation
+- duplicated install docs
 - duplicated error handling
 
-That is how frameworks and libraries accidentally end up maintaining an adapter
-ecosystem instead of one storage layer.
+That is how a framework slowly turns into an adapter ecosystem instead of one
+storage layer.
 
 ## The intended integration path
 
-### 1. Keep the schema in the package
+### 1. Keep the framework schema in the package
 
-```ts title="package-schema.ts"
-import { belongsTo, datetime, defineSchema, hasMany, id, model, string } from "@farming-labs/orm";
+```ts title="framework-schema.ts"
+import { datetime, defineSchema, id, json, model, string, unique } from "@farming-labs/orm";
 
-export const packageSchema = defineSchema({
-  user: model({
-    table: "users",
+export const frameworkSchema = defineSchema({
+  frameworkState: model({
+    table: "framework_state",
     fields: {
       id: id(),
-      email: string().unique(),
-      name: string(),
-      createdAt: datetime().defaultNow(),
-    },
-    relations: {
-      sessions: hasMany("session", { foreignKey: "userId" }),
+      scope: string().unique(),
+      state: json(),
+      updatedAt: datetime().defaultNow(),
     },
   }),
-  session: model({
-    table: "sessions",
+
+  billingAccount: model({
+    table: "billing_accounts",
     fields: {
       id: id(),
-      userId: string().references("user.id"),
-      token: string().unique(),
-      expiresAt: datetime(),
+      workspaceId: string().unique(),
+      providerCustomerId: string().unique(),
+      plan: string(),
+      status: string(),
+      renewsAt: datetime().nullable(),
+      metadata: json().nullable(),
     },
-    relations: {
-      user: belongsTo("user", { foreignKey: "userId" }),
+  }),
+
+  cacheEntry: model({
+    table: "cache_entries",
+    fields: {
+      id: id(),
+      namespace: string(),
+      key: string(),
+      value: json(),
+      expiresAt: datetime().nullable(),
+      updatedAt: datetime().defaultNow(),
+    },
+    unique: [unique(["namespace", "key"])],
+  }),
+
+  kvItem: model({
+    table: "kv_items",
+    fields: {
+      id: id(),
+      namespace: string(),
+      key: string(),
+      value: json(),
+      updatedAt: datetime().defaultNow(),
+    },
+    unique: [unique(["namespace", "key"])],
+  }),
+
+  rateLimitBucket: model({
+    table: "rate_limit_buckets",
+    fields: {
+      id: id(),
+      scope: string(),
+      identifier: string(),
+      remaining: string(),
+      resetAt: datetime(),
+      updatedAt: datetime().defaultNow(),
+    },
+    unique: [unique(["scope", "identifier"])],
+  }),
+
+  auditLog: model({
+    table: "audit_logs",
+    fields: {
+      id: id(),
+      scope: string(),
+      action: string(),
+      actorId: string().nullable(),
+      payload: json(),
+      createdAt: datetime().defaultNow(),
     },
   }),
 });
 ```
 
-That schema can later power:
+That single schema can later power:
 
 - runtime execution
 - generated Prisma output
@@ -84,31 +132,29 @@ That schema can later power:
 - safe SQL output
 - setup/bootstrap helpers
 
-## 2. Accept the raw client
+### 2. Accept the raw client from the app
 
-The package boundary should usually accept the consumer app’s real runtime
-client, not force the app to construct another adapter-shaped object first.
+The framework boundary should usually accept the app's real database or ORM
+client, not force the app to wrap it into another adapter shape first.
 
-```ts title="create-package-orm.ts"
+```ts title="create-framework-orm.ts"
 import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
-import { packageSchema } from "./package-schema";
+import { frameworkSchema } from "./framework-schema";
 
-export function createPackageOrm(database: unknown) {
+export function createFrameworkOrm(database: unknown) {
   return createOrmFromRuntime({
-    schema: packageSchema,
+    schema: frameworkSchema,
     client: database,
   });
 }
 ```
 
-That is what lets one package support Prisma, Drizzle, Kysely, TypeORM,
-Sequelize, direct SQL, MongoDB, Mongoose, Firestore, DynamoDB, and even
-lightweight Unstorage-backed runtimes without forking the package storage code
-into one implementation per stack.
+That is what lets one framework runtime support many execution stacks without
+forking the framework storage logic into one implementation per backend.
 
-## 3. Inspect the runtime when integration fails
+### 3. Inspect the runtime when integration fails
 
-If the consumer passes a wrapped or unsupported client, inspect it before
+If the app passes a wrapped or unsupported client, inspect it before
 constructing the ORM:
 
 ```ts title="inspect-client.ts"
@@ -121,40 +167,77 @@ if (!inspection.runtime) {
 }
 ```
 
-That gives a framework or reusable package a better onboarding story than a
-generic “unsupported client” failure.
+That gives the framework a much better onboarding story than a generic
+"unsupported client" failure.
 
-## 4. Write the storage layer once
+### 4. Write the framework storage layer once
 
-```ts title="package-store.ts"
+```ts title="framework-store.ts"
 import type { OrmClient } from "@farming-labs/orm";
-import { packageSchema } from "./package-schema";
+import { frameworkSchema } from "./framework-schema";
 
-export function createPackageStore(orm: OrmClient<typeof packageSchema>) {
+export function createFrameworkStore(orm: OrmClient<typeof frameworkSchema>) {
   return {
-    findUserByEmail(email: string) {
-      return orm.user.findUnique({
-        where: { email },
+    getFrameworkState(scope: string) {
+      return orm.frameworkState.findUnique({
+        where: { scope },
         select: {
           id: true,
-          email: true,
-          sessions: {
-            select: {
-              token: true,
-              expiresAt: true,
-            },
-          },
+          scope: true,
+          state: true,
+          updatedAt: true,
         },
       });
     },
 
-    createSession(input: { userId: string; token: string; expiresAt: Date }) {
-      return orm.session.create({
-        data: input,
-        select: {
-          id: true,
-          token: true,
-          expiresAt: true,
+    putCacheEntry(input: {
+      namespace: string;
+      key: string;
+      value: Record<string, unknown>;
+      expiresAt?: Date | null;
+    }) {
+      return orm.cacheEntry.upsert({
+        where: {
+          namespace_key: {
+            namespace: input.namespace,
+            key: input.key,
+          },
+        },
+        create: input,
+        update: {
+          value: input.value,
+          expiresAt: input.expiresAt ?? null,
+          updatedAt: new Date(),
+        },
+      });
+    },
+
+    putKvItem(input: { namespace: string; key: string; value: Record<string, unknown> }) {
+      return orm.kvItem.upsert({
+        where: {
+          namespace_key: {
+            namespace: input.namespace,
+            key: input.key,
+          },
+        },
+        create: input,
+        update: {
+          value: input.value,
+          updatedAt: new Date(),
+        },
+      });
+    },
+
+    appendAuditLog(input: {
+      scope: string;
+      action: string;
+      actorId?: string | null;
+      payload: Record<string, unknown>;
+    }) {
+      return orm.auditLog.create({
+        data: {
+          ...input,
+          actorId: input.actorId ?? null,
         },
       });
     },
@@ -164,16 +247,16 @@ export function createPackageStore(orm: OrmClient<typeof packageSchema>) {
 
 This is the key value:
 
-- you write the package storage layer once
-- Farming Labs ORM handles the translation across the supported database and
-  ORM stacks underneath
+- the framework writes the storage layer once
+- Farming Labs ORM handles the translation across the supported database and ORM
+  stacks underneath
 
-## 5. Use capabilities instead of backend guesses
+### 5. Use capabilities instead of backend guesses
 
-When a higher-level package needs behavior decisions, inspect capabilities:
+When a framework needs behavior decisions, inspect capabilities:
 
 ```ts title="capabilities.ts"
-const orm = await createPackageOrm(database);
+const orm = await createFrameworkOrm(database);
 
 orm.$driver.capabilities.supportsTransactions;
 orm.$driver.capabilities.numericIds;
@@ -182,70 +265,73 @@ orm.$driver.capabilities.returning.update;
 orm.$driver.capabilities.supportsSchemaNamespaces;
 ```
 
-That gives you a generic way to make runtime decisions without hard-coding
-Prisma-only, SQL-only, or Mongo-only assumptions.
+That gives the framework a generic way to make runtime decisions without
+hard-coding Prisma-only, SQL-only, or Mongo-only assumptions.
 
-## 6. Handle normalized errors at the package boundary
+### 6. Handle normalized errors at the framework boundary
 
 ```ts title="errors.ts"
 import { isOrmError } from "@farming-labs/orm";
 
 try {
-  await store.createSession(input);
+  await store.putKvItem(input);
 } catch (error) {
   if (isOrmError(error) && error.code === "UNIQUE_CONSTRAINT_VIOLATION") {
-    throw new Error("Session token already exists.");
+    throw new Error("The framework key already exists.");
   }
+
   throw error;
 }
 ```
 
-That keeps the package from owning one parser for Prisma codes, another parser
-for SQLSTATEs, another parser for Mongo errors, and so on.
+That keeps the framework from owning one parser for Prisma codes, another for
+SQLSTATEs, another for Mongo errors, and so on.
 
-## 7. Use one setup path in tests and install flows
+### 7. Use one setup path in tests, starters, and install flows
 
-If the package wants to prepare the live database in tests, demos, or install
-flows, use the setup helpers:
+If the framework wants to prepare the live database in tests, demos, starter
+kits, or install flows, use the setup helpers:
 
 ```ts title="setup.ts"
 import { bootstrapDatabase, pushSchema } from "@farming-labs/orm-runtime/setup";
 
 await pushSchema({
-  schema: packageSchema,
+  schema: frameworkSchema,
   client: database,
 });
 
 const orm = await bootstrapDatabase({
-  schema: packageSchema,
+  schema: frameworkSchema,
   client: database,
 });
 ```
 
 That gives you:
 
-- one test setup shape
 - one framework-owned install shape
+- one starter-kit setup shape
 - one demo/bootstrap shape
+- one test setup shape
 
 instead of one flow per backend family.
 
 ## Where this fits best
 
-This pattern is especially strong when the package wants to behave like:
+This pattern is especially strong when the framework wants to behave like:
 
-- “bring your own Prisma, Drizzle, Kysely, TypeORM, Sequelize, SQL, Mongo, or Firestore client”
-- “one storage contract, many execution stacks”
-- “one docs story and one setup story instead of many adapter stories”
+- "bring your own database or ORM client"
+- "one storage contract, many execution stacks"
+- "one docs story and one setup story instead of many adapter stories"
+- "framework-owned modules without framework-owned adapter sprawl"
 
-That is why it fits auth libraries, billing modules, platform packages, and
-full-stack frameworks so well.
+That is why it fits reusable full-stack frameworks, platform layers, starter
+kits, and module systems so well.
 
 ## Best next pages
 
-- adapter-sprawl replacement story:
-  [Adapter Ecosystem](/docs/use-cases/auth-adapter-ecosystem)
 - framework-scale examples:
   [Full-Stack Frameworks](/docs/use-cases/fullstack-frameworks)
+- shared platform package examples:
+  [Internal Platforms](/docs/use-cases/internal-platforms)
 - support coverage by stack:
   [Support Matrix](/docs/integrations/support-matrix)
