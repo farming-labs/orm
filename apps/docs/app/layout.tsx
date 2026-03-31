@@ -15,15 +15,11 @@ const mono = Geist_Mono({
   variable: "--app-font-mono",
 });
 
-const baseUrl =
-  process.env.NEXT_PUBLIC_BASE_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
-
 export const metadata: Metadata = {
-  metadataBase: baseUrl ? new URL(baseUrl) : undefined,
+  metadataBase: new URL("https://docs.farming-labs.dev"),
   title: {
-    default: "@farming-labs/docs",
-    template: "%s – @farming-labs/docs",
+    default: "@farming-labs/orm",
+    template: "%s – @farming-labs/orm",
   },
   description:
     "Unified schema, typed runtime, and generator-first tooling for Prisma, Drizzle, and safe SQL.",
@@ -31,13 +27,32 @@ export const metadata: Metadata = {
     title: "@farming-labs/orm",
     description:
       "Unified schema, typed runtime, and generator-first tooling for Prisma, Drizzle, and safe SQL.",
-    images: [{ url: "/og.png", width: 1200, height: 630 }],
+    images: [
+      {
+        url: buildOgImageUrl({
+          title: "Farming Labs ORM",
+          eyebrow: "Platform",
+          description:
+            "Unified schema, typed runtime, and generator-first tooling for Prisma, Drizzle, and safe SQL.",
+        }),
+        width: 1200,
+        height: 630,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "@farming-labs/orm",
     description:
       "Unified schema, typed runtime, and generator-first tooling for Prisma, Drizzle, and safe SQL.",
+    images: [
+      buildOgImageUrl({
+        title: "Farming Labs ORM",
+        eyebrow: "Platform",
+        description:
+          "Unified schema, typed runtime, and generator-first tooling for Prisma, Drizzle, and safe SQL.",
+      }),
+    ],
   },
 };
 

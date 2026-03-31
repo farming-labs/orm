@@ -138,7 +138,7 @@ export function ChangelogPage() {
                         <FooterNavLabel text={latestChangelogEntry.version} />
                       </Link>
                     </div>
-                    <h1 className="m-0 text-[clamp(2.8rem,16vw,4rem)] uppercase leading-[0.9] tracking-[-0.07em] text-white sm:text-[clamp(3.25rem,11vw,4.2rem)] lg:text-[4rem] lg:leading-[0.92] lg:tracking-[-0.08em]">
+                    <h1 className="m-0 font-mono text-[clamp(2.8rem,16vw,4rem)] uppercase leading-[0.9] tracking-[-0.07em] text-white sm:text-[clamp(3.25rem,11vw,4.2rem)] lg:text-[4rem] lg:leading-[0.92] lg:tracking-[-0.08em]">
                       Changelogs
                     </h1>
                     <p className="m-0 max-w-md text-[0.92rem] leading-6 text-slate-300/84 sm:text-[0.96rem] sm:leading-7 lg:max-w-full lg:text-[clamp(0.95rem,1.15vw,1.08rem)] lg:leading-7">
@@ -174,10 +174,10 @@ export function ChangelogPage() {
                     </div>
                   </div>
 
-                  <div className="hidden font-mono text-[8px] lowercase tracking-tighter text-white/72 lg:flex lg:flex-wrap lg:gap-2 lg:font-mono lg:uppercase lg:tracking-[0.12em] lg:text-white/72">
+                  <div className="hidden font-mono text-[8px] tracking-[0.12em] text-white/72 lg:flex lg:flex-wrap lg:gap-2">
                     {changelogEntries.map((entry) => (
                       <Link
-                        className="inline-flex items-center lowercase text-[8px] border border-dashed border-white/12 bg-white/[0.025] px-2.5 py-1.5 transition-colors hover:border-white/24 hover:bg-white/[0.04] hover:text-white"
+                        className="inline-flex items-center border border-dashed border-white/12 bg-white/[0.025] px-2.5 py-1.5 lowercase transition-colors hover:border-white/24 hover:bg-white/[0.04] hover:text-white"
                         key={entry.version}
                         href={`/changelogs#${entry.anchor}`}
                       >
@@ -234,12 +234,9 @@ export function ChangelogPage() {
                       {entry.summary}
                     </p>
 
-                    <ul className="space-y-2.5 pl-4 text-[0.87rem] leading-6 text-slate-300/78 marker:text-white/32 sm:space-y-3 sm:pl-5 sm:text-[0.9rem] sm:leading-7 lg:text-[0.92rem]">
+                    <ul className="list-disc space-y-2.5 pl-5 text-[0.87rem] leading-6 text-slate-300/78 marker:text-white/32 sm:space-y-3 sm:pl-6 sm:text-[0.9rem] sm:leading-7 lg:text-[0.92rem]">
                       {entry.highlights.map((highlight) => (
-                        <li key={highlight}>
-                          {" "}
-                          <span className="text-white text-lg mr-1">•</span> {highlight}
-                        </li>
+                        <li key={highlight}>{highlight}</li>
                       ))}
                     </ul>
                   </div>

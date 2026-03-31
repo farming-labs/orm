@@ -341,7 +341,7 @@ export async function createOgImageResponse({
               letterSpacing: "0.03em",
             }}
           >
-            orm.farming-labs.dev
+            docs.farming-labs.dev
           </span>
         </div>
         <div

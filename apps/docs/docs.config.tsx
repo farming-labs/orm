@@ -113,7 +113,7 @@ export default defineDocs({
   metadata: {
     titleTemplate: "%s - Farming Labs ORM",
     description:
-      "Unified schema, generator-first tooling, and pixel-border documentation for @farming-labs/docs",
+      "Unified schema, generator-first tooling, and pixel-border documentation for @farming-labs/orm",
   },
   og: {
     enabled: true,
