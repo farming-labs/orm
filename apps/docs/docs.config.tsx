@@ -32,6 +32,7 @@ import {
   Pin,
 } from "lucide-react";
 import { submitDocsFeedback } from "./lib/feedback";
+import { latestChangelogEntry } from "./lib/changelog";
 
 const icon = (node: ReactNode) => (
   <span className="flex size-4 shrink-0 items-center justify-center text-white/70 [&_svg]:size-4">
@@ -234,6 +235,7 @@ export default defineDocs({
     shield: icon(<ShieldCheck strokeWidth={1.5} />),
     card: icon(<CreditCard strokeWidth={1.5} />),
     building: icon(<Building2 strokeWidth={1.5} />),
+    pin: icon(<Pin strokeWidth={1.5} />),
   },
   sidebar: {
     // banner: (
@@ -278,18 +280,19 @@ export default defineDocs({
           <span style={{ opacity: 0.4 }}>
             <Pin size={12} className="inline-flex" />{" "}
           </span>
-          <span
+          <a
+            href={`/changelogs#${latestChangelogEntry.anchor}`}
             className="lowercase cursor-pointer text-[12px] underline underline-offset-2 decoration-dotted transition-colors mr-1"
             style={{
               textDecorationColor:
                 "color-mix(in srgb, var(--color-fd-foreground) 30%, transparent)",
             }}
           >
-            v0.0.26
-          </span>
+            {latestChangelogEntry.version}
+          </a>
         </div>
         <span className="uppercase font-mono text-[9.5px] tracking-tight block">
-          Check the new features and improvements that were added in this release.
+          Read the latest release notes and runtime changes in the changelog.
         </span>
       </div>
     ),
