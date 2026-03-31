@@ -1,6 +1,6 @@
 # AGENT
 
-This repository is a TypeScript monorepo for @farming-labs/docs
+This repository is a TypeScript monorepo for @farming-labs/orm
 
 ## What this repo contains
 
@@ -14,6 +14,16 @@ This repository is a TypeScript monorepo for @farming-labs/docs
   Drizzle runtime driver
 - `packages/kysely`
   Kysely runtime driver
+- `packages/typeorm`
+  TypeORM runtime driver
+- `packages/sequelize`
+  Sequelize runtime driver
+- `packages/firestore`
+  Firestore runtime driver
+- `packages/dynamodb`
+  DynamoDB runtime driver
+- `packages/unstorage`
+  Unstorage runtime driver for lightweight key-value/document storage
 - `packages/mongo`
   Native MongoDB runtime driver
 - `packages/mongoose`
@@ -54,6 +64,10 @@ Targeted local suites:
 pnpm test:local:sql
 pnpm test:local:drizzle
 pnpm test:local:kysely
+pnpm test:local:sequelize
+pnpm test:local:typeorm
+pnpm test:local:dynamodb
+pnpm test:local:unstorage
 pnpm test:local:mongodb
 pnpm test:local:prisma
 ```
@@ -78,4 +92,6 @@ pnpm release:beta
 - `orm.$driver` exposes the attached runtime handle and the underlying instance.
 - Real local integration tests are expected to use actual local database
   services where available.
+- Unstorage is supported as a lightweight key-value/document runtime, but it is
+  not the preferred fit for highly relational or join-heavy workloads.
 - Docs live under `apps/docs/app/docs`.

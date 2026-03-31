@@ -4,7 +4,8 @@ description: |
   Use when working in the Farming Labs ORM monorepo. Covers the schema DSL,
   runtime drivers, relation translation, docs updates, release flow, and real
   local database integration tests. Triggers: createOrm, Prisma driver,
-  Drizzle driver, Kysely driver, Mongo runtime, Mongoose runtime, update docs,
+  Drizzle driver, Kysely driver, TypeORM driver, Sequelize driver, Firestore,
+  DynamoDB, Unstorage, Mongo runtime, Mongoose runtime, update docs,
   test:local, release latest, compound unique, native relation loading.
 ---
 
@@ -25,6 +26,16 @@ repo-specific knowledge about the unified ORM API.
   Drizzle runtime driver
 - `packages/kysely`
   Kysely runtime driver
+- `packages/typeorm`
+  TypeORM runtime driver
+- `packages/sequelize`
+  Sequelize runtime driver
+- `packages/firestore`
+  Firestore runtime driver
+- `packages/dynamodb`
+  DynamoDB runtime driver
+- `packages/unstorage`
+  Unstorage runtime driver for lightweight key-value/document storage
 - `packages/mongo`
   Native MongoDB runtime driver
 - `packages/mongoose`
@@ -83,6 +94,10 @@ Targeted commands:
 pnpm test:local:sql
 pnpm test:local:drizzle
 pnpm test:local:kysely
+pnpm test:local:sequelize
+pnpm test:local:typeorm
+pnpm test:local:dynamodb
+pnpm test:local:unstorage
 pnpm test:local:mongodb
 pnpm test:local:prisma
 ```
@@ -145,6 +160,16 @@ Current runtime packages in this repo:
   - Drizzle-backed runtime using the SQL runtime underneath
 - `@farming-labs/orm-kysely`
   - Kysely-backed runtime using the SQL runtime underneath
+- `@farming-labs/orm-typeorm`
+  - TypeORM runtime
+- `@farming-labs/orm-sequelize`
+  - Sequelize runtime
+- `@farming-labs/orm-firestore`
+  - Firestore runtime
+- `@farming-labs/orm-dynamodb`
+  - DynamoDB runtime
+- `@farming-labs/orm-unstorage`
+  - lightweight key-value/document runtime
 - `@farming-labs/orm-mongo`
   - native MongoDB runtime
 - `@farming-labs/orm-mongoose`
@@ -157,3 +182,9 @@ Current common features:
 - relation loading
 - native relation translation for the SQL family and Prisma on supported shapes
 - `orm.$driver` access to the attached runtime handle
+
+Important boundary:
+
+- `@farming-labs/orm-unstorage` is meant for lightweight key-value/document
+  storage and shared storage layers, not for highly relational or join-heavy
+  workloads.

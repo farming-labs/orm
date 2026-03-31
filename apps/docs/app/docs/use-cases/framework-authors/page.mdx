@@ -102,8 +102,9 @@ export function createPackageOrm(database: unknown) {
 ```
 
 That is what lets one package support Prisma, Drizzle, Kysely, TypeORM,
-Sequelize, direct SQL, MongoDB, Mongoose, and Firestore without forking the
-package storage code into one implementation per stack.
+Sequelize, direct SQL, MongoDB, Mongoose, Firestore, DynamoDB, and even
+lightweight Unstorage-backed runtimes without forking the package storage code
+into one implementation per stack.
 
 ## 3. Inspect the runtime when integration fails
 
