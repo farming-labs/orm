@@ -347,6 +347,9 @@ importers:
       '@farming-labs/orm-typeorm':
         specifier: workspace:*
         version: link:../typeorm
+      '@farming-labs/orm-unstorage':
+        specifier: workspace:*
+        version: link:../unstorage
     devDependencies:
       tsup:
         specifier: ^8.4.0
