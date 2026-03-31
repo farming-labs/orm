@@ -197,7 +197,7 @@ export async function createOgImageResponse({
           filter: "blur(10px)",
         }}
       />
-        <div
+      <div
         style={{
           position: "absolute",
           top: -20,
@@ -210,7 +210,7 @@ export async function createOgImageResponse({
           filter: "blur(10px)",
         }}
       />
-        <div
+      <div
         style={{
           position: "absolute",
           top: -20,
