@@ -86,6 +86,9 @@ importers:
 
   apps/docs:
     dependencies:
+      '@databuddy/sdk':
+        specifier: ^2.4.0
+        version: 2.4.0(react@19.2.0)
       '@farming-labs/docs':
         specifier: 0.0.64
         version: 0.0.64
@@ -595,6 +598,20 @@ packages:
 
   '@clack/prompts@0.9.1':
     resolution: {integrity: sha512-JIpyaboYZeWYlyP0H+OoPPxd6nqueG/CmN6ixBiNFsIDHREevjIf0n0Ohh5gr5C8pEDknzgvz+pIJ8dMhzWIeg==}
+
+  '@databuddy/sdk@2.4.0':
+    resolution: {integrity: sha512-s+G8q/xX+p1gijkOrX9s19GSrjYs9GIoi8t9ktcgkmCnLftipKjMbXnLDAB59vH1KZZdJ59GDttWbFBnuu4uTA==}
+    peerDependencies:
+      msw: ^2.11.5
+      react: '>=18'
+      vue: '>=3'
+    peerDependenciesMeta:
+      msw:
+        optional: true
+      react:
+        optional: true
+      vue:
+        optional: true
 
   '@dimforge/rapier3d-compat@0.12.0':
     resolution: {integrity: sha512-uekIGetywIgopfD97oDL5PfeezkFpNhwlzlaEYNOA0N6ghdsOvh/HYjSMek5Q2O1PYvRSDFcqFVJl4r4ZBwOow==}
@@ -5541,6 +5558,10 @@ snapshots:
       '@clack/core': 0.4.1
       picocolors: 1.1.1
       sisteransi: 1.0.5
+
+  '@databuddy/sdk@2.4.0(react@19.2.0)':
+    optionalDependencies:
+      react: 19.2.0
 
   '@dimforge/rapier3d-compat@0.12.0': {}
 
