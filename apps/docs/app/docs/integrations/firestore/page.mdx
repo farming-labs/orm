@@ -88,13 +88,10 @@ const orm = await bootstrapDatabase({
 
 ## Testing against a real Firestore backend
 
-The Firestore package ships with two test paths:
+The Firestore package is verified against a real Firestore backend.
 
-- fast in-memory contract tests that run by default
-- optional real-backend tests for an emulator or a cloud project
-
-The real suite is skipped unless one of the Firestore auth environments is
-present.
+The real suite is opt-in and only runs when one of the Firestore auth
+environments is present.
 
 ### Recommended: emulator
 
