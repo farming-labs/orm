@@ -147,7 +147,6 @@ export function ChangelogPage() {
                       </code>
                       .
                     </p>
-
                   </div>
                 </div>
                 <div
@@ -160,7 +159,11 @@ export function ChangelogPage() {
                 >
                   <div className="flex flex-wrap gap-2 text-white/50 font-mono text-[8px] justify-start">
                     {changelogEntries.map((entry) => (
-                      <Link className="border border-white/10 text-white/50 border-dashed px-2 py-1" key={entry.version} href={`/changelogs#${entry.anchor}`}>
+                      <Link
+                        className="border border-white/10 text-white/50 border-dashed px-2 py-1"
+                        key={entry.version}
+                        href={`/changelogs#${entry.anchor}`}
+                      >
                         [{entry.version}]
                       </Link>
                     ))}
