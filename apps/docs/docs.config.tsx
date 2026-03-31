@@ -28,6 +28,8 @@ import {
   ShieldCheck,
   Terminal,
   Users,
+  LayoutGrid,
+  Pin,
 } from "lucide-react";
 import { submitDocsFeedback } from "./lib/feedback";
 
@@ -234,16 +236,62 @@ export default defineDocs({
     building: icon(<Building2 strokeWidth={1.5} />),
   },
   sidebar: {
+    // banner: (
+    //   <div
+    //     className="-mx-4 h-[40px] border border-white/10 border-x-0 border-b mb-1 border-y-0 -my-2 flex flex-col gap-1 font-mono uppercase"
+    //     style={{
+    //       padding: "9px 16px",
+    //       fontSize: "12px",
+    //       backgroundImage:
+    //         "repeating-linear-gradient(-45deg, color-mix(in srgb, var(--color-fd-border) 7%, transparent), color-mix(in srgb, var(--color-fd-foreground) 5%, transparent) 1px, transparent 1px, transparent 6px)",
+    //     }}
+    //   >
+    //     <div className="flex items-center gap-2">
+    //       <Package size={14} className="inline-flex mb-px shrink-0" />
+    //       <span>
+    //         <span className="font-bold">v0.0.37</span>
+    //         <span className="text-white/50">
+    //           <span className="font-bold">v0.0.37</span>
+    //         </span>
+    //       </span>
+    //     </div>
+
+    //   </div>
+    // ),
     banner: (
       <div
-        className="-mx-4 h-[40px] border border-white/10 border-x-0 border-b mb-1 border-y-0 -my-2 flex flex-col gap-1 font-mono uppercase"
+        className="-mx-4 relative mt-2"
         style={{
-          padding: "9px 16px",
-          fontSize: "12px",
+          padding: "12px 16px",
+          borderBottom: "1px solid var(--color-fd-border)",
+          borderTop: "1px solid var(--color-fd-border)",
+          fontSize: "13px",
+          color: "var(--color-fd-muted-foreground)",
           backgroundImage:
-            "repeating-linear-gradient(-45deg, color-mix(in srgb, var(--color-fd-border) 7%, transparent), color-mix(in srgb, var(--color-fd-foreground) 5%, transparent) 1px, transparent 1px, transparent 6px)",
+            "repeating-linear-gradient(-45deg, color-mix(in srgb, var(--color-fd-border) 2%, transparent), color-mix(in srgb, var(--color-fd-foreground) 7%, transparent) 1px, transparent 1px, transparent 6px)",
         }}
-      ></div>
+      >
+        <div
+          className="font-mono tracking-tighter"
+          style={{ fontWeight: 600, marginBottom: 4, color: "var(--color-fd-foreground)" }}
+        >
+          <span style={{ opacity: 0.4 }}>
+            <Pin size={12} className="inline-flex" />{" "}
+          </span>
+          <span
+            className="lowercase cursor-pointer text-[12px] underline underline-offset-2 decoration-dotted transition-colors mr-1"
+            style={{
+              textDecorationColor:
+                "color-mix(in srgb, var(--color-fd-foreground) 30%, transparent)",
+            }}
+          >
+            v0.0.26
+          </span>
+        </div>
+        <span className="uppercase font-mono text-[9.5px] tracking-tight block">
+          Check the new features and improvements that were added in this release.
+        </span>
+      </div>
     ),
 
     footer: (
