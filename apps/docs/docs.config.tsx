@@ -115,6 +115,11 @@ export default defineDocs({
     description:
       "Unified schema, generator-first tooling, and pixel-border documentation for @farming-labs/docs",
   },
+  og: {
+    enabled: true,
+    type: "dynamic",
+    endpoint: "/api/og",
+  },
   feedback: {
     enabled: true,
     onFeedback: submitDocsFeedback,

@@ -188,7 +188,7 @@ export default function HomePage() {
             rotation={0}
           />
         </div>
-        <div className="pointer-events-none absolute inset-0 z-0 bg-[rgba(4,4,6,0.42)]" />
+        <div className="pointer-events-none absolute inset-0 z-0 bg-[rgba(4,4,6,0.32)]" />
         <div
           aria-hidden
           className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-[clamp(4.5rem,16vw,12rem)] bg-gradient-to-r from-[#050507] via-[#050507]/85 to-transparent"
