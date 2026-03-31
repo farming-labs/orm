@@ -188,7 +188,7 @@ export function ChangelogPage() {
           </div>
         </aside>
 
-        <div className="px-5 py-8 sm:px-8 sm:py-10 lg:px-[clamp(24px,5vw,72px)] lg:py-12">
+        <div className="px-5 py-8 sm:px-8 sm:py-10 lg:px-5 lg:py-12">
           {changelogEntries.map((entry) => (
             <section
               key={entry.version}
