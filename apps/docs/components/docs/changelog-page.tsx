@@ -130,7 +130,10 @@ export function ChangelogPage() {
                         <IconDocs className={iconClass} />
                         <FooterNavLabel text="DOCS" />
                       </Link>
-                      <Link href={`/changelogs#${latestChangelogEntry.anchor}`} className={cn(footerLinkClass, "mb-0.5 lowercase")}>
+                      <Link
+                        href={`/changelogs#${latestChangelogEntry.anchor}`}
+                        className={cn(footerLinkClass, "mb-0.5 lowercase")}
+                      >
                         <GitBranch className={iconClass} />
                         <FooterNavLabel text={latestChangelogEntry.version} />
                       </Link>
@@ -233,7 +236,10 @@ export function ChangelogPage() {
 
                     <ul className="space-y-2.5 pl-4 text-[0.87rem] leading-6 text-slate-300/78 marker:text-white/32 sm:space-y-3 sm:pl-5 sm:text-[0.9rem] sm:leading-7 lg:text-[0.92rem]">
                       {entry.highlights.map((highlight) => (
-                        <li key={highlight}> <span className="text-white text-lg mr-1">•</span> {highlight}</li>
+                        <li key={highlight}>
+                          {" "}
+                          <span className="text-white text-lg mr-1">•</span> {highlight}
+                        </li>
                       ))}
                     </ul>
                   </div>
