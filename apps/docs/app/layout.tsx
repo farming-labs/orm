@@ -15,7 +15,7 @@ const mono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://docs.farming-labs.dev"),
+  metadataBase: new URL("https://orm.farming-labs.dev"),
   title: {
     default: "@farming-labs/orm",
     template: "%s – @farming-labs/orm",

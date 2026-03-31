@@ -5,7 +5,7 @@ const OG_SIZE = {
   height: 630,
 } as const;
 
-const SITE_URL = "https://docs.farming-labs.dev";
+const SITE_URL = "https://orm.farming-labs.dev";
 
 type BuildOgImageUrlOptions = {
   title: string;
@@ -341,7 +341,7 @@ export async function createOgImageResponse({
               letterSpacing: "0.03em",
             }}
           >
-            docs.farming-labs.dev
+            orm.farming-labs.dev
           </span>
         </div>
         <div
