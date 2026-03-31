@@ -18,7 +18,6 @@ import {
   string,
   tableName,
 } from "../src";
-import { InMemoryFirestore } from "../../firestore/test/support/firestore-harness";
 
 const authSchema = defineSchema({
   user: model({
@@ -224,7 +223,29 @@ describe("runtime contract", () => {
   });
 
   it("detects Firestore runtimes from server-side clients", () => {
-    const db = new InMemoryFirestore();
+    const db = {
+      collection() {
+        return {
+          doc() {
+            return {
+              get: async () => ({ exists: false, data: () => undefined }),
+              set: async () => undefined,
+              update: async () => undefined,
+              delete: async () => undefined,
+            };
+          },
+          get: async () => ({ docs: [] }),
+        };
+      },
+      getAll: async () => [],
+      batch() {
+        return {};
+      },
+      runTransaction: async <TResult>(run: (transaction: unknown) => Promise<TResult>) => run({}),
+      constructor: {
+        name: "Firestore",
+      },
+    };
 
     expect(detectDatabaseRuntime(db)).toEqual({
       kind: "firestore",
