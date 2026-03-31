@@ -122,10 +122,10 @@ export function ChangelogPage() {
                 aria-hidden
                 className="home-hero-gutter-pattern opacity-55 pointer-events-none absolute inset-y-0 right-[0] z-[1] hidden w-[max(0px,calc(clamp(20px,6vw,72px)-1.25rem-20px))] sm:block"
               />
-              <div className="relative z-10 flex h-full flex-col pb-12 justify-between px-10 py-10">
-                <div className="flex min-h-full flex-col justify-end">
-                  <div className="mt-auto pt-16 space-y-5 lg:pb-8">
-                    <div className="font flex items-center gap-3">
+              <div className="relative z-10 flex h-full min-h-full flex-col justify-between px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
+                <div className="flex flex-1 flex-col justify-end">
+                  <div className="mt-auto space-y-4 pt-8 sm:space-y-5 sm:pt-12 lg:pb-8 lg:pt-16">
+                    <div className="font flex flex-wrap items-center gap-x-3 gap-y-1.5">
                       <Link href="/docs" className={footerLinkClass}>
                         <IconDocs className={iconClass} />
                         <FooterNavLabel text="DOCS" />
@@ -135,14 +135,14 @@ export function ChangelogPage() {
                         <FooterNavLabel text={latestChangelogEntry.version} />
                       </Link>
                     </div>
-                    <h1 className="m-0 font-mono text-[4rem] uppercase leading-[0.92] tracking-[-0.08em] text-white">
+                    <h1 className="m-0 font-mono text-[clamp(2.8rem,16vw,4rem)] uppercase leading-[0.9] tracking-[-0.07em] text-white sm:text-[clamp(3.25rem,11vw,4.2rem)] lg:text-[4rem] lg:leading-[0.92] lg:tracking-[-0.08em]">
                       Changelogs
                     </h1>
-                    <p className="m-0 max-w-full text-[clamp(0.95rem,1.15vw,1.08rem)] leading-7 text-slate-300/84">
-                      <span className="font-mono text-xs uppercase tracking-tighter text-white/60">
+                    <p className="m-0 max-w-md text-[0.92rem] leading-6 text-slate-300/84 sm:text-[0.96rem] sm:leading-7 lg:max-w-full lg:text-[clamp(0.95rem,1.15vw,1.08rem)] lg:leading-7">
+                      <span className="font-mono text-[0.68rem] uppercase tracking-tighter text-white/60 sm:text-xs">
                         Track the latest updates, bug fixes, and improvements for{" "}
                       </span>
-                      <code className="font-mono text-xs leading-7 text-white">
+                      <code className="font-mono text-[0.78rem] leading-6 text-white sm:text-xs sm:leading-7">
                         @farming-labs/orm
                       </code>
                       .
@@ -150,17 +150,31 @@ export function ChangelogPage() {
                   </div>
                 </div>
                 <div
-                  className="-mx-[clamp(24px,5vw,72px)] border-y border-white/12 px-[clamp(24px,5vw,72px)] py-4"
+                  className="-mx-5 mt-8 border-y border-white/12 px-5 py-3 sm:-mx-8 sm:px-8 lg:-mx-[clamp(24px,5vw,72px)] lg:px-[clamp(24px,5vw,72px)] lg:py-2"
                   style={{
                     backgroundImage:
                       "repeating-linear-gradient(-45deg, color-mix(in srgb, var(--color-fd-border) 7%, transparent), color-mix(in srgb, var(--color-fd-foreground) 5%, transparent) 1px, transparent 1px, transparent 6px)",
                   }}
                   aria-label="Changelog versions"
                 >
-                  <div className="flex flex-wrap gap-2 text-white/50 font-mono text-[8px] justify-start">
+                  <div className="overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:hidden">
+                    <div className="flex w-max min-w-full gap-2 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-white/48">
+                      {changelogEntries.map((entry) => (
+                        <Link
+                          className="inline-flex font-mono shrink-0 items-center border border-dashed border-white/10 bg-white/[0.02] px-2.5 py-1.5 transition-colors hover:border-white/20 hover:text-white/72"
+                          key={entry.version}
+                          href={`/changelogs#${entry.anchor}`}
+                        >
+                          [{entry.version}]
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="hidden font-mono text-[8px] lowercase tracking-tighter text-white/72 lg:flex lg:flex-wrap lg:gap-2 lg:font-mono lg:uppercase lg:tracking-[0.12em] lg:text-white/72">
                     {changelogEntries.map((entry) => (
                       <Link
-                        className="border border-white/10 text-white/50 border-dashed px-2 py-1"
+                        className="inline-flex items-center lowercase text-[8px] border border-dashed border-white/12 bg-white/[0.025] px-2.5 py-1.5 transition-colors hover:border-white/24 hover:bg-white/[0.04] hover:text-white"
                         key={entry.version}
                         href={`/changelogs#${entry.anchor}`}
                       >
@@ -174,19 +188,19 @@ export function ChangelogPage() {
           </div>
         </aside>
 
-        <div className="px-[clamp(24px,5vw,72px)] md:px-5 py-10 lg:py-12">
+        <div className="px-5 py-8 sm:px-8 sm:py-10 lg:px-[clamp(24px,5vw,72px)] lg:py-12">
           {changelogEntries.map((entry) => (
             <section
               key={entry.version}
               id={entry.anchor}
-              className="relative border-b border-white/10 py-10 last:border-b-0"
+              className="relative border-b border-white/10 py-8 last:border-b-0 sm:py-9 lg:py-10"
             >
-              <div className="grid gap-y-6 md:grid-cols-[9.5rem_minmax(0,1fr)] md:gap-x-8 md:items-start">
-                <div className="mb-6 h-fit md:mb-0 md:sticky md:top-8 md:self-start">
-                  <time className="block font-mono text-[0.66rem] uppercase tracking-[0.16em] text-slate-500/80">
+              <div className="grid gap-y-4 md:grid-cols-[9.5rem_minmax(0,1fr)] md:gap-x-8 md:items-start">
+                <div className="mb-1 flex h-fit items-center justify-between gap-4 md:mb-0 md:sticky md:top-8 md:block md:self-start">
+                  <time className="block font-mono text-[0.64rem] uppercase tracking-[0.16em] text-slate-500/80 sm:text-[0.66rem]">
                     {entry.date}
                   </time>
-                  <div className="mt-4 inline-flex border border-white/10 bg-[rgba(255,255,255,0.02)] px-3 py-2 font-mono text-[0.66rem] uppercase tracking-[0.14em] text-white/45">
+                  <div className="inline-flex border border-white/10 bg-[rgba(255,255,255,0.02)] px-3 py-2 font-mono text-[0.64rem] uppercase tracking-[0.14em] text-white/45 md:mt-4 sm:text-[0.66rem]">
                     [{entry.version}]
                   </div>
                 </div>
@@ -197,7 +211,7 @@ export function ChangelogPage() {
                   </div>
                   <div className="relative z-10 space-y-5">
                     <div className="space-y-3">
-                      <h2 className="m-0 font-mono text-[0.9rem] font-medium uppercase tracking-[0.14em] text-white sm:text-[0.98rem]">
+                      <h2 className="m-0 font-mono text-[0.84rem] font-medium uppercase tracking-[0.14em] text-white sm:text-[0.94rem] lg:text-[0.98rem]">
                         {entry.title}
                       </h2>
 
@@ -205,7 +219,7 @@ export function ChangelogPage() {
                         {entry.tags.map((tag) => (
                           <span
                             key={tag}
-                            className="border border-white/10 bg-white/[0.025] px-2 py-1 font-mono text-[0.58rem] uppercase tracking-[0.12em] text-slate-500"
+                            className="border border-white/10 bg-white/[0.025] px-2 py-1 font-mono text-[0.56rem] uppercase tracking-[0.12em] text-slate-500 lg:text-[0.58rem]"
                           >
                             {tag}
                           </span>
@@ -213,11 +227,11 @@ export function ChangelogPage() {
                       </div>
                     </div>
 
-                    <p className="m-0 max-w-3xl text-[0.93rem] leading-7 text-slate-300/82">
+                    <p className="m-0 max-w-3xl text-[0.88rem] leading-6 text-slate-300/82 sm:text-[0.92rem] sm:leading-7 lg:text-[0.93rem]">
                       {entry.summary}
                     </p>
 
-                    <ul className="space-y-3 pl-5 text-[0.92rem] leading-7 text-slate-300/78 marker:text-white/32">
+                    <ul className="space-y-2.5 pl-4 text-[0.87rem] leading-6 text-slate-300/78 marker:text-white/32 sm:space-y-3 sm:pl-5 sm:text-[0.9rem] sm:leading-7 lg:text-[0.92rem]">
                       {entry.highlights.map((highlight) => (
                         <li key={highlight}>{highlight}</li>
                       ))}
