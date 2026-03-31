@@ -1,134 +1,115 @@
 ---
 title: "Support Matrix"
-description: "A single place to check generator, runtime, setup, and feature support across the supported stacks."
+description: "A simpler support overview for generation, live runtime support, and setup coverage across the supported stacks."
 order: 1
 icon: package
 ---
 
 # Support Matrix
 
-This page is the fastest way to answer:
+This page is the quick answer to:
 
-- which stacks are supported today
-- which helpers work with each stack
-- which features are first-class, partial, or intentionally unsupported
+- which stacks are supported
+- whether they are generation-first or runtime-first
+- whether the setup path is full, limited, or intentionally a no-op
 
-If you want the detailed integration story for one stack, use the guides in
-[Integrations](/docs/integrations). If you want the quick support answer, use
-this page.
+If you want the full story for one stack, use
+[Integrations](/docs/integrations). This page is just the short support view.
 
-## Runtime and generation coverage
+## How to read this
 
-| Layer / stack       | PostgreSQL | MySQL | SQLite | Document / key-value | Notes                                            |
-| ------------------- | ---------- | ----- | ------ | -------------------- | ------------------------------------------------ |
-| Prisma generation   | Yes        | Yes   | Yes    | No                   | `postgresql`, `mysql`, `sqlite` providers        |
-| Drizzle generation  | Yes        | Yes   | Yes    | No                   | `pg`, `mysql`, `sqlite` dialects                 |
-| Safe SQL generation | Yes        | Yes   | Yes    | No                   | `postgres`, `mysql`, `sqlite` dialects           |
-| Memory runtime      | N/A        | N/A   | N/A    | N/A                  | in-memory driver for tests and demos             |
-| Prisma runtime      | Yes        | Yes   | Yes    | No                   | `@farming-labs/orm-prisma`                       |
-| Drizzle runtime     | Yes        | Yes   | Yes    | No                   | `@farming-labs/orm-drizzle`                      |
-| Kysely runtime      | Yes        | Yes   | Yes    | No                   | `@farming-labs/orm-kysely`                       |
-| TypeORM runtime     | Yes        | Yes   | Yes\*  | No                   | SQLite-family path is smoke-covered in this repo |
-| Sequelize runtime   | Yes        | Yes   | No     | No                   | PostgreSQL and MySQL/MariaDB                     |
-| Direct SQL runtime  | Yes        | Yes   | Yes    | No                   | `@farming-labs/orm-sql`                          |
-| Firestore runtime   | No         | No    | No     | Yes                  | `@farming-labs/orm-firestore`                    |
-| DynamoDB runtime    | No         | No    | No     | Yes                  | `@farming-labs/orm-dynamodb`                     |
-| Unstorage runtime   | No         | No    | No     | Yes                  | lightweight key-value/document runtime           |
-| MongoDB runtime     | No         | No    | No     | Yes                  | `@farming-labs/orm-mongo`                        |
-| Mongoose runtime    | No         | No    | No     | Yes                  | `@farming-labs/orm-mongoose`                     |
+- `Generation` means Farming Labs ORM can render app-facing artifacts for that stack
+- `Runtime` means the unified ORM can execute against a real client for that stack
+- `Setup` means the runtime setup helpers are available for that stack
 
-\* TypeORM SQLite-family support currently uses SQL.js-backed smoke coverage in
-this repo. PostgreSQL and MySQL are exercised against real local databases.
+`Setup` can mean different things depending on the backend:
 
-## Runtime helpers and setup helpers
+- relational stacks usually apply real schema or table changes
+- document or key-value stacks may use a lighter bootstrap path
+- some stacks intentionally keep setup as a no-op when there is no real DDL surface
 
-| Helper                         | Prisma | Drizzle | Kysely | TypeORM | Sequelize | SQL | MongoDB | Mongoose | Firestore | DynamoDB | Unstorage |
-| ------------------------------ | ------ | ------- | ------ | ------- | --------- | --- | ------- | -------- | --------- | -------- | --------- |
-| `detectDatabaseRuntime(...)`   | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       | Yes      | Yes       |
-| `inspectDatabaseRuntime(...)`  | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       | Yes      | Yes       |
-| `createDriverFromRuntime(...)` | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       | Yes      | Yes       |
-| `createOrmFromRuntime(...)`    | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       | Yes      | Yes       |
-| `pushSchema(...)`              | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | No-op     | Yes      | No-op     |
-| `applySchema(...)`             | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | No-op     | Yes      | No-op     |
-| `bootstrapDatabase(...)`       | Yes    | Yes     | Yes    | Yes     | Yes       | Yes | Yes     | Yes      | Yes       | Yes      | Yes       |
+## Basic matrix
 
-Important nuance:
+| Stack      | Generation | Runtime | Setup   | Notes                                                      |
+| ---------- | ---------- | ------- | ------- | ---------------------------------------------------------- |
+| Prisma     | Yes        | Yes     | Full    | Generated `schema.prisma` plus live `PrismaClient` runtime |
+| Drizzle    | Yes        | Yes     | Full    | Generated schema files plus live Drizzle runtime           |
+| Kysely     | No         | Yes     | Full    | Runtime-first relational integration                       |
+| TypeORM    | No         | Yes     | Full    | Runtime-first relational integration                       |
+| Sequelize  | No         | Yes     | Full    | Runtime-first relational integration                       |
+| Direct SQL | Yes        | Yes     | Full    | Safe SQL generation plus direct SQL runtime                |
+| Supabase   | Via SQL    | Via SQL | Via SQL | Uses the PostgreSQL layer, not a separate runtime family   |
+| MongoDB    | No         | Yes     | Full    | Native Mongo runtime                                       |
+| Mongoose   | No         | Yes     | Full    | Mongoose-backed runtime                                    |
+| Firestore  | No         | Yes     | Limited | Real runtime, but no SQL-style schema push                 |
+| DynamoDB   | No         | Yes     | Full    | Creates one table per model through the runtime setup path |
+| Unstorage  | No         | Yes     | No-op   | Lightweight key-value/document runtime                     |
 
-- Firestore intentionally does not have SQL-style DDL push, so `pushSchema(...)`
-  and `applySchema(...)` are no-op setup steps there rather than real schema
-  application
-- Supabase fits through the PostgreSQL path, not a separate runtime family
-- DynamoDB setup creates one table per model and uses internal record and
-  unique-lock items inside that table
-- Unstorage setup is intentionally a no-op because the shared Unstorage contract
-  is key-value/document oriented rather than a database DDL surface
+## Important details
 
-## Query and relation behavior
+### Relational stacks
 
-| Feature                                        | SQL / Drizzle / Kysely | Prisma  | TypeORM | Sequelize | MongoDB / Mongoose | Firestore | DynamoDB | Unstorage |
-| ---------------------------------------------- | ---------------------- | ------- | ------- | --------- | ------------------ | --------- | -------- | --------- |
-| `create`, `update`, `delete`, `find*`, `count` | Yes                    | Yes     | Yes     | Yes       | Yes                | Yes       | Yes      | Yes       |
-| transactions                                   | Yes                    | Yes     | Yes     | Yes       | Yes                | Yes       | No       | No        |
-| compound unique lookups                        | Yes                    | Yes     | Yes     | Yes       | Yes                | Yes       | Yes      | Yes       |
-| native relation loading                        | Partial                | Partial | Partial | Partial   | No                 | No        | No       | No        |
-| fallback relation resolver                     | Yes                    | Yes     | Yes     | Yes       | Yes                | Yes       | Yes      | Yes       |
+Prisma, Drizzle, Kysely, TypeORM, Sequelize, and direct SQL are the strongest
+fit when the data model is relational or join-heavy.
 
-“Partial” here means the native path covers the safest direct branches first,
-and more complex relation shapes still fall back to the shared resolver.
+They also carry the best support for:
 
-That is why stacks without joins or full SQL-style transactions can still work
-correctly through the same higher-level storage layer: the ORM handles the
-necessary consecutive reads and write orchestration instead of requiring the
-consumer package to fork its logic.
+- generated numeric IDs
+- richer native relation loading
+- Postgres-style schema namespaces
+- SQL-style setup and schema application
 
-Unstorage belongs in that same category. It can support a unified storage layer
-through fallback relation loading and ORM-managed uniqueness, but it is not the
-recommended runtime for highly relational or join-heavy workloads.
+### Supabase
 
-## Scalar and schema support
+Supabase is already covered through the PostgreSQL path.
 
-| Feature                                            | SQL-family / Prisma / TypeORM / Sequelize | MongoDB / Mongoose | Firestore | DynamoDB | Unstorage |
-| -------------------------------------------------- | ----------------------------------------- | ------------------ | --------- | -------- | --------- |
-| `integer()`                                        | Yes                                       | Yes                | Yes       | Yes      | Yes       |
-| `json()`                                           | Yes                                       | Yes                | Yes       | Yes      | Yes       |
-| `enumeration()`                                    | Yes                                       | Yes                | Yes       | Yes      | Yes       |
-| `bigint()`                                         | Yes                                       | Yes                | Yes       | Yes      | Yes       |
-| `decimal()`                                        | Yes                                       | Yes                | Yes       | Yes      | Yes       |
-| manual numeric IDs                                 | Yes                                       | Yes                | Yes       | Yes      | Yes       |
-| generated numeric IDs                              | Yes                                       | No                 | No        | No       | No        |
-| schema namespaces via `tableName(..., { schema })` | PostgreSQL-family only                    | No                 | No        | No       | No        |
+That means:
 
-Important boundaries:
+- keep the same schema definition
+- keep the same ORM layer
+- connect through a PostgreSQL client that talks to Supabase
 
-- generated integer IDs are first-class on SQL-family runtimes, Prisma,
-  TypeORM, Sequelize, and memory
+There is no separate Supabase-only schema model here.
+
+### Document and key-value runtimes
+
+MongoDB, Mongoose, Firestore, DynamoDB, and Unstorage still work through the
+same unified ORM API, but they are not SQL runtimes.
+
+That means they rely more on:
+
+- follow-up relation reads instead of joins
+- ORM-managed lookup behavior
+- backend-specific setup limits
+
+### Setup differences
+
+- Firestore has a real runtime, but not a SQL-style schema push surface
+- DynamoDB setup creates one table per model
+- Unstorage intentionally keeps `pushSchema(...)` and `applySchema(...)` as
+  no-ops because the storage contract is key-value oriented rather than DDL-oriented
+
+### Numeric IDs and namespaces
+
+- generated numeric IDs are first-class on the relational runtimes
 - MongoDB, Mongoose, Firestore, DynamoDB, and Unstorage keep numeric IDs manual-only
-- schema-qualified tables are Postgres-style only
-- flat strings like `"auth.users"` are intentionally rejected; use
-  `tableName("users", { schema: "auth" })`
+- schema namespaces are only meaningful on Postgres-style relational runtimes
 
-## Capabilities and errors
+### Unstorage boundary
 
-All live runtimes expose:
+Unstorage is useful for:
 
-- `orm.$driver.capabilities`
-- normalized `OrmError` values
+- sessions
+- tokens
+- lightweight records
+- package-owned state
 
-That means higher-level libraries can inspect:
+It is not the recommended runtime for highly relational or join-heavy database
+workloads.
 
-- transactions
-- numeric ID behavior
-- namespace support
-- upsert behavior
-- returning behavior
-- text comparison behavior
-- relation-loading capability
+## Where to go next
 
-without branching on backend-specific error codes or adapter-specific metadata.
-
-## Best next page
-
-- building on top of the runtime helpers:
-  [Framework Authors](/docs/use-cases/framework-authors)
-- picking one stack:
+- compare the integration guides:
   [Integrations](/docs/integrations)
+- build on top of the runtime layer:
+  [Framework Authors](/docs/use-cases/framework-authors)

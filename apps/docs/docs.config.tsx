@@ -1,7 +1,16 @@
 import type { ReactNode } from "react";
 import { defineDocs } from "@farming-labs/docs";
 import { pixelBorder } from "@farming-labs/theme/pixel-border";
-import { siDrizzle, siMongodb, siPrisma } from "simple-icons";
+import {
+  siDrizzle,
+  siFirebase,
+  siMongodb,
+  siPrisma,
+  siSequelize,
+  siSupabase,
+  siTypeorm,
+  siUnjs,
+} from "simple-icons";
 import {
   BookOpen,
   Boxes,
@@ -35,6 +44,26 @@ const brandIcon = (path: string, title: string) =>
       <path d={path} />
     </svg>,
   );
+
+const dynamodbIcon = icon(
+  <svg aria-hidden="true" viewBox="0 0 64 64" role="img">
+    <title>Amazon DynamoDB</title>
+    <path
+      fill="currentColor"
+      d="M46.586 25.249h-3.585a1.02 1.02 0 0 1-.822-.435 1.02 1.02 0 0 1-.114-.931l2.493-6.721h-8.914l-4.09 9.098H36a1.01 1.01 0 0 1 .812.42c.187.263.239.601.136.91l-3.66 11.101zm3.12-.296L31.708 43.149a1.004 1.004 0 0 1-1.23.146.998.998 0 0 1-.426-1.18l4.56-13.833h-4.611a1.02 1.02 0 0 1-.842-.463 1.024 1.024 0 0 1-.068-.966l5-11.12a1.006 1.006 0 0 1 .91-.593h11c.328 0 .635.163.822.435.187.273.23.62.115.93l-2.494 6.722H49a1.014 1.014 0 0 1 .924 1.624zM41 44.22c-2.71 1.886-7.687 2.882-12.468 2.882-4.816 0-9.837-1.009-12.533-2.924V48c0 1.664 4.768 3.978 12.533 3.978C36.028 51.978 41 49.276 41 47.49zM43.065 40.95c0 .187-.032.367-.064.546v5.993C43 51.08 36.51 54 28.533 54c-6.903 0-13.871-1.889-14.473-5.5H14V30.304 16.151h.001C14 12.155 21.488 10 28.533 10c3.94 0 7.73.64 10.396 1.756l-.765 1.868c-2.432-1.019-5.943-1.602-9.631-1.602C20.769 12.022 16 14.427 16 16.151c0 1.725 4.769 4.13 12.533 4.13.195 0 .399 0 .596-.008l.078 2.02a20.96 20.96 0 0 1-.674.009c-4.817 0-9.837-1.009-12.533-2.923v4.358l.001.017c.005.53.489 1.143 1.364 1.72 1.982 1.287 5.55 2.168 9.539 2.35l-.091 2.02c-4.126-.189-7.75-1.067-10.086-2.416-.31.298-.727 1.056-.727 1.466 0 1.725 4.769 4.13 12.533 4.13.738 0 1.465-.025 2.162-.075l.141 2.017a31.44 31.44 0 0 1-2.303.08c-4.817 0-9.837-1.009-12.533-2.923v3.67l.001.017c.005.547.489 1.16 1.364 1.736 2.268 1.475 6.549 2.394 11.168 2.394h.33v2.022h-.33c-4.778 0-9.86-1.008-12.532-2.543-.322.298-.001 1.011-.001 1.548 0 1.725 4.769 4.13 12.533 4.13 7.765 0 12.532-2.405 12.532-4.13 0-.61-.599-1.174-1.092-1.538.41-.247.86-.483 1.373-.7 1.192 1.04 1.483 2.077 1.483 2.816zm-25.923 7.438c.79.408 1.715.772 2.751 1.08l.564-1.939c-.916-.272-1.726-.59-2.406-.941zm2.752-11.05.564-1.939c-.916-.273-1.726-.589-2.406-.94l-.91 1.799c.79.41 1.715.773 2.752 1.08zm-2.752-13.21.91-1.8c.68.352 1.49.669 2.406.942l-.564 1.94a12.045 12.045 0 0 1-2.752-1.082z"
+    />
+  </svg>,
+);
+
+const kyselyIcon = icon(
+  <svg aria-hidden="true" viewBox="0 0 24 24" role="img">
+    <title>Kysely</title>
+    <path
+      fill="currentColor"
+      d="M4 3.5h3.25v6.2L13.1 3.5H17l-6.15 7.25L17.35 20.5h-4.02l-4.98-7.4-1.1 1.26v6.14H4z"
+    />
+  </svg>,
+);
 
 export default defineDocs({
   entry: "docs",
@@ -189,7 +218,14 @@ export default defineDocs({
     filecode: icon(<FileCode2 strokeWidth={1.5} />),
     prisma: brandIcon(siPrisma.path, siPrisma.title),
     drizzle: brandIcon(siDrizzle.path, siDrizzle.title),
+    kysely: kyselyIcon,
+    typeorm: brandIcon(siTypeorm.path, siTypeorm.title),
+    sequelize: brandIcon(siSequelize.path, siSequelize.title),
     mongodb: brandIcon(siMongodb.path, siMongodb.title),
+    supabase: brandIcon(siSupabase.path, siSupabase.title),
+    firestore: brandIcon(siFirebase.path, siFirebase.title),
+    dynamodb: dynamodbIcon,
+    unstorage: brandIcon(siUnjs.path, siUnjs.title),
     harddrive: icon(<HardDrive strokeWidth={1.5} />),
     terminal: icon(<Terminal strokeWidth={1.5} />),
     users: icon(<Users strokeWidth={1.5} />),

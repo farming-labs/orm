@@ -7,169 +7,87 @@ icon: package
 
 # Integrations
 
-Farming Labs ORM has two layers:
+Farming Labs ORM lets a package or app write its storage layer once, then run it
+through the actual database or ORM stack the app already owns.
 
-- `@farming-labs/orm` defines the schema and query API
-- runtime packages execute that API against the app’s actual stack
+That usually means:
 
-Hosted PostgreSQL platforms such as Supabase fit through that same PostgreSQL
+1. define one schema with `@farming-labs/orm`
+2. generate app-facing artifacts when a stack wants them
+3. run the unified query/runtime layer against the real client the app passes in
+
+So instead of building one adapter for Prisma, another for Drizzle, another for
+Kysely, another for MongoDB, and another for Firestore, the package can keep
+one storage contract and let the runtime layer handle the translation.
+
+If you want the exact support answer, use the
+[Support Matrix](/docs/integrations/support-matrix). This page is the simpler
+overview.
+
+## Integration families
+
+### Generation-first SQL stacks
+
+Use these when the app wants generated artifacts:
+
+- Prisma generation
+- Drizzle generation
+- safe SQL generation
+
+These are the right fit when the app already wants `schema.prisma`, generated
+Drizzle tables, or plain SQL DDL files as part of its own workflow.
+
+### Runtime-first relational stacks
+
+Use these when the app already owns a live relational client:
+
+- Prisma
+- Drizzle
+- Kysely
+- TypeORM
+- Sequelize
+- direct SQL clients
+
+This is the path for package authors who want to accept a raw client and keep
+the higher-level storage logic unchanged.
+
+### PostgreSQL platforms
+
+Hosted PostgreSQL platforms such as Supabase fit through the same PostgreSQL
 layer rather than needing a separate database model.
 
-If you want the quickest “what works where?” answer, start with the
-[Support Matrix](/docs/integrations/support-matrix).
+That means the same schema can still power:
 
-## Support matrix
+- generated Prisma / Drizzle / SQL output
+- live ORM queries through a PostgreSQL client
+- setup helpers such as `pushSchema(...)` and `bootstrapDatabase(...)`
 
-| Layer               | PostgreSQL | MySQL | SQLite | Document / Key-value | Notes                                     |
-| ------------------- | ---------- | ----- | ------ | -------------------- | ----------------------------------------- |
-| Prisma generation   | Yes        | Yes   | Yes    | No                   | `postgresql`, `mysql`, `sqlite` providers |
-| Drizzle generation  | Yes        | Yes   | Yes    | No                   | `pg`, `mysql`, `sqlite` dialects          |
-| Safe SQL generation | Yes        | Yes   | Yes    | No                   | `postgres`, `mysql`, `sqlite` dialects    |
-| Memory runtime      | N/A        | N/A   | N/A    | N/A                  | In-memory driver for tests and demos      |
-| Prisma runtime      | Yes        | Yes   | Yes    | No                   | `@farming-labs/orm-prisma`                |
-| Drizzle runtime     | Yes        | Yes   | Yes    | No                   | `@farming-labs/orm-drizzle`               |
-| Direct SQL runtime  | Yes        | Yes   | Yes    | No                   | `@farming-labs/orm-sql`                   |
-| TypeORM runtime     | Yes        | Yes   | Yes    | No                   | `@farming-labs/orm-typeorm`               |
-| Sequelize runtime   | Yes        | Yes   | No     | No                   | `@farming-labs/orm-sequelize`             |
-| Kysely runtime      | Yes        | Yes   | Yes    | No                   | `@farming-labs/orm-kysely`                |
-| Firestore runtime   | No         | No    | No     | Yes                  | `@farming-labs/orm-firestore`             |
-| DynamoDB runtime    | No         | No    | No     | Yes                  | `@farming-labs/orm-dynamodb`              |
-| Unstorage runtime   | No         | No    | No     | Yes                  | `@farming-labs/orm-unstorage`             |
-| MongoDB runtime     | No         | No    | No     | Yes                  | `@farming-labs/orm-mongo`                 |
-| Mongoose runtime    | No         | No    | No     | Yes                  | `@farming-labs/orm-mongoose`              |
+### Document and key-value runtimes
 
-Supabase is already covered through the PostgreSQL layer:
+Farming Labs ORM also supports document and key-value style runtimes when the
+app is not SQL-first:
 
-- generated Prisma / Drizzle / SQL output still works
-- the live ORM runtime works through a PostgreSQL client connected to Supabase
-- setup helpers such as `pushSchema(...)` and `bootstrapDatabase(...)` still work through that PostgreSQL path
+- MongoDB
+- Mongoose
+- Firestore
+- DynamoDB
+- Unstorage
 
-Firestore is now a first-class document runtime in this repo through
-`@farming-labs/orm-firestore`.
+These runtimes still keep the same schema and query API shape, but they rely
+more heavily on fallback relation loading and ORM-managed lookup behavior rather
+than native SQL joins.
 
-- it works with server-side Firestore clients such as `@google-cloud/firestore`
-  and `firebase-admin`
-- it keeps the same schema and query API surface as the SQL and Mongo runtimes
-- relation selections resolve through follow-up ORM queries rather than native joins
-- `pushSchema(...)` and `applySchema(...)` are intentional no-ops because
-  Firestore does not have SQL-style DDL to apply
+Two important boundaries:
 
-DynamoDB is now a first-class key-value/document runtime in this repo through
-`@farming-labs/orm-dynamodb`.
-
-- it works with raw AWS SDK clients such as `DynamoDBClient` and
-  `DynamoDBDocumentClient`
-- it keeps the same schema and query API surface as the SQL, Mongo, and
-  Firestore runtimes
-- exact unique and compound-unique lookups use internal lock items instead of
-  making consumer packages own that logic
-- relation selections resolve through follow-up ORM queries rather than native joins
-- `pushSchema(...)` creates one table per model through the runtime setup layer
-
-Unstorage is now a first-class lightweight key-value/document runtime in this
-repo through `@farming-labs/orm-unstorage`.
-
-- it works with raw Unstorage instances created by `createStorage(...)`
-- it keeps the same schema and query API surface as the SQL, Mongo, Firestore,
-  and DynamoDB runtimes
-- relation selections resolve through follow-up ORM queries rather than native joins
-- `pushSchema(...)` and `applySchema(...)` are intentional no-ops because
-  Unstorage is not a SQL-style schema engine
-- it is a strong fit for lightweight records, sessions, and package-owned state,
-  but not for highly relational or join-heavy database workloads
-
-## Scalar field coverage
-
-The current repo verifies the scalar builders across the full live runtime
-matrix:
-
-| Runtime / stack    | PostgreSQL | MySQL | SQLite | Document / Key-value | `integer()` | `json()` | `enumeration()` | `bigint()` | `decimal()` |
-| ------------------ | ---------- | ----- | ------ | -------------------- | ----------- | -------- | --------------- | ---------- | ----------- |
-| Memory runtime     | N/A        | N/A   | N/A    | N/A                  | Yes         | Yes      | Yes             | Yes        | Yes         |
-| Prisma runtime     | Yes        | Yes   | Yes    | No                   | Yes         | Yes      | Yes             | Yes        | Yes         |
-| Drizzle runtime    | Yes        | Yes   | Yes    | No                   | Yes         | Yes      | Yes             | Yes        | Yes         |
-| Kysely runtime     | Yes        | Yes   | Yes    | No                   | Yes         | Yes      | Yes             | Yes        | Yes         |
-| Direct SQL runtime | Yes        | Yes   | Yes    | No                   | Yes         | Yes      | Yes             | Yes        | Yes         |
-| TypeORM runtime    | Yes        | Yes   | Yes    | No                   | Yes         | Yes      | Yes             | Yes\*      | Yes         |
-| Sequelize runtime  | Yes        | Yes   | No     | No                   | Yes         | Yes      | Yes             | Yes        | Yes         |
-| Firestore runtime  | No         | No    | No     | Yes                  | Yes         | Yes      | Yes             | Yes        | Yes         |
-| DynamoDB runtime   | No         | No    | No     | Yes                  | Yes         | Yes      | Yes             | Yes        | Yes         |
-| MongoDB runtime    | No         | No    | No     | Yes                  | Yes         | Yes      | Yes             | Yes        | Yes         |
-| Mongoose runtime   | No         | No    | No     | Yes                  | Yes         | Yes      | Yes             | Yes        | Yes         |
-
-Those checks are not generator-only. They run the live runtime query layer
-against real local database instances and real client stacks for each supported
-dialect combination.
-
-That same real local matrix now also verifies `orm.$driver.capabilities`,
-including transaction-scoped access in the live SQL and Prisma runtimes.
-
-For SQLite bigint coverage, the local `node:sqlite` clients enable big-int read
-mode so the values stay as real `bigint` outputs instead of truncating into
-JavaScript `number`.
-
-Use this command to run the whole local matrix:
-
-```bash title="terminal"
-pnpm test:local
-```
-
-## Native relation loading
-
-The current runtime uses 2 strategies:
-
-- native relation loading where the backend can translate the query shape directly
-- fallback relation resolution for shapes that still need the shared runtime layer
-
-Today that means:
-
-| Runtime / stack    | Native path today                                                                                                               | Fallback today                                                           |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| Prisma runtime     | direct nested Prisma `select` for supported relation branches, including simple explicit join-table `manyToMany(...)` traversal | relation branches with extra relation-level filters, ordering, or paging |
-| Drizzle runtime    | inherited SQL single-query loading for singular chains and simple collection branches without relation-level modifiers          | relation branches with extra relation-level filters, ordering, or paging |
-| Kysely runtime     | inherited SQL single-query loading for singular chains and simple collection branches without relation-level modifiers          | relation branches with extra relation-level filters, ordering, or paging |
-| Direct SQL runtime | single SQL statement for singular chains and simple collection branches without relation-level modifiers                        | relation branches with extra relation-level filters, ordering, or paging |
-| TypeORM runtime    | inherited SQL single-query loading for singular chains and simple collection branches without relation-level modifiers          | relation branches with extra relation-level filters, ordering, or paging |
-| Sequelize runtime  | inherited SQL single-query loading for singular chains and simple collection branches without relation-level modifiers          | relation branches with extra relation-level filters, ordering, or paging |
-| Mongo / Mongoose   | not yet                                                                                                                         | shared relation resolver                                                 |
-| Firestore          | not yet                                                                                                                         | shared relation resolver                                                 |
-
-The important nuance is that the fallback column does **not** mean the backend
-is fundamentally missing relation support.
-
-- SQL-backed runtimes can support much richer native joins than the first
-  singular path implemented here
-- Prisma can support more native nested relation shapes than the current direct
-  branch translation
-- MongoDB and Mongoose can grow a native aggregation / `$lookup` path later
-
-So the current matrix is best read as: **what this repo natively translates
-today**, not **the theoretical limit of the backend**.
-
-\* The TypeORM suite fully verifies bigint round-trips on PostgreSQL and MySQL.
-The SQLite-family TypeORM path currently uses SQL.js smoke coverage in this
-repo, so bigint precision there still depends on the concrete TypeORM sqlite
-driver you choose.
-
-## How to choose
-
-- Use **Prisma generation** if your app already owns `schema.prisma`
-- Use **Drizzle generation** if your app wants generated Drizzle tables
-- Use **safe SQL generation** if you want SQL files directly
-- Use **Prisma runtime** if your app already uses `PrismaClient`
-- Use **Drizzle runtime** if your app already uses Drizzle
-- Use **Kysely runtime** if your app already uses Kysely
-- Use **TypeORM runtime** if your app already uses a TypeORM `DataSource`
-- Use **Sequelize runtime** if your app already uses Sequelize
-- Use **direct SQL runtime** if you want to talk to SQLite, MySQL, or PostgreSQL directly
-- Use **Firestore runtime** if your app uses a server-side Firestore client
-- Use **DynamoDB runtime** if your app uses the AWS SDK DynamoDB clients directly
-- Use **MongoDB runtime** if your app uses the native `mongodb` client
-- Use **Mongoose runtime** if your app already uses Mongoose models
+- Firestore and Unstorage do not have SQL-style schema push, so setup helpers
+  are intentionally no-op there
+- Unstorage is useful for lightweight records, sessions, tokens, and
+  package-owned state, but it is not the recommended runtime for highly
+  relational or join-heavy workloads
 
 ## What “supported” means
 
-When a runtime is marked live, the unified ORM methods already translate into
+When a runtime is supported here, the unified ORM API already translates into
 real calls for that stack.
 
 Examples:
@@ -182,8 +100,8 @@ Examples:
 - `@farming-labs/orm-sequelize` translates into Sequelize-backed relational operations
 - `@farming-labs/orm-firestore` translates into Firestore document operations
 - `@farming-labs/orm-dynamodb` translates into DynamoDB document / key-value operations
-- `@farming-labs/orm-mongo` translates into native `mongodb` collection operations
-- `@farming-labs/orm-mongoose` translates into Mongoose model operations
+- `@farming-labs/orm-unstorage` translates into Unstorage-backed key-value operations
+- `@farming-labs/orm-mongo` and `@farming-labs/orm-mongoose` translate into MongoDB-oriented document operations
 
 ## Guides
 
