@@ -260,28 +260,6 @@ export default defineDocs({
     pin: icon(<Pin strokeWidth={1.5} />),
   },
   sidebar: {
-    // banner: (
-    //   <div
-    //     className="-mx-4 h-[40px] border border-white/10 border-x-0 border-b mb-1 border-y-0 -my-2 flex flex-col gap-1 font-mono uppercase"
-    //     style={{
-    //       padding: "9px 16px",
-    //       fontSize: "12px",
-    //       backgroundImage:
-    //         "repeating-linear-gradient(-45deg, color-mix(in srgb, var(--color-fd-border) 7%, transparent), color-mix(in srgb, var(--color-fd-foreground) 5%, transparent) 1px, transparent 1px, transparent 6px)",
-    //     }}
-    //   >
-    //     <div className="flex items-center gap-2">
-    //       <Package size={14} className="inline-flex mb-px shrink-0" />
-    //       <span>
-    //         <span className="font-bold">v0.0.37</span>
-    //         <span className="text-white/50">
-    //           <span className="font-bold">v0.0.37</span>
-    //         </span>
-    //       </span>
-    //     </div>
-
-    //   </div>
-    // ),
     banner: (
       <div
         className="-mx-4 relative mt-2"

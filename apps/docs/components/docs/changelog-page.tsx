@@ -112,12 +112,6 @@ export function ChangelogPage() {
                 aria-hidden
                 className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-[clamp(4.5rem,16vw,12rem)] bg-gradient-to-l from-[#050507] via-[#050507]/85 to-transparent"
               />
-              {/* <div
-                aria-hidden
-                className="home-hero-gutter-pattern pointer-events-none absolute inset-y-0 left-[calc(1.25rem+13px)] z-[1] hidden w-[max(0px,calc(clamp(20px,6vw,72px)-1.25rem-1px))] sm:block"
-              />
-              
-              */}
               <div
                 aria-hidden
                 className="home-hero-gutter-pattern opacity-55 pointer-events-none absolute inset-y-0 right-[0] z-[1] hidden w-[max(0px,calc(clamp(20px,6vw,72px)-1.25rem-20px))] sm:block"
@@ -125,7 +119,7 @@ export function ChangelogPage() {
               <div className="relative z-10 flex h-full min-h-full flex-col justify-between px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
                 <div className="flex flex-1 flex-col justify-end">
                   <div className="mt-auto space-y-4 pt-8 sm:space-y-5 sm:pt-12 lg:pb-8 lg:pt-16">
-                    <div className="font flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
                       <Link href="/docs" className={footerLinkClass}>
                         <IconDocs className={iconClass} />
                         <FooterNavLabel text="DOCS" />
@@ -160,11 +154,11 @@ export function ChangelogPage() {
                   }}
                   aria-label="Changelog versions"
                 >
-                  <div className="overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:hidden">
-                    <div className="flex w-max min-w-full gap-2 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-white/48">
+                  <div className="overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:overflow-visible">
+                    <div className="flex w-max min-w-full flex-nowrap justify-end gap-2 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-white/72 lg:w-full lg:flex-wrap">
                       {changelogEntries.map((entry) => (
                         <Link
-                          className="inline-flex font-mono shrink-0 items-center border border-dashed border-white/10 bg-white/[0.02] px-2.5 py-1.5 transition-colors hover:border-white/20 hover:text-white/72"
+                          className="inline-flex shrink-0 items-center border border-dashed border-white/12 bg-white/[0.025] px-2.5 py-1.5 lowercase transition-colors hover:border-white/24 hover:bg-white/[0.04] hover:text-white"
                           key={entry.version}
                           href={`/changelogs#${entry.anchor}`}
                         >
@@ -172,18 +166,6 @@ export function ChangelogPage() {
                         </Link>
                       ))}
                     </div>
-                  </div>
-
-                  <div className="hidden font-mono text-[8px] tracking-[0.12em] text-white/72 lg:flex lg:flex-wrap lg:gap-2">
-                    {changelogEntries.map((entry) => (
-                      <Link
-                        className="inline-flex items-center border border-dashed border-white/12 bg-white/[0.025] px-2.5 py-1.5 lowercase transition-colors hover:border-white/24 hover:bg-white/[0.04] hover:text-white"
-                        key={entry.version}
-                        href={`/changelogs#${entry.anchor}`}
-                      >
-                        [{entry.version}]
-                      </Link>
-                    ))}
                   </div>
                 </div>
               </div>
