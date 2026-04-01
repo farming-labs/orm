@@ -1,6 +1,6 @@
 {
   "name": "@farming-labs/orm-kysely",
-  "version": "0.0.41",
+  "version": "0.0.42",
   "files": [
     "dist"
   ],
