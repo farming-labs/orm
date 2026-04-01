@@ -1,0 +1,170 @@
+---
+title: "Cloudflare D1"
+description: "How to use Farming Labs ORM with Cloudflare D1 through a worker-native runtime."
+order: 7
+icon: cloudflare
+---
+
+# Cloudflare D1
+
+Cloudflare D1 support in Farming Labs ORM is the worker-native SQLite answer
+for teams that want one storage layer without introducing a separate
+Cloudflare-only adapter surface.
+
+The supported path is the real D1 binding:
+
+- `D1Database`
+- `D1DatabaseSession`
+
+That keeps the runtime Cloudflare-friendly while still letting package and
+framework code stay backend-agnostic.
+
+## What this gives you
+
+You still write the schema and storage layer once.
+
+Then the runtime translates that layer into D1-backed SQLite operations with:
+
+- one schema definition
+- one query API
+- one runtime helper path
+- one capability surface
+- one normalized error surface
+
+That is a strong fit for framework modules, auth state, billing state, cache
+metadata, and other shared storage contracts running inside Workers.
+
+## Create the runtime directly
+
+```ts title="cloudflare-d1-runtime.ts"
+import { createOrm } from "@farming-labs/orm";
+import { createD1Driver } from "@farming-labs/orm-d1";
+import { appSchema } from "./schema";
+
+type Env = {
+  DB: D1Database;
+};
+
+export default {
+  async fetch(_request: Request, env: Env) {
+    const orm = createOrm({
+      schema: appSchema,
+      driver: createD1Driver({
+        client: env.DB,
+      }),
+    });
+
+    const count = await orm.user.count();
+    return Response.json({ count });
+  },
+};
+```
+
+## Use the runtime helper path
+
+If a framework or shared package wants to accept the raw D1 binding and
+normalize it later, use the runtime helpers:
+
+```ts
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const orm = await createOrmFromRuntime({
+  schema: appSchema,
+  client: env.DB,
+});
+```
+
+That keeps the package boundary generic instead of forcing a D1-specific branch.
+
+## Setup helpers
+
+The D1 runtime itself is Worker-friendly. The setup helpers are different:
+
+- `createD1Driver(...)` works inside the Worker runtime
+- `createOrmFromRuntime(...)` works inside the Worker runtime
+- `pushSchema(...)`, `applySchema(...)`, and `bootstrapDatabase(...)` are still
+  best used in local, CI, or other Node-managed bootstrap flows because
+  `@farming-labs/orm-runtime/setup` stays Node-only
+
+That means the common pattern is:
+
+- use the D1 runtime directly inside Workers
+- use setup helpers in local verification or CI when you want repeatable schema
+  prep against a Miniflare-backed D1 binding
+
+```ts
+import { bootstrapDatabase, pushSchema } from "@farming-labs/orm-runtime/setup";
+
+await pushSchema({
+  schema: appSchema,
+  client: db,
+});
+
+const orm = await bootstrapDatabase({
+  schema: appSchema,
+  client: db,
+});
+```
+
+## Joins, relations, and transactions
+
+D1 is still SQLite-backed, so the relational query surface works well.
+
+That means:
+
+- nested relation selections work
+- compound unique lookups and upserts work
+- generated integer ids work
+- the shared SQL relation planner can still use native query shapes where supported
+
+At the same time, the runtime stays conservative about transaction semantics:
+
+- `orm.transaction(...)` is available
+- `orm.$driver.capabilities.supportsTransactions` is `false`
+- the D1 runtime does **not** claim the same long-lived interactive rollback
+  semantics as a traditional Node SQL connection
+
+That keeps the capability story honest for framework and auth integrations.
+
+## What is supported well
+
+- string ids
+- generated integer ids
+- `integer()`
+- `json()`
+- `enumeration()`
+- `decimal()`
+- relation selections
+- compound unique lookups and upserts
+- raw runtime detection
+- `createOrmFromRuntime(...)`
+- local Miniflare-backed setup verification
+
+## Important limits
+
+- schema-qualified table names are not supported
+- setup helpers are for local, CI, or other Node-managed flows, not direct
+  Worker-request imports
+- `orm.transaction(...)` should not be treated as a promise of full interactive
+  rollback semantics in this runtime
+- extremely large `bigint()` values beyond the JavaScript safe integer range
+  should not be treated as precision-preserving round trips through D1
+
+## Local verification
+
+The repo verifies D1 locally through a Miniflare-backed integration suite.
+
+Run it with:
+
+```bash title="terminal"
+pnpm test:local:d1
+```
+
+## Why it matters
+
+This keeps Cloudflare D1 inside the same bigger ORM story:
+
+- write your storage layer once
+- keep one schema definition
+- let the app choose D1
+- avoid owning a separate Cloudflare-only adapter surface

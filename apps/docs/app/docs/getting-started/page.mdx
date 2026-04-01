@@ -204,6 +204,30 @@ const orm = createOrm({
 });
 ```
 
+### Cloudflare D1
+
+```ts title="cloudflare-d1-runtime.ts"
+import { createOrm } from "@farming-labs/orm";
+import { createD1Driver } from "@farming-labs/orm-d1";
+
+export type Env = {
+  DB: D1Database;
+};
+
+export default {
+  async fetch(_request: Request, env: Env) {
+    const orm = createOrm({
+      schema: authSchema,
+      driver: createD1Driver({
+        client: env.DB,
+      }),
+    });
+
+    return Response.json(await orm.user.count());
+  },
+};
+```
+
 ### TypeORM
 
 ```ts title="typeorm-runtime.ts"

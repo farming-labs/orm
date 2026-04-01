@@ -5,6 +5,7 @@ import {
   type SchemaDefinition,
 } from "@farming-labs/orm";
 import type { DrizzleDialect, DrizzleDriverConfig } from "@farming-labs/orm-drizzle";
+import type { D1DriverConfig } from "@farming-labs/orm-d1";
 import type { DynamoDbDriverConfig } from "@farming-labs/orm-dynamodb";
 import type { FirestoreDriverConfig } from "@farming-labs/orm-firestore";
 import type { KyselyDialect, KyselyDriverConfig } from "@farming-labs/orm-kysely";
@@ -90,6 +91,12 @@ export async function createDriverFromRuntime<
       return createKyselyDriver<TSchema>({
         db: runtime.client as KyselyDriverConfig<TSchema>["db"],
         dialect: resolveDialect(runtime, options.dialect) as KyselyDialect,
+      }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
+    }
+    case "d1": {
+      const { createD1Driver } = await import("@farming-labs/orm-d1");
+      return createD1Driver<TSchema>({
+        client: runtime.client as D1DriverConfig<TSchema>["client"],
       }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
     }
     case "mikroorm": {

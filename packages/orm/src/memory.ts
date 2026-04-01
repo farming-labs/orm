@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { createDriverHandle } from "./client";
 import type {
   CountArgs,
@@ -33,6 +32,15 @@ type MemoryStore<TSchema extends SchemaDefinition<any>> = Partial<
 >;
 
 const manifestCache = new WeakMap<object, ReturnType<typeof createManifest>>();
+
+function generateUuid() {
+  const randomUuid = globalThis.crypto?.randomUUID;
+  if (typeof randomUuid === "function") {
+    return randomUuid.call(globalThis.crypto);
+  }
+
+  throw new Error("The current runtime does not provide crypto.randomUUID().");
+}
 
 function getManifest(schema: SchemaDefinition<any>) {
   const cached = manifestCache.get(schema);
@@ -143,7 +151,7 @@ function matchesWhere<TRecord extends Record<string, unknown>>(
 
 function applyDefault(value: unknown, field: { generated?: string; defaultValue?: unknown }) {
   if (value !== undefined) return value;
-  if (field.generated === "id") return randomUUID();
+  if (field.generated === "id") return generateUuid();
   if (field.generated === "now") return new Date();
   if (typeof field.defaultValue === "function") {
     return (field.defaultValue as () => unknown)();

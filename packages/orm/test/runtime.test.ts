@@ -273,6 +273,55 @@ describe("runtime contract", () => {
     expect(inspectDatabaseRuntime(dynamo).runtime?.kind).toBe("dynamodb");
   });
 
+  it("detects D1 runtimes from database and session shapes", () => {
+    const preparedStatement = {
+      bind() {
+        return this;
+      },
+      run: async () => ({
+        results: [],
+        meta: {
+          changes: 0,
+        },
+      }),
+    };
+    const d1Database = {
+      prepare: () => preparedStatement,
+      batch: async () => [],
+      exec: async () => ({
+        count: 0,
+      }),
+      withSession() {
+        return d1Session;
+      },
+      constructor: {
+        name: "D1Database",
+      },
+    };
+    const d1Session = {
+      prepare: () => preparedStatement,
+      batch: async () => [],
+      getBookmark: () => "bookmark",
+      constructor: {
+        name: "D1DatabaseSession",
+      },
+    };
+
+    expect(detectDatabaseRuntime(d1Database)).toEqual({
+      kind: "d1",
+      client: d1Database,
+      dialect: "sqlite",
+      source: "database",
+    });
+    expect(detectDatabaseRuntime(d1Session)).toEqual({
+      kind: "d1",
+      client: d1Session,
+      dialect: "sqlite",
+      source: "database",
+    });
+    expect(inspectDatabaseRuntime(d1Database).runtime?.kind).toBe("d1");
+  });
+
   it("detects Unstorage runtimes from storage shapes", () => {
     const storage = {
       getItem: async () => null,

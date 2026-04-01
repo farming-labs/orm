@@ -1,6 +1,6 @@
 ---
 title: "Runtime Helpers"
-description: "Create a driver or ORM directly from a raw Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, SQL, Firestore, DynamoDB, Unstorage, MongoDB, or Mongoose runtime."
+description: "Create a driver or ORM directly from a raw Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, Cloudflare D1, SQL, Firestore, DynamoDB, Unstorage, MongoDB, or Mongoose runtime."
 order: 2
 icon: harddrive
 ---
@@ -44,6 +44,7 @@ That is especially useful when another library wants to accept:
 - a MikroORM instance or `EntityManager`
 - a TypeORM `DataSource`
 - a Sequelize instance
+- a Cloudflare D1 binding
 - a `pg` pool/client
 - a `mysql2` pool/connection
 - a Firestore client
@@ -156,6 +157,10 @@ report.candidates; // partial heuristic matches
 
 The runtime-aware setup flow lives on the Node-only setup subpath.
 
+That matters for Cloudflare D1 in particular: the live runtime path works in a
+Worker, while the setup helpers fit best in local, CI, or other Node-managed
+bootstrap flows.
+
 ```ts title="bootstrap-database.ts"
 import { bootstrapDatabase } from "@farming-labs/orm-runtime/setup";
 
@@ -214,6 +219,22 @@ await pushSchema({
   client: pool,
 });
 ```
+
+### Cloudflare D1
+
+For Cloudflare D1, pass the Worker binding or a local Miniflare D1 binding
+directly:
+
+```ts
+const orm = await createOrmFromRuntime({
+  schema,
+  client: env.DB,
+});
+```
+
+The D1 setup path uses the same schema and the same helper surface, but it is
+best used in local or CI flows because `@farming-labs/orm-runtime/setup` stays
+Node-only.
 
 ### Prisma
 

@@ -4,8 +4,8 @@ description: |
   Use when working in the Farming Labs ORM monorepo. Covers the schema DSL,
   runtime drivers, relation translation, docs updates, release flow, and real
   local database integration tests. Triggers: createOrm, Prisma driver,
-  Drizzle driver, Kysely driver, MikroORM driver, TypeORM driver, Sequelize driver, Firestore,
-  DynamoDB, Unstorage, Mongo runtime, Mongoose runtime, update docs,
+  Drizzle driver, Kysely driver, MikroORM driver, TypeORM driver, Sequelize driver, Cloudflare D1,
+  Firestore, DynamoDB, Unstorage, Mongo runtime, Mongoose runtime, update docs,
   test:local, release latest, compound unique, native relation loading.
 ---
 
@@ -32,6 +32,8 @@ repo-specific knowledge about the unified ORM API.
   TypeORM runtime driver
 - `packages/sequelize`
   Sequelize runtime driver
+- `packages/d1`
+  Cloudflare D1 runtime driver
 - `packages/firestore`
   Firestore runtime driver
 - `packages/dynamodb`
@@ -94,6 +96,7 @@ Targeted commands:
 
 ```bash
 pnpm test:local:sql
+pnpm test:local:d1
 pnpm test:local:drizzle
 pnpm test:local:kysely
 pnpm test:local:mikroorm
@@ -135,8 +138,7 @@ pnpm release:latest
 ```
 
 That command now runs the full stable release flow, including npm publish.
-`bump.config.ts` explicitly lists the publishable package manifests under
-`packages/*`.
+`bump.config.ts` uses the workspace-recursive release flow.
 
 The release files, commit message, and tag pattern are configured in
 `bump.config.ts`.
@@ -169,6 +171,8 @@ Current runtime packages in this repo:
   - TypeORM runtime
 - `@farming-labs/orm-sequelize`
   - Sequelize runtime
+- `@farming-labs/orm-d1`
+  - Cloudflare D1 runtime
 - `@farming-labs/orm-firestore`
   - Firestore runtime
 - `@farming-labs/orm-dynamodb`
@@ -190,6 +194,9 @@ Current common features:
 
 Important boundary:
 
+- `@farming-labs/orm-d1` is Worker-friendly at runtime, but
+  `@farming-labs/orm-runtime/setup` is still for local, CI, or other
+  Node-managed bootstrap flows.
 - `@farming-labs/orm-unstorage` is meant for lightweight key-value/document
   storage and shared storage layers, not for highly relational or join-heavy
   workloads.

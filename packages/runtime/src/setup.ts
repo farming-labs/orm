@@ -56,6 +56,16 @@ type SqliteExecClient = {
   exec(sql: string): Promise<unknown> | unknown;
 };
 
+type D1PreparedStatementLike = {
+  bind(...params: unknown[]): D1PreparedStatementLike;
+  run(): Promise<unknown> | unknown;
+};
+
+type D1DatabaseLike = {
+  prepare(sql: string): D1PreparedStatementLike;
+  batch?(statements: readonly D1PreparedStatementLike[]): Promise<unknown> | unknown;
+};
+
 type InitializableConnectionLike = {
   isInitialized?: boolean;
   initialize?(): Promise<unknown>;
@@ -417,6 +427,14 @@ async function ensureMongoCollectionsAndIndexes(
 }
 
 async function applySqlSchemaToClient(client: unknown, dialect: AutoDialect, sql: string) {
+  if (dialect === "sqlite" && hasFunction(client, "prepare") && hasFunction(client, "batch")) {
+    const statements = splitSqlStatements(sql);
+    await runSqlStatements(dialect, statements, (statement) =>
+      (client as D1DatabaseLike).prepare(statement).bind().run(),
+    );
+    return;
+  }
+
   if (dialect === "sqlite" && hasFunction(client, "exec")) {
     await (client as SqliteExecClient).exec(sql);
     return;
@@ -682,6 +700,24 @@ async function applySchemaInternal<TSchema extends SchemaDefinition<any>, TClien
         options.schema,
         runtime.client as DynamoDbBaseClientLike,
         options.dynamodb?.tables as Record<string, string | undefined> | undefined,
+      );
+      return;
+    }
+
+    if (runtime.kind === "d1") {
+      const manifest = createManifest(options.schema);
+      for (const model of Object.values(manifest.models)) {
+        if (model.schema) {
+          throw new Error(
+            `The D1 runtime does not support schema-qualified tables for model "${model.name}". Use flat table names instead.`,
+          );
+        }
+      }
+
+      await applySqlSchemaToClient(
+        runtime.client,
+        "sqlite",
+        renderSafeSql(options.schema, { dialect: "sqlite" }),
       );
       return;
     }

@@ -20,6 +20,8 @@ This repository is a TypeScript monorepo for @farming-labs/orm
   TypeORM runtime driver
 - `packages/sequelize`
   Sequelize runtime driver
+- `packages/d1`
+  Cloudflare D1 runtime driver
 - `packages/firestore`
   Firestore runtime driver
 - `packages/dynamodb`
@@ -64,6 +66,7 @@ Targeted local suites:
 
 ```bash
 pnpm test:local:sql
+pnpm test:local:d1
 pnpm test:local:drizzle
 pnpm test:local:kysely
 pnpm test:local:mikroorm
@@ -81,8 +84,8 @@ pnpm test:local:prisma
 pnpm release:latest
 ```
 
-That is the full stable release flow now: bump the package manifests listed in
-`bump.config.ts`, commit, tag, and publish.
+That is the full stable release flow now: recursively bump workspace package
+manifests, commit, tag, and publish.
 
 Beta:
 
@@ -95,6 +98,9 @@ pnpm release:beta
 - `orm.$driver` exposes the attached runtime handle and the underlying instance.
 - Real local integration tests are expected to use actual local database
   services where available.
+- Cloudflare D1 is supported as a worker-native runtime. Use the runtime path in
+  Workers, and keep `@farming-labs/orm-runtime/setup` for local, CI, or other
+  Node-managed bootstrap flows.
 - Unstorage is supported as a lightweight key-value/document runtime, but it is
   not the preferred fit for highly relational or join-heavy workloads.
 - Docs live under `apps/docs/app/docs`.
