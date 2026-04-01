@@ -1,6 +1,6 @@
 ---
 title: "Integrations"
-description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, SQL-first, Supabase, Firestore, DynamoDB, Unstorage, and MongoDB-oriented workflows."
+description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, Cloudflare D1, SQL-first, Supabase, Firestore, DynamoDB, Unstorage, and MongoDB-oriented workflows."
 order: 6
 icon: package
 ---
@@ -47,6 +47,7 @@ Use these when the app already owns a live relational client:
 - MikroORM
 - TypeORM
 - Sequelize
+- Cloudflare D1
 - direct SQL clients
 
 This is the path for package authors who want to accept a raw client and keep
@@ -100,6 +101,7 @@ Examples:
 - `@farming-labs/orm-sql` translates into direct SQL operations
 - `@farming-labs/orm-typeorm` translates into TypeORM-backed relational operations
 - `@farming-labs/orm-sequelize` translates into Sequelize-backed relational operations
+- `@farming-labs/orm-d1` translates into Cloudflare D1 binding operations
 - `@farming-labs/orm-firestore` translates into Firestore document operations
 - `@farming-labs/orm-dynamodb` translates into DynamoDB document / key-value operations
 - `@farming-labs/orm-unstorage` translates into Unstorage-backed key-value operations
@@ -180,6 +182,17 @@ Examples:
   linkLabel="Open SQL guide"
 >
   SQL integration
+</HoverLink>
+
+<span>·</span>
+
+<HoverLink
+  href="/docs/integrations/cloudflare-d1"
+  title="Cloudflare D1"
+  description="See how Farming Labs ORM uses a worker-native D1 binding while keeping one schema and one storage layer."
+  linkLabel="Open D1 guide"
+>
+  Cloudflare D1 integration
 </HoverLink>
 
 <span>·</span>

@@ -15,6 +15,7 @@
     "paths": {
       "@farming-labs/orm": ["packages/orm/src/index.ts"],
       "@farming-labs/orm-cli": ["packages/cli/src/index.ts"],
+      "@farming-labs/orm-d1": ["packages/d1/src/index.ts"],
       "@farming-labs/orm-dynamodb": ["packages/dynamodb/src/index.ts"],
       "@farming-labs/orm-drizzle": ["packages/drizzle/src/index.ts"],
       "@farming-labs/orm-firestore": ["packages/firestore/src/index.ts"],

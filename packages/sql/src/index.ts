@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import {
   createDriverHandle,
   createManifest,
@@ -111,6 +110,15 @@ const nativeNodeIdentity = Symbol("nativeNodeIdentity");
 
 const manifestCache = new WeakMap<object, SchemaManifest>();
 
+function generateUuid() {
+  const randomUuid = globalThis.crypto?.randomUUID;
+  if (typeof randomUuid === "function") {
+    return randomUuid.call(globalThis.crypto);
+  }
+
+  throw new Error("The current runtime does not provide crypto.randomUUID().");
+}
+
 function getManifest(schema: SchemaDefinition<any>) {
   const cached = manifestCache.get(schema);
   if (cached) return cached;
@@ -166,7 +174,7 @@ function identityField(model: ManifestModel) {
 
 function applyDefault(value: unknown, field: ManifestField) {
   if (value !== undefined) return value;
-  if (field.generated === "id") return randomUUID();
+  if (field.generated === "id") return generateUuid();
   if (field.generated === "now") return new Date();
   if (typeof field.defaultValue === "function") {
     return (field.defaultValue as () => unknown)();

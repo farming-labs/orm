@@ -8,6 +8,7 @@ export type DetectedDatabaseRuntime<TClient = unknown> = Readonly<{
     | "drizzle"
     | "kysely"
     | "mikroorm"
+    | "d1"
     | "dynamodb"
     | "unstorage"
     | "sequelize"
@@ -198,6 +199,40 @@ function isDynamoDbClient(client: unknown): client is Record<string, unknown> {
         isRecord((client as Record<string, unknown>).config) &&
         "translateConfig" in
           ((client as Record<string, unknown>).config as Record<string, unknown>)))
+  );
+}
+
+function isD1PreparedStatement(client: unknown): client is Record<string, unknown> {
+  return hasFunction(client, "bind") && hasFunction(client, "run");
+}
+
+function isD1DatabaseSession(client: unknown): client is Record<string, unknown> {
+  return (
+    hasFunction(client, "prepare") &&
+    hasFunction(client, "batch") &&
+    hasFunction(client, "getBookmark")
+  );
+}
+
+function isD1Database(client: unknown): client is Record<string, unknown> {
+  if (!hasFunction(client, "prepare") || !hasFunction(client, "batch")) {
+    return false;
+  }
+
+  try {
+    const prepared = client.prepare("select 1");
+    if (!isD1PreparedStatement(prepared)) {
+      return false;
+    }
+  } catch {
+    return false;
+  }
+
+  return (
+    hasFunction(client, "withSession") ||
+    hasFunction(client, "exec") ||
+    hasFunction(client, "dump") ||
+    getConstructorName(client).includes("D1Database")
   );
 }
 
@@ -406,6 +441,15 @@ export function detectDatabaseRuntime<TClient>(
     });
   }
 
+  if (isD1Database(client) || isD1DatabaseSession(client)) {
+    return Object.freeze({
+      kind: "d1",
+      client,
+      dialect: "sqlite",
+      source: "database",
+    });
+  }
+
   if (isUnstorageClient(client)) {
     return Object.freeze({
       kind: "unstorage",
@@ -564,6 +608,16 @@ export function inspectDatabaseRuntime<TClient>(
               ]
           : missingFunctions(client, ["getConnection", "transactional"]).concat([
               'expected either a MikroORM instance ("em", "connect", "close") or an EntityManager-like runtime',
+            ]),
+    },
+    {
+      kind: "d1",
+      matched: isD1Database(client) || isD1DatabaseSession(client),
+      reasons:
+        isD1Database(client) || isD1DatabaseSession(client)
+          ? []
+          : missingFunctions(client, ["prepare", "batch"]).concat([
+              "expected a Cloudflare D1Database or D1DatabaseSession-like runtime",
             ]),
     },
     {

@@ -16,6 +16,7 @@ import {
 } from "@farming-labs/orm";
 import { createDriverFromRuntime, createOrmFromRuntime } from "../src";
 import { applySchema, bootstrapDatabase, pushSchema } from "../src/setup";
+import { startLocalD1 } from "../../d1/test/support/local-d1";
 import { startLocalDynamoDb } from "../../dynamodb/test/support/local-dynamodb";
 import { startLocalUnstorage } from "../../unstorage/test/support/local-unstorage";
 
@@ -231,6 +232,49 @@ describe("runtime helper local integration", () => {
       expect(created).toEqual({
         id: expect.any(String),
         email: "dynamodb@farminglabs.dev",
+      });
+    } finally {
+      await local.close();
+    }
+  });
+
+  it("creates and bootstraps a D1 runtime from a raw binding", async () => {
+    const local = await startLocalD1();
+
+    try {
+      await pushSchema({
+        schema,
+        client: local.db,
+      });
+      await applySchema({
+        schema,
+        client: local.db,
+      });
+
+      const driver = await createDriverFromRuntime({
+        schema,
+        client: local.db,
+      });
+      const orm = await bootstrapDatabase({
+        schema,
+        client: local.db,
+      });
+
+      const created = await orm.user.create({
+        data: {
+          email: "d1@farminglabs.dev",
+          name: "D1",
+        },
+        select: {
+          id: true,
+          email: true,
+        },
+      });
+
+      expect(driver.handle.kind).toBe("d1");
+      expect(created).toEqual({
+        id: expect.any(String),
+        email: "d1@farminglabs.dev",
       });
     } finally {
       await local.close();

@@ -30,21 +30,22 @@ If you want the full story for one stack, use
 
 ## Basic matrix
 
-| Stack      | Generation | Runtime | Setup   | Notes                                                      |
-| ---------- | ---------- | ------- | ------- | ---------------------------------------------------------- |
-| Prisma     | Yes        | Yes     | Full    | Generated `schema.prisma` plus live `PrismaClient` runtime |
-| Drizzle    | Yes        | Yes     | Full    | Generated schema files plus live Drizzle runtime           |
-| Kysely     | No         | Yes     | Full    | Runtime-first relational integration                       |
-| MikroORM   | No         | Yes     | Full    | Runtime-first relational integration                       |
-| TypeORM    | No         | Yes     | Full    | Runtime-first relational integration                       |
-| Sequelize  | No         | Yes     | Full    | Runtime-first relational integration                       |
-| Direct SQL | Yes        | Yes     | Full    | Safe SQL generation plus direct SQL runtime                |
-| Supabase   | Via SQL    | Via SQL | Via SQL | Uses the PostgreSQL layer, not a separate runtime family   |
-| MongoDB    | No         | Yes     | Full    | Native Mongo runtime                                       |
-| Mongoose   | No         | Yes     | Full    | Mongoose-backed runtime                                    |
-| Firestore  | No         | Yes     | Limited | Real runtime, but no SQL-style schema push                 |
-| DynamoDB   | No         | Yes     | Full    | Creates one table per model through the runtime setup path |
-| Unstorage  | No         | Yes     | No-op   | Lightweight key-value/document runtime                     |
+| Stack         | Generation | Runtime | Setup   | Notes                                                      |
+| ------------- | ---------- | ------- | ------- | ---------------------------------------------------------- |
+| Prisma        | Yes        | Yes     | Full    | Generated `schema.prisma` plus live `PrismaClient` runtime |
+| Drizzle       | Yes        | Yes     | Full    | Generated schema files plus live Drizzle runtime           |
+| Kysely        | No         | Yes     | Full    | Runtime-first relational integration                       |
+| MikroORM      | No         | Yes     | Full    | Runtime-first relational integration                       |
+| TypeORM       | No         | Yes     | Full    | Runtime-first relational integration                       |
+| Sequelize     | No         | Yes     | Full    | Runtime-first relational integration                       |
+| Cloudflare D1 | No         | Yes     | Limited | Worker-native SQLite binding with local/CI setup helpers   |
+| Direct SQL    | Yes        | Yes     | Full    | Safe SQL generation plus direct SQL runtime                |
+| Supabase      | Via SQL    | Via SQL | Via SQL | Uses the PostgreSQL layer, not a separate runtime family   |
+| MongoDB       | No         | Yes     | Full    | Native Mongo runtime                                       |
+| Mongoose      | No         | Yes     | Full    | Mongoose-backed runtime                                    |
+| Firestore     | No         | Yes     | Limited | Real runtime, but no SQL-style schema push                 |
+| DynamoDB      | No         | Yes     | Full    | Creates one table per model through the runtime setup path |
+| Unstorage     | No         | Yes     | No-op   | Lightweight key-value/document runtime                     |
 
 ## Important details
 
@@ -59,6 +60,25 @@ They also carry the best support for:
 - richer native relation loading
 - Postgres-style schema namespaces
 - SQL-style setup and schema application
+
+### Cloudflare D1
+
+Cloudflare D1 is supported as its own runtime family rather than being folded
+into a generic SQL alias.
+
+That means:
+
+- pass the real Worker binding or a local Miniflare D1 binding directly
+- keep one schema definition and one query surface
+- use the same runtime helper path as the other stacks
+
+Two boundaries matter:
+
+- the runtime itself is Worker-friendly
+- the setup helpers fit best in local, CI, or other Node-managed bootstrap flows
+
+`orm.transaction(...)` is available, but the runtime does **not** claim full
+interactive rollback semantics the way a long-lived Node SQL connection can.
 
 ### Supabase
 
@@ -92,7 +112,7 @@ That means they rely more on:
 
 ### Numeric IDs and namespaces
 
-- generated numeric IDs are first-class on the relational runtimes
+- generated numeric IDs are first-class on the relational runtimes, including D1
 - MongoDB, Mongoose, Firestore, DynamoDB, and Unstorage keep numeric IDs manual-only
 - schema namespaces are only meaningful on Postgres-style relational runtimes
 

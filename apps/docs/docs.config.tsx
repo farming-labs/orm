@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { defineDocs } from "@farming-labs/docs";
 import { pixelBorder } from "@farming-labs/theme/pixel-border";
 import {
+  siCloudflare,
   siDrizzle,
   siFirebase,
   siMongodb,
@@ -209,6 +210,7 @@ export default defineDocs({
         { slug: "typeorm" },
         { slug: "sequelize" },
         { slug: "sql-databases" },
+        { slug: "cloudflare-d1" },
         { slug: "supabase" },
         { slug: "firestore" },
         { slug: "dynamodb" },
@@ -246,6 +248,7 @@ export default defineDocs({
     mikroorm: mikroormIcon,
     typeorm: brandIcon(siTypeorm.path, siTypeorm.title),
     sequelize: brandIcon(siSequelize.path, siSequelize.title),
+    cloudflare: brandIcon(siCloudflare.path, siCloudflare.title),
     mongodb: brandIcon(siMongodb.path, siMongodb.title),
     supabase: brandIcon(siSupabase.path, siSupabase.title),
     firestore: brandIcon(siFirebase.path, siFirebase.title),
