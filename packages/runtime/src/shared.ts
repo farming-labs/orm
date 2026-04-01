@@ -30,6 +30,7 @@ import type {
 import type { KyselyDialect } from "@farming-labs/orm-kysely";
 import type { MikroormDriverHandle } from "@farming-labs/orm-mikroorm";
 import type { PrismaDriverConfig, PrismaDriverHandle } from "@farming-labs/orm-prisma";
+import type { RedisDriverConfig, RedisDriverHandle } from "@farming-labs/orm-redis";
 import type { SequelizeDriverDialect, SequelizeDriverHandle } from "@farming-labs/orm-sequelize";
 import type { SqlDriverHandle } from "@farming-labs/orm-sql";
 import type { TypeormDriverHandle } from "@farming-labs/orm-typeorm";
@@ -48,6 +49,7 @@ export type AutoDriverHandle<TClient = unknown> =
   | MikroormDriverHandle<TClient, AutoDialect>
   | OrmDriverHandle<"mongo", unknown>
   | OrmDriverHandle<"mongoose", unknown>
+  | RedisDriverHandle<any>
   | SequelizeDriverHandle<TClient, SequelizeDriverDialect>
   | TypeormDriverHandle<TClient, AutoDialect>
   | UnstorageDriverHandle<any>;
@@ -75,6 +77,11 @@ export type CreateDriverFromRuntimeOptions<
     db?: FirestoreDbLike;
     collections?: FirestoreDriverConfig<TSchema>["collections"];
     transforms?: FirestoreDriverConfig<TSchema>["transforms"];
+  };
+  redis?: {
+    base?: RedisDriverConfig<TSchema>["base"];
+    prefixes?: RedisDriverConfig<TSchema>["prefixes"];
+    transforms?: RedisDriverConfig<TSchema>["transforms"];
   };
   unstorage?: {
     base?: UnstorageDriverConfig<TSchema>["base"];

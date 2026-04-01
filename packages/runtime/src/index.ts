@@ -13,6 +13,7 @@ import type { MikroormDriverConfig, MikroormDriverDialect } from "@farming-labs/
 import type { MongoDriverConfig } from "@farming-labs/orm-mongo";
 import type { MongooseDriverConfig } from "@farming-labs/orm-mongoose";
 import type { PrismaDriverConfig } from "@farming-labs/orm-prisma";
+import type { RedisDriverConfig } from "@farming-labs/orm-redis";
 import type { SequelizeDriverConfig, SequelizeDriverDialect } from "@farming-labs/orm-sequelize";
 import type {
   MysqlConnectionLike,
@@ -130,6 +131,15 @@ export async function createDriverFromRuntime<
         base: options.unstorage?.base,
         prefixes: options.unstorage?.prefixes,
         transforms: options.unstorage?.transforms as UnstorageDriverConfig<TSchema>["transforms"],
+      }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
+    }
+    case "redis": {
+      const { createRedisDriver } = await import("@farming-labs/orm-redis");
+      return createRedisDriver<TSchema>({
+        client: runtime.client as RedisDriverConfig<TSchema>["client"],
+        base: options.redis?.base,
+        prefixes: options.redis?.prefixes,
+        transforms: options.redis?.transforms as RedisDriverConfig<TSchema>["transforms"],
       }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
     }
     case "sequelize": {

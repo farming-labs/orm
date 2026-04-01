@@ -122,8 +122,8 @@ The setup helpers now live on the Node-only subpath:
 
 Import them from `@farming-labs/orm-runtime/setup`. They use the same runtime
 detection layer to prepare direct SQL, Prisma, Drizzle, Kysely, MikroORM,
-TypeORM, Sequelize, Cloudflare D1, MongoDB, Mongoose, Firestore, DynamoDB, and
-Unstorage runtimes without inventing a separate config surface.
+TypeORM, Sequelize, Cloudflare D1, Redis, MongoDB, Mongoose, Firestore,
+DynamoDB, and Unstorage runtimes without inventing a separate config surface.
 
 There is also a dedicated guide for this flow:
 
@@ -228,6 +228,7 @@ the stage, runtime kind, dialect, and underlying cause available.
 - `createTypeormDriver(...)` from `@farming-labs/orm-typeorm`
 - `createSequelizeDriver(...)` from `@farming-labs/orm-sequelize`
 - `createD1Driver(...)` from `@farming-labs/orm-d1`
+- `createRedisDriver(...)` from `@farming-labs/orm-redis`
 - `createSqliteDriver(...)` from `@farming-labs/orm-sql`
 - `createMysqlDriver(...)` from `@farming-labs/orm-sql`
 - `createPgPoolDriver(...)` from `@farming-labs/orm-sql`
@@ -264,8 +265,8 @@ async function findUserByEmail(orm: typeof authOrm, email: string) {
 ```
 
 That helper stays the same whether the app uses Prisma, Drizzle, TypeORM,
-Sequelize, Cloudflare D1, direct SQL, Firestore, DynamoDB, Unstorage, MongoDB,
-or Mongoose.
+Sequelize, Cloudflare D1, Redis, direct SQL, Firestore, DynamoDB, Unstorage,
+MongoDB, or Mongoose.
 
 The same is true for compound auth lookups:
 

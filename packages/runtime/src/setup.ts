@@ -722,6 +722,10 @@ async function applySchemaInternal<TSchema extends SchemaDefinition<any>, TClien
       return;
     }
 
+    if (runtime.kind === "redis") {
+      return;
+    }
+
     if (runtime.kind === "unstorage") {
       return;
     }

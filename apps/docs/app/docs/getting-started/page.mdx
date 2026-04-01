@@ -228,6 +228,27 @@ export default {
 };
 ```
 
+### Redis / Upstash Redis
+
+```ts title="redis-runtime.ts"
+import { createClient } from "redis";
+import { createOrm } from "@farming-labs/orm";
+import { createRedisDriver } from "@farming-labs/orm-redis";
+
+const redis = createClient({
+  url: process.env.REDIS_URL,
+});
+
+await redis.connect();
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createRedisDriver({
+    client: redis,
+  }),
+});
+```
+
 ### TypeORM
 
 ```ts title="typeorm-runtime.ts"
@@ -388,7 +409,7 @@ const orm = await createOrmFromRuntime({
 
 That path is especially useful for higher-level integrations that want to
 accept a raw Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, SQL,
-Firestore, DynamoDB, Unstorage, MongoDB, or Mongoose runtime.
+Firestore, DynamoDB, Redis, Unstorage, MongoDB, or Mongoose runtime.
 
 ## 5. Use the client
 
@@ -444,6 +465,7 @@ pnpm test:local:mongodb
 - [TypeORM integration](/docs/integrations/typeorm)
 - [MikroORM integration](/docs/integrations/mikroorm)
 - [SQL databases](/docs/integrations/sql-databases)
+- [Redis / Upstash Redis](/docs/integrations/redis)
 - [DynamoDB](/docs/integrations/dynamodb)
 - [Unstorage](/docs/integrations/unstorage)
 - [MongoDB](/docs/integrations/mongodb)

@@ -1,0 +1,159 @@
+---
+title: "Redis and Upstash Redis"
+description: "How to use Farming Labs ORM with Redis and Upstash Redis through one key-value runtime family."
+order: 8
+icon: redis
+---
+
+# Redis and Upstash Redis
+
+Redis support in Farming Labs ORM is the key-value runtime family for teams that
+want one storage layer across:
+
+- a local or hosted Redis client
+- Upstash Redis
+- framework-owned cache, token, session, and rate-limit state
+
+The goal is not to turn Redis into a relational database. The goal is to keep
+one schema and one ORM surface when the storage contract is key-value friendly.
+
+## What this gives you
+
+You still write the schema and storage layer once.
+
+Then the runtime translates that layer into Redis-backed operations with:
+
+- one schema definition
+- one query API
+- one runtime helper path
+- one capability surface
+- one normalized error surface
+
+This is a strong fit for sessions, verification tokens, cache metadata, rate
+limit buckets, lightweight billing or auth state, and other package-owned state
+that does not need heavy relational planning.
+
+## Create the runtime directly
+
+```ts title="redis-runtime.ts"
+import { createClient } from "redis";
+import { createOrm } from "@farming-labs/orm";
+import { createRedisDriver } from "@farming-labs/orm-redis";
+import { appSchema } from "./schema";
+
+const redis = createClient({
+  url: process.env.REDIS_URL,
+});
+
+await redis.connect();
+
+const orm = createOrm({
+  schema: appSchema,
+  driver: createRedisDriver({
+    client: redis,
+  }),
+});
+```
+
+## Use the runtime helper path
+
+If a framework or package wants to accept the raw Redis client and normalize it
+later, use the runtime helper:
+
+```ts
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const orm = await createOrmFromRuntime({
+  schema: appSchema,
+  client: redis,
+});
+```
+
+That keeps the package boundary generic instead of forcing a Redis-specific
+adapter branch.
+
+Upstash Redis fits the same runtime family:
+
+```ts title="upstash-runtime.ts"
+import { Redis } from "@upstash/redis";
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
+
+const orm = await createOrmFromRuntime({
+  schema: appSchema,
+  client: redis,
+});
+```
+
+## Setup helpers
+
+Redis is a runtime-first backend, not a schema-push backend.
+
+That means:
+
+- `createRedisDriver(...)` works directly against the client
+- `createOrmFromRuntime(...)` works directly against the client
+- `pushSchema(...)` and `applySchema(...)` are intentional no-ops
+- `bootstrapDatabase(...)` is still useful when you want one entrypoint that
+  prepares and returns the ORM
+
+```ts
+import { bootstrapDatabase } from "@farming-labs/orm-runtime/setup";
+
+const orm = await bootstrapDatabase({
+  schema: appSchema,
+  client: redis,
+});
+```
+
+## Relations, lookups, and transactions
+
+Redis is not a join-first runtime, so the ORM stays explicit and conservative.
+
+That means:
+
+- nested relation selections work through follow-up reads
+- compound unique lookups and upserts still work
+- `orm.transaction(...)` is available
+- `orm.$driver.capabilities.supportsTransactions` is `false`
+
+So the runtime is a good fit for lightweight relational patterns inside a
+key-value workload, but it should not be presented as a native join runtime.
+
+## What is supported well
+
+- string ids
+- manual numeric ids
+- `integer()`
+- `json()`
+- `datetime()`
+- `enumeration()`
+- `decimal()`
+- relation selections through follow-up reads
+- compound unique lookups and upserts
+- raw runtime detection
+- `createOrmFromRuntime(...)`
+- `bootstrapDatabase(...)`
+
+## Important limits
+
+- generated integer ids are not supported
+- schema-qualified table names are not supported
+- there is no native join planner here
+- `orm.transaction(...)` should not be treated as a promise of full interactive
+  rollback semantics in this runtime
+- Redis and Upstash are not the recommended fit for highly relational or
+  join-heavy database workloads
+
+## Why it matters
+
+This keeps Redis in the same bigger ORM story:
+
+- write your storage layer once
+- keep one schema definition
+- let the app choose Redis or Upstash
+- avoid owning a separate cache/token/session adapter surface
