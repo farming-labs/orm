@@ -89,8 +89,8 @@ The D1 runtime itself is Worker-friendly. The setup helpers are different:
 That means the common pattern is:
 
 - use the D1 runtime directly inside Workers
-- use setup helpers in local verification or CI when you want repeatable schema
-  prep against a Miniflare-backed D1 binding
+- use setup helpers in local or CI bootstrap flows when you want repeatable
+  schema prep
 
 ```ts
 import { bootstrapDatabase, pushSchema } from "@farming-labs/orm-runtime/setup";
@@ -138,7 +138,6 @@ That keeps the capability story honest for framework and auth integrations.
 - compound unique lookups and upserts
 - raw runtime detection
 - `createOrmFromRuntime(...)`
-- local Miniflare-backed setup verification
 
 ## Important limits
 
@@ -147,18 +146,8 @@ That keeps the capability story honest for framework and auth integrations.
   Worker-request imports
 - `orm.transaction(...)` should not be treated as a promise of full interactive
   rollback semantics in this runtime
-- extremely large `bigint()` values beyond the JavaScript safe integer range
-  should not be treated as precision-preserving round trips through D1
-
-## Local verification
-
-The repo verifies D1 locally through a Miniflare-backed integration suite.
-
-Run it with:
-
-```bash title="terminal"
-pnpm test:local:d1
-```
+- very large `bigint()` values beyond the JavaScript safe integer range are not
+  precision-preserving in this runtime
 
 ## Why it matters
 
