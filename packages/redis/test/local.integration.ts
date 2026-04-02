@@ -27,7 +27,7 @@ import {
 } from "../../mongoose/test/support/auth";
 import { createRedisDriver } from "../src";
 import type { RedisClientLike } from "../src";
-import { startLocalRedis } from "./support/local-redis";
+import { hasLocalRedisServerBinary, startLocalRedis } from "./support/local-redis";
 
 const generatedNumericIdSchema = defineSchema({
   auditEvent: model({
@@ -165,7 +165,152 @@ function createInMemoryRedisClient(options?: {
   return client;
 }
 
-describe("redis local integration", () => {
+const redisServerAvailable = hasLocalRedisServerBinary();
+const describeWithLocalRedis = redisServerAvailable ? describe : describe.skip;
+
+describe("redis compatibility", () => {
+  it("detects Redis runtimes from a Redis-like client shape", async () => {
+    const client = createInMemoryRedisClient({
+      requireSendCommandForNx: true,
+    });
+
+    const detected = detectDatabaseRuntime(client);
+    const inspected = inspectDatabaseRuntime(client);
+    const orm = await createOrmFromRuntime({
+      schema,
+      client,
+    });
+
+    expect(detected).toEqual({
+      kind: "redis",
+      client,
+      source: "client",
+    });
+    expect(inspected.runtime?.kind).toBe("redis");
+    expect(orm.$driver.kind).toBe("redis");
+  });
+
+  it("filters scan results even when the client ignores uppercase match options", async () => {
+    const client = createInMemoryRedisClient({
+      ignoreUppercaseScanMatch: true,
+    });
+
+    const orm = createOrm({
+      schema,
+      driver: createRedisDriver({
+        client,
+      }),
+    }) as RuntimeOrm;
+
+    await orm.user.create({
+      data: {
+        id: "user_1",
+        email: "scan-user@farminglabs.dev",
+        name: "Scan User",
+      },
+    });
+
+    await orm.session.create({
+      data: {
+        id: "session_1",
+        userId: "user_1",
+        token: "scan-token",
+        expiresAt: new Date("2027-01-01T00:00:00.000Z"),
+      },
+    });
+
+    const users = await orm.user.findMany({
+      select: {
+        email: true,
+      },
+    });
+
+    expect(users).toEqual([
+      {
+        email: "scan-user@farminglabs.dev",
+      },
+    ]);
+  });
+
+  it("ignores false select entries instead of treating them like relation payloads", async () => {
+    const client = createInMemoryRedisClient({
+      requireSendCommandForNx: true,
+    });
+
+    const orm = createOrm({
+      schema,
+      driver: createRedisDriver({
+        client,
+      }),
+    }) as RuntimeOrm;
+
+    const user = await orm.user.create({
+      data: {
+        email: "false-select@farminglabs.dev",
+        name: "False Select",
+      },
+    });
+
+    await orm.session.create({
+      data: {
+        id: "false_select_session",
+        userId: user.id,
+        token: "false-select-token",
+        expiresAt: new Date("2027-01-01T00:00:00.000Z"),
+      },
+    });
+
+    const selected = await orm.user.findUnique({
+      where: {
+        email: "false-select@farminglabs.dev",
+      },
+      select: {
+        id: true,
+        sessions: false as never,
+      },
+    });
+
+    expect(selected).toEqual({
+      id: user.id,
+    });
+  });
+
+  it("uses sendCommand NX support before falling back to a read-then-write lock path", async () => {
+    const client = createInMemoryRedisClient({
+      requireSendCommandForNx: true,
+    });
+
+    const orm = createOrm({
+      schema,
+      driver: createRedisDriver({
+        client,
+      }),
+    }) as RuntimeOrm;
+
+    await orm.user.create({
+      data: {
+        id: "user_send_command",
+        email: "send-command@farminglabs.dev",
+        name: "Send Command",
+      },
+    });
+
+    const error = await orm.user
+      .create({
+        data: {
+          id: "user_send_command_2",
+          email: "send-command@farminglabs.dev",
+          name: "Duplicate",
+        },
+      })
+      .catch((reason) => reason);
+
+    expect(isOrmError(error)).toBe(true);
+    expect(error.code).toBe("UNIQUE_CONSTRAINT_VIOLATION");
+  });
+});
+
+describeWithLocalRedis("redis local integration", () => {
   it("detects Redis runtimes and creates an ORM from the raw client", async () => {
     const local = await startLocalRedis();
 
@@ -398,120 +543,6 @@ describe("redis local integration", () => {
     } finally {
       await local.close();
     }
-  });
-
-  it("filters scan results even when the client ignores uppercase match options", async () => {
-    const client = createInMemoryRedisClient({
-      ignoreUppercaseScanMatch: true,
-    });
-
-    const orm = createOrm({
-      schema,
-      driver: createRedisDriver({
-        client,
-      }),
-    }) as RuntimeOrm;
-
-    await orm.user.create({
-      data: {
-        id: "user_1",
-        email: "scan-user@farminglabs.dev",
-        name: "Scan User",
-      },
-    });
-
-    await orm.session.create({
-      data: {
-        id: "session_1",
-        userId: "user_1",
-        token: "scan-token",
-        expiresAt: new Date("2027-01-01T00:00:00.000Z"),
-      },
-    });
-
-    const users = await orm.user.findMany({
-      select: {
-        email: true,
-      },
-    });
-
-    expect(users).toEqual([
-      {
-        email: "scan-user@farminglabs.dev",
-      },
-    ]);
-  });
-
-  it("ignores false select entries instead of treating them like relation payloads", async () => {
-    const local = await createLocalRedisOrm();
-
-    try {
-      const user = await local.orm.user.create({
-        data: {
-          email: "false-select@farminglabs.dev",
-          name: "False Select",
-        },
-      });
-
-      await local.orm.session.create({
-        data: {
-          id: "false_select_session",
-          userId: user.id,
-          token: "false-select-token",
-          expiresAt: new Date("2027-01-01T00:00:00.000Z"),
-        },
-      });
-
-      const selected = await local.orm.user.findUnique({
-        where: {
-          email: "false-select@farminglabs.dev",
-        },
-        select: {
-          id: true,
-          sessions: false as never,
-        },
-      });
-
-      expect(selected).toEqual({
-        id: user.id,
-      });
-    } finally {
-      await local.close();
-    }
-  });
-
-  it("uses sendCommand NX support before falling back to a read-then-write lock path", async () => {
-    const client = createInMemoryRedisClient({
-      requireSendCommandForNx: true,
-    });
-
-    const orm = createOrm({
-      schema,
-      driver: createRedisDriver({
-        client,
-      }),
-    }) as RuntimeOrm;
-
-    await orm.user.create({
-      data: {
-        id: "user_send_command",
-        email: "send-command@farminglabs.dev",
-        name: "Send Command",
-      },
-    });
-
-    const error = await orm.user
-      .create({
-        data: {
-          id: "user_send_command_2",
-          email: "send-command@farminglabs.dev",
-          name: "Duplicate",
-        },
-      })
-      .catch((reason) => reason);
-
-    expect(isOrmError(error)).toBe(true);
-    expect(error.code).toBe("UNIQUE_CONSTRAINT_VIOLATION");
   });
 
   it("rejects generated integer ids for Redis", async () => {

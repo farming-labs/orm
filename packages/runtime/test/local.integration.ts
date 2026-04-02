@@ -18,7 +18,7 @@ import { createDriverFromRuntime, createOrmFromRuntime } from "../src";
 import { applySchema, bootstrapDatabase, pushSchema } from "../src/setup";
 import { startLocalD1 } from "../../d1/test/support/local-d1";
 import { startLocalDynamoDb } from "../../dynamodb/test/support/local-dynamodb";
-import { startLocalRedis } from "../../redis/test/support/local-redis";
+import { hasLocalRedisServerBinary, startLocalRedis } from "../../redis/test/support/local-redis";
 import { startLocalUnstorage } from "../../unstorage/test/support/local-unstorage";
 
 const schema = defineSchema({
@@ -51,6 +51,8 @@ const generatedNumericSchema = defineSchema({
     },
   }),
 });
+
+const itWithLocalRedis = hasLocalRedisServerBinary() ? it : it.skip;
 
 describe("runtime helper local integration", () => {
   it("keeps setup helpers on the dedicated setup subpath", async () => {
@@ -282,7 +284,7 @@ describe("runtime helper local integration", () => {
     }
   });
 
-  it("creates and bootstraps a Redis runtime from a raw client", async () => {
+  itWithLocalRedis("creates and bootstraps a Redis runtime from a raw client", async () => {
     const local = await startLocalRedis();
 
     try {

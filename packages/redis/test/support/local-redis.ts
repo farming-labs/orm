@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { once } from "node:events";
 import { mkdtemp, rm } from "node:fs/promises";
 import net from "node:net";
@@ -6,6 +7,18 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { createClient } from "redis";
 import type { RedisClientLike } from "../../src";
+
+export function hasLocalRedisServerBinary() {
+  if (process.env.FARM_ORM_SKIP_LOCAL_REDIS_TESTS === "1") {
+    return false;
+  }
+
+  const result = spawnSync("redis-server", ["--version"], {
+    stdio: "ignore",
+  });
+
+  return result.status === 0 && !result.error;
+}
 
 async function getFreePort() {
   return await new Promise<number>((resolve, reject) => {
@@ -56,6 +69,12 @@ async function waitForRedis(url: string, timeoutMs = 15_000) {
 }
 
 export async function startLocalRedis() {
+  if (!hasLocalRedisServerBinary()) {
+    throw new Error(
+      "Local Redis tests require a redis-server binary on PATH. Install Redis or skip the real local suite.",
+    );
+  }
+
   const directory = await mkdtemp(path.join(tmpdir(), "farm-orm-redis-"));
   const port = await getFreePort();
   const url = `redis://127.0.0.1:${port}`;
