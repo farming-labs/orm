@@ -10,6 +10,7 @@ export default defineConfig({
       "@farming-labs/orm": path.resolve(dirname, "../orm/src/index.ts"),
       "@farming-labs/orm-d1": path.resolve(dirname, "../d1/src/index.ts"),
       "@farming-labs/orm-dynamodb": path.resolve(dirname, "../dynamodb/src/index.ts"),
+      "@farming-labs/orm-edgedb": path.resolve(dirname, "../edgedb/src/index.ts"),
       "@farming-labs/orm-firestore": path.resolve(dirname, "../firestore/src/index.ts"),
       "@farming-labs/orm-kv": path.resolve(dirname, "../kv/src/index.ts"),
       "@farming-labs/orm-runtime/setup": path.resolve(dirname, "../runtime/src/setup.ts"),

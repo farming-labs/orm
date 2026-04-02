@@ -38,6 +38,7 @@ If you want the full story for one stack, use
 | MikroORM        | No         | Yes     | Full    | Runtime-first relational integration                       |
 | TypeORM         | No         | Yes     | Full    | Runtime-first relational integration                       |
 | Sequelize       | No         | Yes     | Full    | Runtime-first relational integration                       |
+| EdgeDB / Gel    | No         | Yes     | No-op   | Runtime bridge through the official Gel SQL client         |
 | Cloudflare D1   | No         | Yes     | Limited | Worker-native SQLite binding with local/CI setup helpers   |
 | Cloudflare KV   | No         | Yes     | No-op   | Worker-native key-value runtime                            |
 | Redis / Upstash | No         | Yes     | No-op   | Key-value runtime for Redis and Upstash-compatible clients |
@@ -81,6 +82,22 @@ Two boundaries matter:
 
 `orm.transaction(...)` is available, but the runtime does **not** claim full
 interactive rollback semantics the way a long-lived Node SQL connection can.
+
+### EdgeDB / Gel
+
+EdgeDB support is a runtime bridge through the official Gel SQL client.
+
+That means:
+
+- pass the raw Gel client directly
+- keep one schema definition and one query surface
+- let the app keep its own Gel schema and migration flow
+
+Setup is intentionally conservative here:
+
+- `pushSchema(...)` and `applySchema(...)` are no-ops
+- `bootstrapDatabase(...)` still gives the single convenience entrypoint
+- the runtime is for query execution, not Gel SDL management
 
 ### Cloudflare KV
 

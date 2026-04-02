@@ -7,6 +7,7 @@ export type DetectedDatabaseRuntime<TClient = unknown> = Readonly<{
     | "prisma"
     | "drizzle"
     | "kysely"
+    | "edgedb"
     | "mikroorm"
     | "d1"
     | "kv"
@@ -274,6 +275,14 @@ function isRedisClient(client: unknown): client is Record<string, unknown> {
   );
 }
 
+function isEdgeDbClient(client: unknown): client is Record<string, unknown> {
+  return (
+    hasFunction(client, "querySQL") &&
+    hasFunction(client, "executeSQL") &&
+    hasFunction(client, "transaction")
+  );
+}
+
 function isPrismaClient(client: unknown): client is Record<string, unknown> {
   return (
     hasFunction(client, "$connect") &&
@@ -446,6 +455,15 @@ export function detectDatabaseRuntime<TClient>(
       client,
       dialect: detectKyselyDialect(client),
       source: "db",
+    });
+  }
+
+  if (isEdgeDbClient(client)) {
+    return Object.freeze({
+      kind: "edgedb",
+      client,
+      dialect: "postgres",
+      source: "client",
     });
   }
 
@@ -637,6 +655,15 @@ export function inspectDatabaseRuntime<TClient>(
         "transaction",
         "getExecutor",
       ]),
+    },
+    {
+      kind: "edgedb",
+      matched: isEdgeDbClient(client),
+      reasons: isEdgeDbClient(client)
+        ? []
+        : missingFunctions(client, ["querySQL", "executeSQL", "transaction"]).concat([
+            "expected a Gel / EdgeDB client with querySQL(), executeSQL(), and transaction() support",
+          ]),
     },
     {
       kind: "mikroorm",

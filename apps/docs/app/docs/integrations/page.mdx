@@ -1,6 +1,6 @@
 ---
 title: "Integrations"
-description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, Cloudflare D1, Cloudflare KV, Redis / Upstash, SQL-first, Supabase, Firestore, DynamoDB, Unstorage, and MongoDB-oriented workflows."
+description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, EdgeDB / Gel, Cloudflare D1, Cloudflare KV, Redis / Upstash, SQL-first, Supabase, Firestore, DynamoDB, Unstorage, and MongoDB-oriented workflows."
 order: 6
 icon: package
 ---
@@ -47,6 +47,7 @@ Use these when the app already owns a live relational client:
 - MikroORM
 - TypeORM
 - Sequelize
+- EdgeDB / Gel
 - Cloudflare D1
 - direct SQL clients
 
@@ -103,6 +104,7 @@ Examples:
 - `@farming-labs/orm-sql` translates into direct SQL operations
 - `@farming-labs/orm-typeorm` translates into TypeORM-backed relational operations
 - `@farming-labs/orm-sequelize` translates into Sequelize-backed relational operations
+- `@farming-labs/orm-edgedb` translates into Gel SQL-backed relational operations
 - `@farming-labs/orm-d1` translates into Cloudflare D1 binding operations
 - `@farming-labs/orm-kv` translates into Cloudflare KV namespace operations
 - `@farming-labs/orm-redis` translates into Redis and Upstash-compatible key-value operations
@@ -186,6 +188,17 @@ Examples:
   linkLabel="Open SQL guide"
 >
   SQL integration
+</HoverLink>
+
+<span>·</span>
+
+<HoverLink
+  href="/docs/integrations/edgedb"
+  title="EdgeDB / Gel"
+  description="See how Farming Labs ORM uses the official Gel SQL client as a runtime bridge without replacing the app's own Gel schema workflow."
+  linkLabel="Open EdgeDB guide"
+>
+  EdgeDB integration
 </HoverLink>
 
 <span>·</span>

@@ -204,6 +204,21 @@ const orm = createOrm({
 });
 ```
 
+### EdgeDB / Gel
+
+```ts title="edgedb-runtime.ts"
+import { createOrm } from "@farming-labs/orm";
+import { createEdgeDbDriver } from "@farming-labs/orm-edgedb";
+import { createClient } from "gel";
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createEdgeDbDriver({
+    client: createClient(),
+  }),
+});
+```
+
 ### Cloudflare D1
 
 ```ts title="cloudflare-d1-runtime.ts"

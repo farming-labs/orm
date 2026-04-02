@@ -232,6 +232,7 @@ export default defineDocs({
         { slug: "typeorm" },
         { slug: "sequelize" },
         { slug: "sql-databases" },
+        { slug: "edgedb" },
         { slug: "cloudflare-d1" },
         { slug: "cloudflare-kv" },
         { slug: "redis" },

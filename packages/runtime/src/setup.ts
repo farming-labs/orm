@@ -699,6 +699,10 @@ async function applySchemaInternal<TSchema extends SchemaDefinition<any>, TClien
       return;
     }
 
+    if (runtime.kind === "edgedb") {
+      return;
+    }
+
     if (runtime.kind === "dynamodb") {
       await ensureDynamoDbTables(
         options.schema,

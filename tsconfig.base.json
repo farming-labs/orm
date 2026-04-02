@@ -18,6 +18,7 @@
       "@farming-labs/orm-d1": ["packages/d1/src/index.ts"],
       "@farming-labs/orm-dynamodb": ["packages/dynamodb/src/index.ts"],
       "@farming-labs/orm-drizzle": ["packages/drizzle/src/index.ts"],
+      "@farming-labs/orm-edgedb": ["packages/edgedb/src/index.ts"],
       "@farming-labs/orm-firestore": ["packages/firestore/src/index.ts"],
       "@farming-labs/orm-kv": ["packages/kv/src/index.ts"],
       "@farming-labs/orm-kysely": ["packages/kysely/src/index.ts"],

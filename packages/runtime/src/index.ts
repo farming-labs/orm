@@ -7,6 +7,7 @@ import {
 import type { DrizzleDialect, DrizzleDriverConfig } from "@farming-labs/orm-drizzle";
 import type { D1DriverConfig } from "@farming-labs/orm-d1";
 import type { DynamoDbDriverConfig } from "@farming-labs/orm-dynamodb";
+import type { EdgeDbDriverConfig } from "@farming-labs/orm-edgedb";
 import type { FirestoreDriverConfig } from "@farming-labs/orm-firestore";
 import type { KvDriverConfig } from "@farming-labs/orm-kv";
 import type { KyselyDialect, KyselyDriverConfig } from "@farming-labs/orm-kysely";
@@ -93,6 +94,12 @@ export async function createDriverFromRuntime<
       return createKyselyDriver<TSchema>({
         db: runtime.client as KyselyDriverConfig<TSchema>["db"],
         dialect: resolveDialect(runtime, options.dialect) as KyselyDialect,
+      }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
+    }
+    case "edgedb": {
+      const { createEdgeDbDriver } = await import("@farming-labs/orm-edgedb");
+      return createEdgeDbDriver<TSchema>({
+        client: runtime.client as EdgeDbDriverConfig<TSchema>["client"],
       }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
     }
     case "d1": {

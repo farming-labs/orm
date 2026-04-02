@@ -5,8 +5,9 @@ description: |
   runtime drivers, relation translation, docs updates, release flow, and real
   local database integration tests. Triggers: createOrm, Prisma driver,
   Drizzle driver, Kysely driver, MikroORM driver, TypeORM driver, Sequelize driver, Cloudflare D1,
-  Cloudflare KV, Redis, Firestore, DynamoDB, Unstorage, Mongo runtime, Mongoose runtime,
-  update docs, test:local, release latest, compound unique, native relation loading.
+  Cloudflare KV, Redis, EdgeDB, Firestore, DynamoDB, Unstorage, Mongo runtime,
+  Mongoose runtime, update docs, test:local, release latest, compound unique,
+  native relation loading.
 ---
 
 # Farming Labs ORM
@@ -32,6 +33,8 @@ repo-specific knowledge about the unified ORM API.
   TypeORM runtime driver
 - `packages/sequelize`
   Sequelize runtime driver
+- `packages/edgedb`
+  EdgeDB / Gel SQL runtime driver
 - `packages/d1`
   Cloudflare D1 runtime driver
 - `packages/kv`
@@ -102,6 +105,7 @@ Targeted commands:
 pnpm test:local:sql
 pnpm test:local:d1
 pnpm test:local:kv
+pnpm test:local:edgedb
 pnpm test:local:drizzle
 pnpm test:local:kysely
 pnpm test:local:mikroorm
@@ -177,6 +181,8 @@ Current runtime packages in this repo:
   - TypeORM runtime
 - `@farming-labs/orm-sequelize`
   - Sequelize runtime
+- `@farming-labs/orm-edgedb`
+  - EdgeDB / Gel SQL runtime bridge
 - `@farming-labs/orm-d1`
   - Cloudflare D1 runtime
 - `@farming-labs/orm-kv`
@@ -210,6 +216,9 @@ Important boundary:
 - `@farming-labs/orm-kv` is a Worker-friendly Cloudflare key-value runtime for
   sessions, tokens, cache metadata, rate limits, and lightweight framework
   state. It is not the preferred fit for highly relational or join-heavy workloads.
+- `@farming-labs/orm-edgedb` is a runtime-first bridge through the official Gel
+  SQL client. It is meant for query execution on top of an existing Gel
+  database, not for replacing the app's own Gel schema or migration workflow.
 - `@farming-labs/orm-redis` is for Redis and Upstash-compatible key-value
   workloads such as sessions, cache metadata, tokens, and rate limits. It is
   not the preferred fit for highly relational or join-heavy workloads.

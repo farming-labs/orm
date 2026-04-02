@@ -273,6 +273,25 @@ describe("runtime contract", () => {
     expect(inspectDatabaseRuntime(dynamo).runtime?.kind).toBe("dynamodb");
   });
 
+  it("detects EdgeDB runtimes from Gel SQL client shapes", () => {
+    const client = {
+      querySQL: async () => [],
+      executeSQL: async () => undefined,
+      transaction: async <TResult>(run: (tx: unknown) => Promise<TResult>) => run({}),
+      constructor: {
+        name: "Client",
+      },
+    };
+
+    expect(detectDatabaseRuntime(client)).toEqual({
+      kind: "edgedb",
+      client,
+      dialect: "postgres",
+      source: "client",
+    });
+    expect(inspectDatabaseRuntime(client).runtime?.kind).toBe("edgedb");
+  });
+
   it("detects Cloudflare KV runtimes from KV namespace shapes", () => {
     const kv = {
       get: async () => null,

@@ -9,6 +9,7 @@ import type {
 import type { DrizzleDialect, DrizzleDriverConfig } from "@farming-labs/orm-drizzle";
 import type { D1DriverHandle } from "@farming-labs/orm-d1";
 import type { DynamoDbDriverConfig, DynamoDbDriverHandle } from "@farming-labs/orm-dynamodb";
+import type { EdgeDbDriverHandle } from "@farming-labs/orm-edgedb";
 import type {
   FirestoreDbLike,
   FirestoreDriverConfig,
@@ -42,6 +43,7 @@ export type AutoDialect = DetectedDatabaseDialect;
 export type AutoDriverHandle<TClient = unknown> =
   | PrismaDriverHandle
   | D1DriverHandle<any>
+  | EdgeDbDriverHandle<any>
   | SqlDriverHandle<TClient, AutoDialect>
   | OrmDriverHandle<"drizzle", TClient, DrizzleDialect>
   | DynamoDbDriverHandle<any>
