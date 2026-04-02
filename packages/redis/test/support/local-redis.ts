@@ -82,13 +82,19 @@ export async function startLocalRedis() {
   server.once("exit", () => {
     exited = true;
   });
+  const serverStopped = Promise.race([
+    once(server, "exit"),
+    once(server, "error").then(([error]) => {
+      throw error;
+    }),
+  ]);
 
   try {
     await waitForRedis(url);
   } catch (error) {
     if (!exited) {
       server.kill("SIGTERM");
-      await once(server, "exit").catch(() => undefined);
+      await serverStopped.catch(() => undefined);
     }
     await rm(directory, { recursive: true, force: true });
     throw error;
@@ -118,7 +124,7 @@ export async function startLocalRedis() {
 
       if (!exited) {
         server.kill("SIGTERM");
-        await once(server, "exit").catch(() => undefined);
+        await serverStopped.catch(() => undefined);
       }
 
       await rm(directory, { recursive: true, force: true });

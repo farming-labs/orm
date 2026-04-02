@@ -52,6 +52,7 @@ export type RedisClientLike = {
   setNX?(key: string, value: string): Promise<unknown> | unknown;
   setnx?(key: string, value: string): Promise<unknown> | unknown;
   sendCommand?(command: readonly string[]): Promise<unknown> | unknown;
+  request?(...args: unknown[]): Promise<unknown> | unknown;
   connect?(): Promise<unknown>;
   quit?(): Promise<unknown>;
   disconnect?(): Promise<unknown>;
@@ -315,6 +316,10 @@ function parseStoredJson<T>(raw: unknown) {
 
 function normalizeKeyList(value: unknown) {
   if (Array.isArray(value)) {
+    if (value.length >= 2 && Array.isArray(value[1])) {
+      return value[1].map((entry) => String(entry));
+    }
+
     return value.map((entry) => String(entry));
   }
 
@@ -323,6 +328,22 @@ function normalizeKeyList(value: unknown) {
   }
 
   return [] as string[];
+}
+
+function escapePatternCharacter(character: string) {
+  return /[\\^$+?.()|[\]{}]/.test(character) ? `\\${character}` : character;
+}
+
+function matchesRedisPattern(key: string, pattern: string) {
+  const source = Array.from(pattern)
+    .map((character) => {
+      if (character === "*") return ".*";
+      if (character === "?") return ".";
+      return escapePatternCharacter(character);
+    })
+    .join("");
+
+  return new RegExp(`^${source}$`).test(key);
 }
 
 function extractScanCursor(value: unknown) {
@@ -375,6 +396,12 @@ async function setStringNx(client: RedisClientLike, key: string, value: string) 
     }
   }
 
+  if (hasFunction(client, "sendCommand")) {
+    return normalizeNxResult(await client.sendCommand(["SET", key, value, "NX"]));
+  }
+
+  // Last resort for thin Redis client wrappers that expose only basic get/set methods.
+  // This path is not atomic, so we avoid it unless the client offers no NX-capable command.
   if ((await getString(client, key)) !== null) {
     return false;
   }
@@ -408,12 +435,33 @@ async function listKeys(client: RedisClientLike, pattern: string) {
   if (hasFunction(client, "scan")) {
     let cursor = "0";
     const keys: string[] = [];
+    const scanAttempts: Array<Record<string, unknown>> = hasFunction(client, "request")
+      ? [
+          { match: pattern, count: 100 },
+          { MATCH: pattern, COUNT: 100 },
+        ]
+      : [
+          { MATCH: pattern, COUNT: 100 },
+          { match: pattern, count: 100 },
+        ];
 
     do {
-      const result =
-        (await client.scan(cursor, { MATCH: pattern, COUNT: 100 })) ??
-        (await client.scan(cursor, { match: pattern, count: 100 }));
-      keys.push(...normalizeKeyList(result));
+      let result: unknown;
+
+      for (const options of scanAttempts) {
+        try {
+          result = await client.scan(cursor, options);
+          break;
+        } catch {
+          // Try the next option shape.
+        }
+      }
+
+      if (result === undefined) {
+        throw new Error("The Redis runtime client scan() command could not be called.");
+      }
+
+      keys.push(...normalizeKeyList(result).filter((key) => matchesRedisPattern(key, pattern)));
       cursor = extractScanCursor(result);
     } while (cursor !== "0");
 
@@ -1085,7 +1133,7 @@ function createRedisDriverInternal<TSchema extends SchemaDefinition<any>>(
     }
 
     for (const [key, value] of Object.entries(select)) {
-      if (value !== true && value === undefined) continue;
+      if (!value) continue;
 
       if (key in modelDefinition.fields && value === true) {
         output[key] = row[key];
