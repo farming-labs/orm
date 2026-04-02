@@ -5,8 +5,8 @@ description: |
   runtime drivers, relation translation, docs updates, release flow, and real
   local database integration tests. Triggers: createOrm, Prisma driver,
   Drizzle driver, Kysely driver, MikroORM driver, TypeORM driver, Sequelize driver, Cloudflare D1,
-  Firestore, DynamoDB, Unstorage, Mongo runtime, Mongoose runtime, update docs,
-  test:local, release latest, compound unique, native relation loading.
+  Redis, Firestore, DynamoDB, Unstorage, Mongo runtime, Mongoose runtime,
+  update docs, test:local, release latest, compound unique, native relation loading.
 ---
 
 # Farming Labs ORM
@@ -34,6 +34,8 @@ repo-specific knowledge about the unified ORM API.
   Sequelize runtime driver
 - `packages/d1`
   Cloudflare D1 runtime driver
+- `packages/redis`
+  Redis and Upstash-compatible runtime driver
 - `packages/firestore`
   Firestore runtime driver
 - `packages/dynamodb`
@@ -103,6 +105,7 @@ pnpm test:local:mikroorm
 pnpm test:local:sequelize
 pnpm test:local:typeorm
 pnpm test:local:dynamodb
+pnpm test:local:redis
 pnpm test:local:unstorage
 pnpm test:local:mongodb
 pnpm test:local:prisma
@@ -173,6 +176,8 @@ Current runtime packages in this repo:
   - Sequelize runtime
 - `@farming-labs/orm-d1`
   - Cloudflare D1 runtime
+- `@farming-labs/orm-redis`
+  - Redis and Upstash-compatible key-value runtime
 - `@farming-labs/orm-firestore`
   - Firestore runtime
 - `@farming-labs/orm-dynamodb`
@@ -197,6 +202,9 @@ Important boundary:
 - `@farming-labs/orm-d1` is Worker-friendly at runtime, but
   `@farming-labs/orm-runtime/setup` is still for local, CI, or other
   Node-managed bootstrap flows.
+- `@farming-labs/orm-redis` is for Redis and Upstash-compatible key-value
+  workloads such as sessions, cache metadata, tokens, and rate limits. It is
+  not the preferred fit for highly relational or join-heavy workloads.
 - `@farming-labs/orm-unstorage` is meant for lightweight key-value/document
   storage and shared storage layers, not for highly relational or join-heavy
   workloads.

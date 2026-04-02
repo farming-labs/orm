@@ -18,6 +18,7 @@ import { createDriverFromRuntime, createOrmFromRuntime } from "../src";
 import { applySchema, bootstrapDatabase, pushSchema } from "../src/setup";
 import { startLocalD1 } from "../../d1/test/support/local-d1";
 import { startLocalDynamoDb } from "../../dynamodb/test/support/local-dynamodb";
+import { hasLocalRedisServerBinary, startLocalRedis } from "../../redis/test/support/local-redis";
 import { startLocalUnstorage } from "../../unstorage/test/support/local-unstorage";
 
 const schema = defineSchema({
@@ -50,6 +51,8 @@ const generatedNumericSchema = defineSchema({
     },
   }),
 });
+
+const itWithLocalRedis = hasLocalRedisServerBinary() ? it : it.skip;
 
 describe("runtime helper local integration", () => {
   it("keeps setup helpers on the dedicated setup subpath", async () => {
@@ -276,6 +279,50 @@ describe("runtime helper local integration", () => {
         id: expect.any(String),
         email: "d1@farminglabs.dev",
       });
+    } finally {
+      await local.close();
+    }
+  });
+
+  itWithLocalRedis("creates and bootstraps a Redis runtime from a raw client", async () => {
+    const local = await startLocalRedis();
+
+    try {
+      await pushSchema({
+        schema,
+        client: local.client,
+      });
+      await applySchema({
+        schema,
+        client: local.client,
+      });
+
+      const driver = await createDriverFromRuntime({
+        schema,
+        client: local.client,
+      });
+      const orm = await bootstrapDatabase({
+        schema,
+        client: local.client,
+      });
+
+      const created = await orm.user.create({
+        data: {
+          email: "redis@farminglabs.dev",
+          name: "Redis",
+        },
+        select: {
+          id: true,
+          email: true,
+        },
+      });
+
+      expect(driver.handle.kind).toBe("redis");
+      expect(created).toEqual({
+        id: expect.any(String),
+        email: "redis@farminglabs.dev",
+      });
+      expect(inspectDatabaseRuntime(local.client).runtime?.kind).toBe("redis");
     } finally {
       await local.close();
     }

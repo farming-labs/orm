@@ -22,6 +22,8 @@ This repository is a TypeScript monorepo for @farming-labs/orm
   Sequelize runtime driver
 - `packages/d1`
   Cloudflare D1 runtime driver
+- `packages/redis`
+  Redis and Upstash-compatible runtime driver
 - `packages/firestore`
   Firestore runtime driver
 - `packages/dynamodb`
@@ -73,6 +75,7 @@ pnpm test:local:mikroorm
 pnpm test:local:sequelize
 pnpm test:local:typeorm
 pnpm test:local:dynamodb
+pnpm test:local:redis
 pnpm test:local:unstorage
 pnpm test:local:mongodb
 pnpm test:local:prisma
@@ -101,6 +104,9 @@ pnpm release:beta
 - Cloudflare D1 is supported as a worker-native runtime. Use the runtime path in
   Workers, and keep `@farming-labs/orm-runtime/setup` for local, CI, or other
   Node-managed bootstrap flows.
+- Redis support covers both Redis and Upstash-compatible clients through one
+  key-value runtime family. It is a good fit for sessions, tokens, cache
+  metadata, and rate limits, not highly relational or join-heavy workloads.
 - Unstorage is supported as a lightweight key-value/document runtime, but it is
   not the preferred fit for highly relational or join-heavy workloads.
 - Docs live under `apps/docs/app/docs`.

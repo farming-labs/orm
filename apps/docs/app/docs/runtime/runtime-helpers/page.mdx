@@ -1,6 +1,6 @@
 ---
 title: "Runtime Helpers"
-description: "Create a driver or ORM directly from a raw Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, Cloudflare D1, SQL, Firestore, DynamoDB, Unstorage, MongoDB, or Mongoose runtime."
+description: "Create a driver or ORM directly from a raw Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, Cloudflare D1, Redis / Upstash, SQL, Firestore, DynamoDB, Unstorage, MongoDB, or Mongoose runtime."
 order: 2
 icon: harddrive
 ---
@@ -45,6 +45,7 @@ That is especially useful when another library wants to accept:
 - a TypeORM `DataSource`
 - a Sequelize instance
 - a Cloudflare D1 binding
+- a Redis or Upstash Redis client
 - a `pg` pool/client
 - a `mysql2` pool/connection
 - a Firestore client
@@ -235,6 +236,23 @@ const orm = await createOrmFromRuntime({
 The D1 setup path uses the same schema and the same helper surface, but it is
 best used in local or CI flows because `@farming-labs/orm-runtime/setup` stays
 Node-only.
+
+### Redis / Upstash Redis
+
+For Redis and Upstash Redis, pass the client directly:
+
+```ts
+const orm = await createOrmFromRuntime({
+  schema,
+  client: redis,
+});
+```
+
+The Redis runtime keeps setup intentionally light:
+
+- `pushSchema(...)` and `applySchema(...)` are no-ops
+- `bootstrapDatabase(...)` still works as the single convenience entrypoint
+- relation loading uses follow-up reads instead of a native join planner
 
 ### Prisma
 

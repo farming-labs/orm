@@ -10,6 +10,7 @@ export type DetectedDatabaseRuntime<TClient = unknown> = Readonly<{
     | "mikroorm"
     | "d1"
     | "dynamodb"
+    | "redis"
     | "unstorage"
     | "sequelize"
     | "sql"
@@ -246,6 +247,23 @@ function isUnstorageClient(client: unknown): client is Record<string, unknown> {
   );
 }
 
+function isRedisClient(client: unknown): client is Record<string, unknown> {
+  return (
+    hasFunction(client, "get") &&
+    hasFunction(client, "set") &&
+    (hasFunction(client, "del") || hasFunction(client, "unlink")) &&
+    (hasFunction(client, "keys") ||
+      hasFunction(client, "scan") ||
+      hasFunction(client, "scanIterator")) &&
+    (hasFunction(client, "setNX") ||
+      hasFunction(client, "setnx") ||
+      hasFunction(client, "sendCommand") ||
+      hasFunction(client, "connect") ||
+      hasFunction(client, "pipeline") ||
+      hasFunction(client, "request"))
+  );
+}
+
 function isPrismaClient(client: unknown): client is Record<string, unknown> {
   return (
     hasFunction(client, "$connect") &&
@@ -458,6 +476,14 @@ export function detectDatabaseRuntime<TClient>(
     });
   }
 
+  if (isRedisClient(client)) {
+    return Object.freeze({
+      kind: "redis",
+      client,
+      source: "client",
+    });
+  }
+
   if (isSequelizeClient(client)) {
     const dialect = detectSequelizeDialect(client);
     if (dialect) {
@@ -641,6 +667,15 @@ export function inspectDatabaseRuntime<TClient>(
             "getKeys",
             "getMounts",
           ]).concat(["expected an Unstorage storage client created with createStorage(...)"]),
+    },
+    {
+      kind: "redis",
+      matched: isRedisClient(client),
+      reasons: isRedisClient(client)
+        ? []
+        : missingFunctions(client, ["get", "set"]).concat([
+            "expected a Redis or Upstash Redis client with get/set/del and key listing support",
+          ]),
     },
     {
       kind: "sequelize",

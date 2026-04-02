@@ -273,6 +273,49 @@ describe("runtime contract", () => {
     expect(inspectDatabaseRuntime(dynamo).runtime?.kind).toBe("dynamodb");
   });
 
+  it("detects Redis runtimes from client shapes", () => {
+    const redis = {
+      get: async () => null,
+      set: async () => "OK",
+      del: async () => 0,
+      keys: async () => [],
+      setNX: async () => true,
+      connect: async () => undefined,
+      quit: async () => undefined,
+    };
+
+    expect(detectDatabaseRuntime(redis)).toEqual({
+      kind: "redis",
+      client: redis,
+      source: "client",
+    });
+    expect(inspectDatabaseRuntime(redis).runtime?.kind).toBe("redis");
+  });
+
+  it("detects Upstash-style Redis runtimes from client shapes", () => {
+    const upstash = {
+      get: async () => null,
+      set: async () => "OK",
+      del: async () => 0,
+      keys: async () => [],
+      setnx: async () => 1,
+      request: async () => undefined,
+      pipeline() {
+        return { exec: async () => [] };
+      },
+      multi() {
+        return { exec: async () => [] };
+      },
+    };
+
+    expect(detectDatabaseRuntime(upstash)).toEqual({
+      kind: "redis",
+      client: upstash,
+      source: "client",
+    });
+    expect(inspectDatabaseRuntime(upstash).runtime?.kind).toBe("redis");
+  });
+
   it("detects D1 runtimes from database and session shapes", () => {
     const preparedStatement = {
       bind() {

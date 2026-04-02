@@ -1,6 +1,6 @@
 ---
 title: "Integrations"
-description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, Cloudflare D1, SQL-first, Supabase, Firestore, DynamoDB, Unstorage, and MongoDB-oriented workflows."
+description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, Cloudflare D1, Redis / Upstash, SQL-first, Supabase, Firestore, DynamoDB, Unstorage, and MongoDB-oriented workflows."
 order: 6
 icon: package
 ---
@@ -71,6 +71,7 @@ app is not SQL-first:
 
 - MongoDB
 - Mongoose
+- Redis / Upstash Redis
 - Firestore
 - DynamoDB
 - Unstorage
@@ -102,6 +103,7 @@ Examples:
 - `@farming-labs/orm-typeorm` translates into TypeORM-backed relational operations
 - `@farming-labs/orm-sequelize` translates into Sequelize-backed relational operations
 - `@farming-labs/orm-d1` translates into Cloudflare D1 binding operations
+- `@farming-labs/orm-redis` translates into Redis and Upstash-compatible key-value operations
 - `@farming-labs/orm-firestore` translates into Firestore document operations
 - `@farming-labs/orm-dynamodb` translates into DynamoDB document / key-value operations
 - `@farming-labs/orm-unstorage` translates into Unstorage-backed key-value operations
@@ -193,6 +195,17 @@ Examples:
   linkLabel="Open D1 guide"
 >
   Cloudflare D1 integration
+</HoverLink>
+
+<span>·</span>
+
+<HoverLink
+  href="/docs/integrations/redis"
+  title="Redis / Upstash Redis"
+  description="See how Farming Labs ORM uses one key-value runtime family for Redis and Upstash without a separate adapter surface."
+  linkLabel="Open Redis guide"
+>
+  Redis integration
 </HoverLink>
 
 <span>·</span>

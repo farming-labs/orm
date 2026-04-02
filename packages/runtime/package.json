@@ -40,6 +40,7 @@
     "@farming-labs/orm-mongo": "workspace:*",
     "@farming-labs/orm-mongoose": "workspace:*",
     "@farming-labs/orm-prisma": "workspace:*",
+    "@farming-labs/orm-redis": "workspace:*",
     "@farming-labs/orm-sequelize": "workspace:*",
     "@farming-labs/orm-sql": "workspace:*",
     "@farming-labs/orm-typeorm": "workspace:*",

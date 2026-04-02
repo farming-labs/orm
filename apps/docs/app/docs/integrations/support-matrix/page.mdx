@@ -30,22 +30,23 @@ If you want the full story for one stack, use
 
 ## Basic matrix
 
-| Stack         | Generation | Runtime | Setup   | Notes                                                      |
-| ------------- | ---------- | ------- | ------- | ---------------------------------------------------------- |
-| Prisma        | Yes        | Yes     | Full    | Generated `schema.prisma` plus live `PrismaClient` runtime |
-| Drizzle       | Yes        | Yes     | Full    | Generated schema files plus live Drizzle runtime           |
-| Kysely        | No         | Yes     | Full    | Runtime-first relational integration                       |
-| MikroORM      | No         | Yes     | Full    | Runtime-first relational integration                       |
-| TypeORM       | No         | Yes     | Full    | Runtime-first relational integration                       |
-| Sequelize     | No         | Yes     | Full    | Runtime-first relational integration                       |
-| Cloudflare D1 | No         | Yes     | Limited | Worker-native SQLite binding with local/CI setup helpers   |
-| Direct SQL    | Yes        | Yes     | Full    | Safe SQL generation plus direct SQL runtime                |
-| Supabase      | Via SQL    | Via SQL | Via SQL | Uses the PostgreSQL layer, not a separate runtime family   |
-| MongoDB       | No         | Yes     | Full    | Native Mongo runtime                                       |
-| Mongoose      | No         | Yes     | Full    | Mongoose-backed runtime                                    |
-| Firestore     | No         | Yes     | Limited | Real runtime, but no SQL-style schema push                 |
-| DynamoDB      | No         | Yes     | Full    | Creates one table per model through the runtime setup path |
-| Unstorage     | No         | Yes     | No-op   | Lightweight key-value/document runtime                     |
+| Stack           | Generation | Runtime | Setup   | Notes                                                      |
+| --------------- | ---------- | ------- | ------- | ---------------------------------------------------------- |
+| Prisma          | Yes        | Yes     | Full    | Generated `schema.prisma` plus live `PrismaClient` runtime |
+| Drizzle         | Yes        | Yes     | Full    | Generated schema files plus live Drizzle runtime           |
+| Kysely          | No         | Yes     | Full    | Runtime-first relational integration                       |
+| MikroORM        | No         | Yes     | Full    | Runtime-first relational integration                       |
+| TypeORM         | No         | Yes     | Full    | Runtime-first relational integration                       |
+| Sequelize       | No         | Yes     | Full    | Runtime-first relational integration                       |
+| Cloudflare D1   | No         | Yes     | Limited | Worker-native SQLite binding with local/CI setup helpers   |
+| Redis / Upstash | No         | Yes     | No-op   | Key-value runtime for Redis and Upstash-compatible clients |
+| Direct SQL      | Yes        | Yes     | Full    | Safe SQL generation plus direct SQL runtime                |
+| Supabase        | Via SQL    | Via SQL | Via SQL | Uses the PostgreSQL layer, not a separate runtime family   |
+| MongoDB         | No         | Yes     | Full    | Native Mongo runtime                                       |
+| Mongoose        | No         | Yes     | Full    | Mongoose-backed runtime                                    |
+| Firestore       | No         | Yes     | Limited | Real runtime, but no SQL-style schema push                 |
+| DynamoDB        | No         | Yes     | Full    | Creates one table per model through the runtime setup path |
+| Unstorage       | No         | Yes     | No-op   | Lightweight key-value/document runtime                     |
 
 ## Important details
 
@@ -80,6 +81,25 @@ Two boundaries matter:
 `orm.transaction(...)` is available, but the runtime does **not** claim full
 interactive rollback semantics the way a long-lived Node SQL connection can.
 
+### Redis / Upstash Redis
+
+Redis and Upstash Redis fit as a shared key-value runtime family.
+
+That means:
+
+- pass a Redis client or Upstash Redis client directly
+- keep one schema definition and one query surface
+- rely on fallback relation reads instead of a native join planner
+
+Setup is intentionally light here:
+
+- `pushSchema(...)` and `applySchema(...)` are no-ops
+- `bootstrapDatabase(...)` still gives a convenient one-shot entrypoint
+
+This runtime is a strong fit for sessions, verification tokens, cache metadata,
+rate limits, and other lightweight package-owned state. It is not the
+recommended fit for highly relational or join-heavy workloads.
+
 ### Supabase
 
 Supabase is already covered through the PostgreSQL path.
@@ -94,8 +114,8 @@ There is no separate Supabase-only schema model here.
 
 ### Document and key-value runtimes
 
-MongoDB, Mongoose, Firestore, DynamoDB, and Unstorage still work through the
-same unified ORM API, but they are not SQL runtimes.
+MongoDB, Mongoose, Firestore, DynamoDB, Redis / Upstash Redis, and Unstorage
+still work through the same unified ORM API, but they are not SQL runtimes.
 
 That means they rely more on:
 
@@ -113,7 +133,7 @@ That means they rely more on:
 ### Numeric IDs and namespaces
 
 - generated numeric IDs are first-class on the relational runtimes, including D1
-- MongoDB, Mongoose, Firestore, DynamoDB, and Unstorage keep numeric IDs manual-only
+- MongoDB, Mongoose, Firestore, DynamoDB, Redis, and Unstorage keep numeric IDs manual-only
 - schema namespaces are only meaningful on Postgres-style relational runtimes
 
 ### Unstorage boundary
