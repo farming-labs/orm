@@ -84,6 +84,16 @@ const mikroormIcon = icon(
   </svg>,
 );
 
+const edgedbIcon = icon(
+  <svg aria-hidden="true" viewBox="0 0 180 180" role="img">
+    <title>Gel</title>
+    <path
+      fill="currentColor"
+      d="M55 66.042C55 88.75 73.091 107.083 95.5 107.083c22.203 0 40.5-18.333 40.5-41.041C136 43.542 117.703 25 95.5 25 73.091 25 55 43.542 55 66.042Zm10.69 61.458C67.336 141.875 79.053 155 95.5 155c16.241 0 28.371-13.125 30.015-27.5 2.262-20.833-16.446-13.958-30.015-13.958-13.568 0-32.071-6.875-29.81 13.958Z"
+    />
+  </svg>,
+);
+
 const redisIcon = icon(
   <svg aria-hidden="true" viewBox="0 0 354 472" role="img">
     <title>Upstash Redis</title>
@@ -271,6 +281,7 @@ export default defineDocs({
     drizzle: brandIcon(siDrizzle.path, siDrizzle.title),
     kysely: kyselyIcon,
     mikroorm: mikroormIcon,
+    edgedb: edgedbIcon,
     typeorm: brandIcon(siTypeorm.path, siTypeorm.title),
     sequelize: brandIcon(siSequelize.path, siSequelize.title),
     cloudflare: brandIcon(siCloudflare.path, siCloudflare.title),

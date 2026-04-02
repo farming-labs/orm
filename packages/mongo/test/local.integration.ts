@@ -25,8 +25,10 @@ import {
   seedAuthData,
   schema,
 } from "../../mongoose/test/support/auth";
+import { shouldRunLocalMongoTests } from "../../mongoose/test/support/local-mongodb";
 
 const LOCAL_TIMEOUT_MS = 15_000;
+const itWithLocalMongo = shouldRunLocalMongoTests() ? it : it.skip;
 
 const generatedNumericIdSchema = defineSchema({
   auditEvent: model({
@@ -110,7 +112,7 @@ async function withLocalOrm<TResult>(run: (orm: RuntimeOrm) => Promise<TResult>)
 }
 
 describe("mongo local integration", () => {
-  it(
+  itWithLocalMongo(
     "pushes and bootstraps collections and indexes from a live MongoClient",
     async () => {
       const { client, db, close } = await createLocalMongoDatabase();
@@ -155,7 +157,7 @@ describe("mongo local integration", () => {
     LOCAL_TIMEOUT_MS,
   );
 
-  it(
+  itWithLocalMongo(
     "exposes the live Mongo database on orm.$driver",
     async () => {
       const { orm, db, close } = await createLocalMongoOrm();
@@ -218,7 +220,7 @@ describe("mongo local integration", () => {
     LOCAL_TIMEOUT_MS,
   );
 
-  it(
+  itWithLocalMongo(
     "creates an ORM directly from a live MongoClient",
     async () => {
       const { client, db, close } = await createLocalMongoOrm();
@@ -260,7 +262,7 @@ describe("mongo local integration", () => {
     LOCAL_TIMEOUT_MS,
   );
 
-  it(
+  itWithLocalMongo(
     "rejects generated integer ids in the Mongo runtime with a clear error",
     async () => {
       const { db, close } = await createLocalMongoDatabase();
@@ -289,7 +291,7 @@ describe("mongo local integration", () => {
     LOCAL_TIMEOUT_MS,
   );
 
-  it(
+  itWithLocalMongo(
     "supports one-to-one and one-to-many reads against a real local MongoDB instance",
     async () => {
       await withLocalOrm((orm) => assertOneToOneAndHasManyQueries(orm, expect));
@@ -297,7 +299,7 @@ describe("mongo local integration", () => {
     LOCAL_TIMEOUT_MS,
   );
 
-  it(
+  itWithLocalMongo(
     "supports belongsTo and many-to-many traversal against a real local MongoDB instance",
     async () => {
       await withLocalOrm((orm) => assertBelongsToAndManyToManyQueries(orm, expect));
@@ -305,7 +307,7 @@ describe("mongo local integration", () => {
     LOCAL_TIMEOUT_MS,
   );
 
-  it(
+  itWithLocalMongo(
     "supports updates, upserts, deletes, and optional transaction rollback against a real local MongoDB instance",
     async () => {
       await withLocalOrm((orm) =>
@@ -317,7 +319,7 @@ describe("mongo local integration", () => {
     LOCAL_TIMEOUT_MS,
   );
 
-  it(
+  itWithLocalMongo(
     "normalizes duplicate-key errors from a real local MongoDB instance",
     async () => {
       await withLocalOrm(async (orm) => {
@@ -343,7 +345,7 @@ describe("mongo local integration", () => {
     LOCAL_TIMEOUT_MS,
   );
 
-  it(
+  itWithLocalMongo(
     "supports compound-unique lookups and upserts against a real local MongoDB instance",
     async () => {
       await withLocalOrm((orm) => assertCompoundUniqueQueries(orm, expect));
@@ -351,7 +353,7 @@ describe("mongo local integration", () => {
     LOCAL_TIMEOUT_MS,
   );
 
-  it(
+  itWithLocalMongo(
     "supports integer and json fields against a real local MongoDB instance",
     async () => {
       await withLocalOrm((orm) => assertIntegerAndJsonQueries(orm, expect));
@@ -359,7 +361,7 @@ describe("mongo local integration", () => {
     LOCAL_TIMEOUT_MS,
   );
 
-  it(
+  itWithLocalMongo(
     "supports enum, bigint, and decimal fields against a real local MongoDB instance",
     async () => {
       await withLocalOrm((orm) => assertEnumBigintAndDecimalQueries(orm, expect));
@@ -367,7 +369,7 @@ describe("mongo local integration", () => {
     LOCAL_TIMEOUT_MS,
   );
 
-  it(
+  itWithLocalMongo(
     "enforces model-level constraints against a real local MongoDB instance",
     async () => {
       await withLocalOrm((orm) => assertModelLevelConstraints(orm, expect));
