@@ -14,6 +14,7 @@ import type {
   FirestoreDriverConfig,
   FirestoreDriverHandle,
 } from "@farming-labs/orm-firestore";
+import type { KvDriverConfig, KvDriverHandle } from "@farming-labs/orm-kv";
 import type {
   MongoCollectionMap,
   MongoDbLike,
@@ -45,6 +46,7 @@ export type AutoDriverHandle<TClient = unknown> =
   | OrmDriverHandle<"drizzle", TClient, DrizzleDialect>
   | DynamoDbDriverHandle<any>
   | FirestoreDriverHandle<any>
+  | KvDriverHandle<any>
   | OrmDriverHandle<"kysely", TClient, KyselyDialect>
   | MikroormDriverHandle<TClient, AutoDialect>
   | OrmDriverHandle<"mongo", unknown>
@@ -77,6 +79,11 @@ export type CreateDriverFromRuntimeOptions<
     db?: FirestoreDbLike;
     collections?: FirestoreDriverConfig<TSchema>["collections"];
     transforms?: FirestoreDriverConfig<TSchema>["transforms"];
+  };
+  kv?: {
+    base?: KvDriverConfig<TSchema>["base"];
+    prefixes?: KvDriverConfig<TSchema>["prefixes"];
+    transforms?: KvDriverConfig<TSchema>["transforms"];
   };
   redis?: {
     base?: RedisDriverConfig<TSchema>["base"];

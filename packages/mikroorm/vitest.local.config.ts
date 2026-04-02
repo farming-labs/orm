@@ -12,6 +12,7 @@ export default defineConfig({
       "@farming-labs/orm-dynamodb": path.resolve(dirname, "../dynamodb/src/index.ts"),
       "@farming-labs/orm-drizzle": path.resolve(dirname, "../drizzle/src/index.ts"),
       "@farming-labs/orm-firestore": path.resolve(dirname, "../firestore/src/index.ts"),
+      "@farming-labs/orm-kv": path.resolve(dirname, "../kv/src/index.ts"),
       "@farming-labs/orm-kysely": path.resolve(dirname, "../kysely/src/index.ts"),
       "@farming-labs/orm-mikroorm": path.resolve(dirname, "./src/index.ts"),
       "@farming-labs/orm-mongo": path.resolve(dirname, "../mongo/src/index.ts"),

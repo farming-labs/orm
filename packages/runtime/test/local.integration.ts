@@ -18,6 +18,7 @@ import { createDriverFromRuntime, createOrmFromRuntime } from "../src";
 import { applySchema, bootstrapDatabase, pushSchema } from "../src/setup";
 import { startLocalD1 } from "../../d1/test/support/local-d1";
 import { startLocalDynamoDb } from "../../dynamodb/test/support/local-dynamodb";
+import { startLocalKv } from "../../kv/test/support/local-kv";
 import { hasLocalRedisServerBinary, startLocalRedis } from "../../redis/test/support/local-redis";
 import { startLocalUnstorage } from "../../unstorage/test/support/local-unstorage";
 
@@ -279,6 +280,50 @@ describe("runtime helper local integration", () => {
         id: expect.any(String),
         email: "d1@farminglabs.dev",
       });
+    } finally {
+      await local.close();
+    }
+  });
+
+  it("creates and bootstraps a Cloudflare KV runtime from a raw namespace", async () => {
+    const local = await startLocalKv();
+
+    try {
+      await pushSchema({
+        schema,
+        client: local.client,
+      });
+      await applySchema({
+        schema,
+        client: local.client,
+      });
+
+      const driver = await createDriverFromRuntime({
+        schema,
+        client: local.client,
+      });
+      const orm = await bootstrapDatabase({
+        schema,
+        client: local.client,
+      });
+
+      const created = await orm.user.create({
+        data: {
+          email: "kv@farminglabs.dev",
+          name: "KV",
+        },
+        select: {
+          id: true,
+          email: true,
+        },
+      });
+
+      expect(driver.handle.kind).toBe("kv");
+      expect(created).toEqual({
+        id: expect.any(String),
+        email: "kv@farminglabs.dev",
+      });
+      expect(inspectDatabaseRuntime(local.client).runtime?.kind).toBe("kv");
     } finally {
       await local.close();
     }

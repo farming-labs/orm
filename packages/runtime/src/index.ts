@@ -8,6 +8,7 @@ import type { DrizzleDialect, DrizzleDriverConfig } from "@farming-labs/orm-driz
 import type { D1DriverConfig } from "@farming-labs/orm-d1";
 import type { DynamoDbDriverConfig } from "@farming-labs/orm-dynamodb";
 import type { FirestoreDriverConfig } from "@farming-labs/orm-firestore";
+import type { KvDriverConfig } from "@farming-labs/orm-kv";
 import type { KyselyDialect, KyselyDriverConfig } from "@farming-labs/orm-kysely";
 import type { MikroormDriverConfig, MikroormDriverDialect } from "@farming-labs/orm-mikroorm";
 import type { MongoDriverConfig } from "@farming-labs/orm-mongo";
@@ -113,6 +114,15 @@ export async function createDriverFromRuntime<
         db: resolveFirestoreDb(runtime, options),
         collections: options.firestore?.collections,
         transforms: options.firestore?.transforms as FirestoreDriverConfig<TSchema>["transforms"],
+      }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
+    }
+    case "kv": {
+      const { createKvDriver } = await import("@farming-labs/orm-kv");
+      return createKvDriver<TSchema>({
+        client: runtime.client as KvDriverConfig<TSchema>["client"],
+        base: options.kv?.base,
+        prefixes: options.kv?.prefixes,
+        transforms: options.kv?.transforms as KvDriverConfig<TSchema>["transforms"],
       }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
     }
     case "dynamodb": {

@@ -228,6 +228,30 @@ export default {
 };
 ```
 
+### Cloudflare KV
+
+```ts title="cloudflare-kv-runtime.ts"
+import { createOrm } from "@farming-labs/orm";
+import { createKvDriver } from "@farming-labs/orm-kv";
+
+export type Env = {
+  KV: KVNamespace;
+};
+
+export default {
+  async fetch(_request: Request, env: Env) {
+    const orm = createOrm({
+      schema: authSchema,
+      driver: createKvDriver({
+        client: env.KV,
+      }),
+    });
+
+    return Response.json(await orm.session.count());
+  },
+};
+```
+
 ### Redis / Upstash Redis
 
 ```ts title="redis-runtime.ts"
@@ -409,7 +433,7 @@ const orm = await createOrmFromRuntime({
 
 That path is especially useful for higher-level integrations that want to
 accept a raw Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, SQL,
-Firestore, DynamoDB, Redis, Unstorage, MongoDB, or Mongoose runtime.
+Firestore, DynamoDB, Cloudflare KV, Redis, Unstorage, MongoDB, or Mongoose runtime.
 
 ## 5. Use the client
 
@@ -465,6 +489,7 @@ pnpm test:local:mongodb
 - [TypeORM integration](/docs/integrations/typeorm)
 - [MikroORM integration](/docs/integrations/mikroorm)
 - [SQL databases](/docs/integrations/sql-databases)
+- [Cloudflare KV](/docs/integrations/cloudflare-kv)
 - [Redis / Upstash Redis](/docs/integrations/redis)
 - [DynamoDB](/docs/integrations/dynamodb)
 - [Unstorage](/docs/integrations/unstorage)

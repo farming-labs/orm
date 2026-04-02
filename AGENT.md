@@ -22,6 +22,8 @@ This repository is a TypeScript monorepo for @farming-labs/orm
   Sequelize runtime driver
 - `packages/d1`
   Cloudflare D1 runtime driver
+- `packages/kv`
+  Cloudflare KV runtime driver
 - `packages/redis`
   Redis and Upstash-compatible runtime driver
 - `packages/firestore`
@@ -69,6 +71,7 @@ Targeted local suites:
 ```bash
 pnpm test:local:sql
 pnpm test:local:d1
+pnpm test:local:kv
 pnpm test:local:drizzle
 pnpm test:local:kysely
 pnpm test:local:mikroorm
@@ -104,6 +107,9 @@ pnpm release:beta
 - Cloudflare D1 is supported as a worker-native runtime. Use the runtime path in
   Workers, and keep `@farming-labs/orm-runtime/setup` for local, CI, or other
   Node-managed bootstrap flows.
+- Cloudflare KV is supported as a worker-native key-value runtime. Use the
+  runtime path in Workers, and treat `pushSchema(...)` / `applySchema(...)` as
+  intentional no-ops.
 - Redis support covers both Redis and Upstash-compatible clients through one
   key-value runtime family. It is a good fit for sessions, tokens, cache
   metadata, and rate limits, not highly relational or join-heavy workloads.

@@ -1,6 +1,6 @@
 ---
 title: "Integrations"
-description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, Cloudflare D1, Redis / Upstash, SQL-first, Supabase, Firestore, DynamoDB, Unstorage, and MongoDB-oriented workflows."
+description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, Cloudflare D1, Cloudflare KV, Redis / Upstash, SQL-first, Supabase, Firestore, DynamoDB, Unstorage, and MongoDB-oriented workflows."
 order: 6
 icon: package
 ---
@@ -71,6 +71,7 @@ app is not SQL-first:
 
 - MongoDB
 - Mongoose
+- Cloudflare KV
 - Redis / Upstash Redis
 - Firestore
 - DynamoDB
@@ -82,8 +83,8 @@ than native SQL joins.
 
 Two important boundaries:
 
-- Firestore and Unstorage do not have SQL-style schema push, so setup helpers
-  are intentionally no-op there
+- Firestore, Cloudflare KV, Redis, and Unstorage do not have SQL-style schema
+  push, so setup helpers are intentionally no-op there
 - Unstorage is useful for lightweight records, sessions, tokens, and
   package-owned state, but it is not the recommended runtime for highly
   relational or join-heavy workloads
@@ -103,6 +104,7 @@ Examples:
 - `@farming-labs/orm-typeorm` translates into TypeORM-backed relational operations
 - `@farming-labs/orm-sequelize` translates into Sequelize-backed relational operations
 - `@farming-labs/orm-d1` translates into Cloudflare D1 binding operations
+- `@farming-labs/orm-kv` translates into Cloudflare KV namespace operations
 - `@farming-labs/orm-redis` translates into Redis and Upstash-compatible key-value operations
 - `@farming-labs/orm-firestore` translates into Firestore document operations
 - `@farming-labs/orm-dynamodb` translates into DynamoDB document / key-value operations
@@ -195,6 +197,17 @@ Examples:
   linkLabel="Open D1 guide"
 >
   Cloudflare D1 integration
+</HoverLink>
+
+<span>·</span>
+
+<HoverLink
+  href="/docs/integrations/cloudflare-kv"
+  title="Cloudflare KV"
+  description="See how Farming Labs ORM uses a worker-native KV namespace while keeping one schema and one storage layer."
+  linkLabel="Open Cloudflare KV guide"
+>
+  Cloudflare KV integration
 </HoverLink>
 
 <span>·</span>

@@ -245,6 +245,19 @@ importers:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)
 
+  packages/kv:
+    dependencies:
+      '@farming-labs/orm':
+        specifier: workspace:*
+        version: link:../orm
+    devDependencies:
+      miniflare:
+        specifier: ^4.20260329.0
+        version: 4.20260329.0
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)
+
   packages/kysely:
     dependencies:
       '@farming-labs/orm':
@@ -394,6 +407,9 @@ importers:
       '@farming-labs/orm-firestore':
         specifier: workspace:*
         version: link:../firestore
+      '@farming-labs/orm-kv':
+        specifier: workspace:*
+        version: link:../kv
       '@farming-labs/orm-kysely':
         specifier: workspace:*
         version: link:../kysely
