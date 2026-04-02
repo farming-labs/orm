@@ -35,6 +35,7 @@
     "@farming-labs/orm-drizzle": "workspace:*",
     "@farming-labs/orm-dynamodb": "workspace:*",
     "@farming-labs/orm-firestore": "workspace:*",
+    "@farming-labs/orm-kv": "workspace:*",
     "@farming-labs/orm-kysely": "workspace:*",
     "@farming-labs/orm-mikroorm": "workspace:*",
     "@farming-labs/orm-mongo": "workspace:*",

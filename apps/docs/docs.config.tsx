@@ -212,6 +212,7 @@ export default defineDocs({
         { slug: "sequelize" },
         { slug: "sql-databases" },
         { slug: "cloudflare-d1" },
+        { slug: "cloudflare-kv" },
         { slug: "redis" },
         { slug: "supabase" },
         { slug: "firestore" },

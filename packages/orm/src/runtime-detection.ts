@@ -9,6 +9,7 @@ export type DetectedDatabaseRuntime<TClient = unknown> = Readonly<{
     | "kysely"
     | "mikroorm"
     | "d1"
+    | "kv"
     | "dynamodb"
     | "redis"
     | "unstorage"
@@ -247,6 +248,15 @@ function isUnstorageClient(client: unknown): client is Record<string, unknown> {
   );
 }
 
+function isKvClient(client: unknown): client is Record<string, unknown> {
+  return (
+    hasFunction(client, "get") &&
+    hasFunction(client, "put") &&
+    hasFunction(client, "delete") &&
+    hasFunction(client, "list")
+  );
+}
+
 function isRedisClient(client: unknown): client is Record<string, unknown> {
   return (
     hasFunction(client, "get") &&
@@ -468,6 +478,14 @@ export function detectDatabaseRuntime<TClient>(
     });
   }
 
+  if (isKvClient(client)) {
+    return Object.freeze({
+      kind: "kv",
+      client,
+      source: "client",
+    });
+  }
+
   if (isUnstorageClient(client)) {
     return Object.freeze({
       kind: "unstorage",
@@ -653,6 +671,15 @@ export function inspectDatabaseRuntime<TClient>(
         ? []
         : missingFunctions(client, ["send"]).concat([
             "expected a DynamoDBClient or DynamoDBDocumentClient-like runtime",
+          ]),
+    },
+    {
+      kind: "kv",
+      matched: isKvClient(client),
+      reasons: isKvClient(client)
+        ? []
+        : missingFunctions(client, ["get", "put", "delete", "list"]).concat([
+            "expected a Cloudflare KV Namespace-like runtime with get/put/delete/list support",
           ]),
     },
     {

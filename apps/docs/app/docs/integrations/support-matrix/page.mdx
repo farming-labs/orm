@@ -39,6 +39,7 @@ If you want the full story for one stack, use
 | TypeORM         | No         | Yes     | Full    | Runtime-first relational integration                       |
 | Sequelize       | No         | Yes     | Full    | Runtime-first relational integration                       |
 | Cloudflare D1   | No         | Yes     | Limited | Worker-native SQLite binding with local/CI setup helpers   |
+| Cloudflare KV   | No         | Yes     | No-op   | Worker-native key-value runtime                            |
 | Redis / Upstash | No         | Yes     | No-op   | Key-value runtime for Redis and Upstash-compatible clients |
 | Direct SQL      | Yes        | Yes     | Full    | Safe SQL generation plus direct SQL runtime                |
 | Supabase        | Via SQL    | Via SQL | Via SQL | Uses the PostgreSQL layer, not a separate runtime family   |
@@ -81,6 +82,22 @@ Two boundaries matter:
 `orm.transaction(...)` is available, but the runtime does **not** claim full
 interactive rollback semantics the way a long-lived Node SQL connection can.
 
+### Cloudflare KV
+
+Cloudflare KV is supported as its own runtime family rather than being folded
+into Redis or a generic document-store alias.
+
+That means:
+
+- pass the real Worker `KVNamespace` or a local Miniflare namespace directly
+- keep one schema definition and one query surface
+- rely on fallback relation reads and ORM-managed unique lookups
+
+Setup is intentionally light here:
+
+- `pushSchema(...)` and `applySchema(...)` are no-ops
+- `bootstrapDatabase(...)` still gives the one-shot runtime entrypoint
+
 ### Redis / Upstash Redis
 
 Redis and Upstash Redis fit as a shared key-value runtime family.
@@ -114,7 +131,8 @@ There is no separate Supabase-only schema model here.
 
 ### Document and key-value runtimes
 
-MongoDB, Mongoose, Firestore, DynamoDB, Redis / Upstash Redis, and Unstorage
+MongoDB, Mongoose, Firestore, DynamoDB, Cloudflare KV, Redis / Upstash Redis,
+and Unstorage
 still work through the same unified ORM API, but they are not SQL runtimes.
 
 That means they rely more on:
@@ -125,6 +143,7 @@ That means they rely more on:
 
 ### Setup differences
 
+- Cloudflare KV keeps `pushSchema(...)` and `applySchema(...)` as no-ops
 - Firestore has a real runtime, but not a SQL-style schema push surface
 - DynamoDB setup creates one table per model
 - Unstorage intentionally keeps `pushSchema(...)` and `applySchema(...)` as
@@ -133,7 +152,7 @@ That means they rely more on:
 ### Numeric IDs and namespaces
 
 - generated numeric IDs are first-class on the relational runtimes, including D1
-- MongoDB, Mongoose, Firestore, DynamoDB, Redis, and Unstorage keep numeric IDs manual-only
+- MongoDB, Mongoose, Firestore, DynamoDB, Cloudflare KV, Redis, and Unstorage keep numeric IDs manual-only
 - schema namespaces are only meaningful on Postgres-style relational runtimes
 
 ### Unstorage boundary

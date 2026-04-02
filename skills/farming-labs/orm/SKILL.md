@@ -5,7 +5,7 @@ description: |
   runtime drivers, relation translation, docs updates, release flow, and real
   local database integration tests. Triggers: createOrm, Prisma driver,
   Drizzle driver, Kysely driver, MikroORM driver, TypeORM driver, Sequelize driver, Cloudflare D1,
-  Redis, Firestore, DynamoDB, Unstorage, Mongo runtime, Mongoose runtime,
+  Cloudflare KV, Redis, Firestore, DynamoDB, Unstorage, Mongo runtime, Mongoose runtime,
   update docs, test:local, release latest, compound unique, native relation loading.
 ---
 
@@ -34,6 +34,8 @@ repo-specific knowledge about the unified ORM API.
   Sequelize runtime driver
 - `packages/d1`
   Cloudflare D1 runtime driver
+- `packages/kv`
+  Cloudflare KV runtime driver
 - `packages/redis`
   Redis and Upstash-compatible runtime driver
 - `packages/firestore`
@@ -99,6 +101,7 @@ Targeted commands:
 ```bash
 pnpm test:local:sql
 pnpm test:local:d1
+pnpm test:local:kv
 pnpm test:local:drizzle
 pnpm test:local:kysely
 pnpm test:local:mikroorm
@@ -176,6 +179,8 @@ Current runtime packages in this repo:
   - Sequelize runtime
 - `@farming-labs/orm-d1`
   - Cloudflare D1 runtime
+- `@farming-labs/orm-kv`
+  - Cloudflare KV runtime
 - `@farming-labs/orm-redis`
   - Redis and Upstash-compatible key-value runtime
 - `@farming-labs/orm-firestore`
@@ -202,6 +207,9 @@ Important boundary:
 - `@farming-labs/orm-d1` is Worker-friendly at runtime, but
   `@farming-labs/orm-runtime/setup` is still for local, CI, or other
   Node-managed bootstrap flows.
+- `@farming-labs/orm-kv` is a Worker-friendly Cloudflare key-value runtime for
+  sessions, tokens, cache metadata, rate limits, and lightweight framework
+  state. It is not the preferred fit for highly relational or join-heavy workloads.
 - `@farming-labs/orm-redis` is for Redis and Upstash-compatible key-value
   workloads such as sessions, cache metadata, tokens, and rate limits. It is
   not the preferred fit for highly relational or join-heavy workloads.

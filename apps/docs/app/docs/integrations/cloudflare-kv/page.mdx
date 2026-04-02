@@ -1,0 +1,142 @@
+---
+title: "Cloudflare KV"
+description: "How to use Farming Labs ORM with Cloudflare KV through a worker-native key-value runtime."
+order: 8
+icon: cloudflare
+---
+
+# Cloudflare KV
+
+Cloudflare KV support in Farming Labs ORM is the worker-native key-value path
+for teams that want one storage layer without building a separate
+Cloudflare-only adapter surface.
+
+The supported path is the real Worker binding:
+
+- `KVNamespace`
+- a local Miniflare KV namespace
+
+That keeps the runtime Cloudflare-friendly while still letting framework and
+package code stay backend-agnostic.
+
+## What this gives you
+
+You still write the schema and storage layer once.
+
+Then the runtime translates that layer into KV-backed operations with:
+
+- one schema definition
+- one query API
+- one runtime helper path
+- one capability surface
+- one normalized error surface
+
+That is a strong fit for sessions, tokens, cache metadata, independent key-value
+state, rate limits, and other lightweight framework-owned records inside
+Workers.
+
+## Create the runtime directly
+
+```ts title="cloudflare-kv-runtime.ts"
+import { createOrm } from "@farming-labs/orm";
+import { createKvDriver } from "@farming-labs/orm-kv";
+import { appSchema } from "./schema";
+
+type Env = {
+  KV: KVNamespace;
+};
+
+export default {
+  async fetch(_request: Request, env: Env) {
+    const orm = createOrm({
+      schema: appSchema,
+      driver: createKvDriver({
+        client: env.KV,
+      }),
+    });
+
+    const count = await orm.session.count();
+    return Response.json({ count });
+  },
+};
+```
+
+## Use the runtime helper path
+
+If a framework or shared package wants to accept the raw KV namespace and
+normalize it later, use the runtime helpers:
+
+```ts
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const orm = await createOrmFromRuntime({
+  schema: appSchema,
+  client: env.KV,
+});
+```
+
+That keeps the package boundary generic instead of forcing a Cloudflare KV
+specific branch.
+
+## Setup helpers
+
+Cloudflare KV is a runtime-first backend, not a schema-push backend.
+
+That means:
+
+- `createKvDriver(...)` works directly against the namespace
+- `createOrmFromRuntime(...)` works directly against the namespace
+- `pushSchema(...)` and `applySchema(...)` are intentional no-ops
+- `bootstrapDatabase(...)` still works as the single convenience entrypoint
+
+```ts
+import { bootstrapDatabase } from "@farming-labs/orm-runtime/setup";
+
+const orm = await bootstrapDatabase({
+  schema: appSchema,
+  client: env.KV,
+});
+```
+
+## Joins, relations, and transactions
+
+Cloudflare KV is not a join-first runtime, so the ORM stays explicit and
+conservative.
+
+That means:
+
+- nested relation selections still work through follow-up reads
+- unique and compound-unique lookups are ORM-managed
+- `orm.transaction(...)` exists, but the runtime does **not** claim SQL-style
+  transaction semantics
+- generated integer IDs are not supported
+
+## What is supported well
+
+- string IDs
+- manual numeric IDs
+- `integer()`
+- `json()`
+- `enumeration()`
+- `decimal()`
+- relation selections through follow-up reads
+- compound unique lookups and upserts
+- raw runtime detection
+- `createOrmFromRuntime(...)`
+
+## Important limits
+
+- schema-qualified table names are not supported
+- `pushSchema(...)` and `applySchema(...)` are no-ops
+- the Cloudflare KV runtime is not the recommended fit for highly relational or
+  join-heavy workloads
+- uniqueness is ORM-managed rather than backed by a native transaction surface
+
+## Why it matters
+
+This keeps Cloudflare KV inside the same bigger ORM story:
+
+- write your storage layer once
+- keep one schema definition
+- let the app choose Cloudflare KV
+- avoid owning a separate Cloudflare-only adapter surface

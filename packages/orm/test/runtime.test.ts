@@ -273,6 +273,26 @@ describe("runtime contract", () => {
     expect(inspectDatabaseRuntime(dynamo).runtime?.kind).toBe("dynamodb");
   });
 
+  it("detects Cloudflare KV runtimes from KV namespace shapes", () => {
+    const kv = {
+      get: async () => null,
+      getWithMetadata: async () => ({ value: null, metadata: null }),
+      put: async () => undefined,
+      delete: async () => undefined,
+      list: async () => ({ keys: [], list_complete: true, cursor: "" }),
+      constructor: {
+        name: "KVNamespace",
+      },
+    };
+
+    expect(detectDatabaseRuntime(kv)).toEqual({
+      kind: "kv",
+      client: kv,
+      source: "client",
+    });
+    expect(inspectDatabaseRuntime(kv).runtime?.kind).toBe("kv");
+  });
+
   it("detects Redis runtimes from client shapes", () => {
     const redis = {
       get: async () => null,

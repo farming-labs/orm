@@ -374,6 +374,27 @@ function normalizeRedisError(handle: OrmDriverHandle, error: unknown) {
   return null;
 }
 
+function normalizeKvError(handle: OrmDriverHandle, error: unknown) {
+  const record = isRecord(error) ? error : {};
+  const code = typeof record.code === "string" ? record.code : undefined;
+  const name = typeof record.name === "string" ? record.name : undefined;
+  const message = getMessage(error);
+  const target =
+    Array.isArray(record.target) || typeof record.target === "string"
+      ? (record.target as string | string[])
+      : undefined;
+
+  if (
+    code === "KV_UNIQUE_CONSTRAINT" ||
+    name === "KvUniqueConstraintError" ||
+    /cloudflare kv unique constraint violation/i.test(message)
+  ) {
+    return createOrmError(handle, "UNIQUE_CONSTRAINT_VIOLATION", error, { target });
+  }
+
+  return null;
+}
+
 export function isOrmError(error: unknown): error is OrmError {
   return error instanceof OrmError;
 }
@@ -397,6 +418,8 @@ export function normalizeOrmError(handle: OrmDriverHandle, error: unknown) {
       return normalizeFirestoreError(handle, error);
     case "dynamodb":
       return normalizeDynamoDbError(handle, error);
+    case "kv":
+      return normalizeKvError(handle, error);
     case "redis":
       return normalizeRedisError(handle, error);
     case "unstorage":

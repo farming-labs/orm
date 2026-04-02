@@ -695,6 +695,10 @@ async function applySchemaInternal<TSchema extends SchemaDefinition<any>, TClien
       return;
     }
 
+    if (runtime.kind === "kv") {
+      return;
+    }
+
     if (runtime.kind === "dynamodb") {
       await ensureDynamoDbTables(
         options.schema,
