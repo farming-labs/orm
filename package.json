@@ -51,6 +51,7 @@
   "packageManager": "pnpm@10.9.0",
   "pnpm": {
     "overrides": {
+      "@tootallnate/once": "^3.0.1",
       "lodash": "^4.18.1",
       "picomatch": "^4.0.4",
       "path-to-regexp": "^8.4.0",
