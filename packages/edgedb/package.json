@@ -1,5 +1,5 @@
 {
-  "name": "@farming-labs/orm-mongoose",
+  "name": "@farming-labs/orm-edgedb",
   "version": "0.0.46",
   "files": [
     "dist"
@@ -21,17 +21,14 @@
   "scripts": {
     "build": "tsx ./scripts/build.ts",
     "test": "vitest run --config vitest.local.config.ts",
-    "test:local": "FARM_ORM_RUN_LOCAL_MONGODB_TESTS=1 vitest run --config vitest.local.config.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@farming-labs/orm": "workspace:*"
+    "@farming-labs/orm": "workspace:*",
+    "@farming-labs/orm-sql": "workspace:*"
   },
   "devDependencies": {
-    "mongoose": "^8.19.2",
+    "pg-mem": "^3.0.14",
     "tsup": "^8.4.0"
-  },
-  "peerDependencies": {
-    "mongoose": "^8.0.0"
   }
 }

@@ -1,0 +1,135 @@
+---
+title: "EdgeDB / Gel"
+description: "How to use Farming Labs ORM with the official Gel SQL client as a runtime-only relational path."
+order: 7
+icon: edgedb
+---
+
+# EdgeDB / Gel
+
+Farming Labs ORM supports EdgeDB through the current **Gel SQL client** runtime.
+
+That means the supported path is:
+
+- the official `gel` JavaScript client
+- its `querySQL(...)`, `executeSQL(...)`, and `transaction(...)` surface
+- one unified ORM/runtime layer on top of the existing Gel database
+
+This is intentionally a **runtime-first** integration, not a Gel SDL or schema
+management replacement.
+
+## What this gives you
+
+You still write the schema and storage layer once.
+
+Then the runtime translates that layer into Gel SQL-backed relational queries
+with:
+
+- one schema definition
+- one query API
+- one runtime helper path
+- one capability surface
+- one normalized error surface
+
+That makes it useful for frameworks, reusable platform modules, auth state,
+billing state, internal tools, and other storage layers that should not fork
+into one implementation per backend.
+
+## Create the runtime directly
+
+```ts title="edgedb-runtime.ts"
+import { createOrm } from "@farming-labs/orm";
+import { createEdgeDbDriver } from "@farming-labs/orm-edgedb";
+import { createClient } from "gel";
+import { appSchema } from "./schema";
+
+const client = createClient();
+
+const orm = createOrm({
+  schema: appSchema,
+  driver: createEdgeDbDriver({
+    client,
+  }),
+});
+```
+
+## Use the runtime helper path
+
+If a framework or shared package wants to accept the raw Gel client and
+normalize it later, use the runtime helpers:
+
+```ts
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const orm = await createOrmFromRuntime({
+  schema: appSchema,
+  client,
+});
+```
+
+That keeps the package boundary generic instead of forcing an EdgeDB-only
+branch.
+
+## Setup helpers
+
+EdgeDB support here is runtime-first.
+
+That means:
+
+- `createEdgeDbDriver(...)` works against the Gel SQL client
+- `createOrmFromRuntime(...)` detects the Gel SQL client directly
+- `pushSchema(...)` and `applySchema(...)` intentionally do **not** try to
+  manage Gel schemas or migrations
+- `bootstrapDatabase(...)` still works as the convenience entrypoint when the
+  schema already exists
+
+So the common pattern is:
+
+- manage schema through the app's Gel migration / SDL / SQL workflow
+- use Farming Labs ORM as the runtime/query layer on top of that database
+
+## Joins, relations, and transactions
+
+This runtime uses the PostgreSQL SQL dialect path underneath.
+
+That means:
+
+- nested relation selections work
+- compound unique lookups and upserts work
+- generated integer IDs work
+- transactions are supported
+- schema-qualified table names work in the runtime query path
+
+The main boundary is not query power. It is schema management:
+
+- this integration does **not** replace Gel's own schema and migration story
+- `@farming-labs/orm-runtime/setup` does not attempt to push or apply EdgeDB
+  schemas for you
+
+## What is supported well
+
+- string IDs
+- generated integer IDs
+- `integer()`
+- `json()`
+- `enumeration()`
+- `decimal()`
+- relation selections
+- compound unique lookups and upserts
+- raw runtime detection
+- `createOrmFromRuntime(...)`
+
+## Important limits
+
+- this is a runtime bridge, not a Gel SDL generator
+- `pushSchema(...)` and `applySchema(...)` are intentional no-ops for this runtime
+- schema management should stay in the app's Gel migration or SQL workflow
+
+## Why it matters
+
+This keeps EdgeDB / Gel inside the same bigger ORM story:
+
+- write your storage layer once
+- keep one schema definition for the shared ORM layer
+- let the app choose Gel as the live backend
+- avoid owning a separate EdgeDB-only storage implementation

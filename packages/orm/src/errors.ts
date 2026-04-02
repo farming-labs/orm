@@ -408,6 +408,7 @@ export function normalizeOrmError(handle: OrmDriverHandle, error: unknown) {
     case "sql":
     case "drizzle":
     case "kysely":
+    case "edgedb":
       return normalizeSqlError(handle, error);
     case "prisma":
       return normalizePrismaError(handle, error);

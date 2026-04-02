@@ -20,6 +20,8 @@ This repository is a TypeScript monorepo for @farming-labs/orm
   TypeORM runtime driver
 - `packages/sequelize`
   Sequelize runtime driver
+- `packages/edgedb`
+  EdgeDB / Gel SQL runtime driver
 - `packages/d1`
   Cloudflare D1 runtime driver
 - `packages/kv`
@@ -72,6 +74,7 @@ Targeted local suites:
 pnpm test:local:sql
 pnpm test:local:d1
 pnpm test:local:kv
+pnpm test:local:edgedb
 pnpm test:local:drizzle
 pnpm test:local:kysely
 pnpm test:local:mikroorm
@@ -110,6 +113,9 @@ pnpm release:beta
 - Cloudflare KV is supported as a worker-native key-value runtime. Use the
   runtime path in Workers, and treat `pushSchema(...)` / `applySchema(...)` as
   intentional no-ops.
+- EdgeDB / Gel is supported as a runtime-first SQL bridge through the Gel SQL
+  client. Use the runtime path for query execution, and keep schema management
+  in the app's own Gel migration or SQL workflow.
 - Redis support covers both Redis and Upstash-compatible clients through one
   key-value runtime family. It is a good fit for sessions, tokens, cache
   metadata, and rate limits, not highly relational or join-heavy workloads.

@@ -122,14 +122,18 @@ The setup helpers now live on the Node-only subpath:
 
 Import them from `@farming-labs/orm-runtime/setup`. They use the same runtime
 detection layer to prepare direct SQL, Prisma, Drizzle, Kysely, MikroORM,
-TypeORM, Sequelize, Cloudflare D1, Cloudflare KV, Redis, MongoDB, Mongoose,
-Firestore, DynamoDB, and Unstorage runtimes without inventing a separate
-config surface.
+TypeORM, Sequelize, EdgeDB / Gel, Cloudflare D1, Cloudflare KV, Redis,
+MongoDB, Mongoose, Firestore, DynamoDB, and Unstorage runtimes without
+inventing a separate config surface.
 
 There is also a dedicated guide for this flow:
 
 - [Runtime Helpers](/docs/runtime/runtime-helpers)
 - [Framework Authors](/docs/use-cases/framework-authors)
+
+For EdgeDB / Gel specifically, the runtime path is supported directly through
+the Gel SQL client, while schema management stays in the app's own Gel
+migration or SQL workflow.
 
 The runtime also understands declared model-level compound unique keys. If a
 schema says `account(provider, accountId)` is unique, live drivers can use that
@@ -213,7 +217,7 @@ That includes:
 Runtime failures are normalized too. Duplicate-key, foreign-key, missing-table,
 deadlock, and transaction-conflict failures are exposed as `OrmError` values
 through the unified ORM client, so higher-level integrations do not need to
-parse Prisma, SQL, MongoDB, or Mongoose error formats separately.
+parse Prisma, SQL, EdgeDB, MongoDB, or Mongoose error formats separately.
 
 Runtime-aware schema setup failures from `@farming-labs/orm-runtime/setup` are
 exposed separately as `RuntimeSetupError`, so bootstrap and push failures keep
@@ -267,8 +271,8 @@ async function findUserByEmail(orm: typeof authOrm, email: string) {
 ```
 
 That helper stays the same whether the app uses Prisma, Drizzle, TypeORM,
-Sequelize, Cloudflare D1, Cloudflare KV, Redis, direct SQL, Firestore,
-DynamoDB, Unstorage, MongoDB, or Mongoose.
+Sequelize, EdgeDB / Gel, Cloudflare D1, Cloudflare KV, Redis, direct SQL,
+Firestore, DynamoDB, Unstorage, MongoDB, or Mongoose.
 
 The same is true for compound auth lookups:
 
