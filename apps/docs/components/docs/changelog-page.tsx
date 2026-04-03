@@ -154,11 +154,11 @@ export function ChangelogPage() {
                   }}
                   aria-label="Changelog versions"
                 >
-                  <div className="overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:overflow-visible">
-                    <div className="flex w-max min-w-full flex-nowrap justify-start gap-2 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-white/72 lg:w-full lg:flex-wrap">
+                  <div className="overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <div className="flex w-max min-w-full flex-nowrap justify-start gap-2 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-white/72">
                       {changelogEntries.map((entry) => (
                         <Link
-                          className="inline-flex shrink-0 items-center border border-dashed border-white/12 bg-white/[0.025] px-2.5 py-1.5 lowercase transition-colors hover:border-white/24 hover:bg-white/[0.04] hover:text-white"
+                          className="inline-flex shrink-0 snap-start items-center border border-dashed border-white/12 bg-white/[0.025] px-2.5 py-1.5 lowercase transition-colors hover:border-white/24 hover:bg-white/[0.04] hover:text-white"
                           key={entry.version}
                           href={`/changelogs#${entry.anchor}`}
                         >
