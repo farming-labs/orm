@@ -395,6 +395,15 @@ function normalizeKvError(handle: OrmDriverHandle, error: unknown) {
   return null;
 }
 
+function normalizeSupabaseError(handle: OrmDriverHandle, error: unknown) {
+  return (
+    normalizeSqlError(handle, error) ??
+    (/duplicate key value/i.test(getMessage(error))
+      ? createOrmError(handle, "UNIQUE_CONSTRAINT_VIOLATION", error)
+      : null)
+  );
+}
+
 export function isOrmError(error: unknown): error is OrmError {
   return error instanceof OrmError;
 }
@@ -423,6 +432,8 @@ export function normalizeOrmError(handle: OrmDriverHandle, error: unknown) {
       return normalizeKvError(handle, error);
     case "redis":
       return normalizeRedisError(handle, error);
+    case "supabase":
+      return normalizeSupabaseError(handle, error);
     case "unstorage":
       return normalizeUnstorageError(handle, error);
     default:

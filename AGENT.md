@@ -28,6 +28,8 @@ This repository is a TypeScript monorepo for @farming-labs/orm
   Cloudflare KV runtime driver
 - `packages/redis`
   Redis and Upstash-compatible runtime driver
+- `packages/supabase`
+  Supabase JS runtime driver
 - `packages/firestore`
   Firestore runtime driver
 - `packages/dynamodb`
@@ -82,6 +84,7 @@ pnpm test:local:sequelize
 pnpm test:local:typeorm
 pnpm test:local:dynamodb
 pnpm test:local:redis
+pnpm test:local:supabase
 pnpm test:local:unstorage
 pnpm test:local:mongodb
 pnpm test:local:prisma
@@ -119,6 +122,8 @@ pnpm release:beta
 - Redis support covers both Redis and Upstash-compatible clients through one
   key-value runtime family. It is a good fit for sessions, tokens, cache
   metadata, and rate limits, not highly relational or join-heavy workloads.
+- Supabase support now covers both direct Supabase JS clients and raw
+  PostgreSQL clients connected to Supabase.
 - Unstorage is supported as a lightweight key-value/document runtime, but it is
   not the preferred fit for highly relational or join-heavy workloads.
 - Docs live under `apps/docs/app/docs`.

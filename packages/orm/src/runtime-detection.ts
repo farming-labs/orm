@@ -13,6 +13,7 @@ export type DetectedDatabaseRuntime<TClient = unknown> = Readonly<{
     | "kv"
     | "dynamodb"
     | "redis"
+    | "supabase"
     | "unstorage"
     | "sequelize"
     | "sql"
@@ -275,6 +276,21 @@ function isRedisClient(client: unknown): client is Record<string, unknown> {
   );
 }
 
+function isSupabaseClient(client: unknown): client is Record<string, unknown> {
+  const constructorName = getConstructorName(client);
+  return (
+    hasFunction(client, "from") &&
+    hasFunction(client, "rpc") &&
+    (hasFunction(client, "schema") ||
+      (isRecord(client) &&
+        ("auth" in client ||
+          "storage" in client ||
+          "functions" in client ||
+          "realtime" in client)) ||
+      /supabase/i.test(constructorName))
+  );
+}
+
 function isEdgeDbClient(client: unknown): client is Record<string, unknown> {
   return (
     hasFunction(client, "querySQL") &&
@@ -520,6 +536,15 @@ export function detectDatabaseRuntime<TClient>(
     });
   }
 
+  if (isSupabaseClient(client)) {
+    return Object.freeze({
+      kind: "supabase",
+      client,
+      dialect: "postgres",
+      source: "client",
+    });
+  }
+
   if (isSequelizeClient(client)) {
     const dialect = detectSequelizeDialect(client);
     if (dialect) {
@@ -729,6 +754,15 @@ export function inspectDatabaseRuntime<TClient>(
         ? []
         : missingFunctions(client, ["get", "set"]).concat([
             "expected a Redis or Upstash Redis client with get/set/del and key listing support",
+          ]),
+    },
+    {
+      kind: "supabase",
+      matched: isSupabaseClient(client),
+      reasons: isSupabaseClient(client)
+        ? []
+        : missingFunctions(client, ["from", "rpc"]).concat([
+            "expected a Supabase client created with createClient(...)",
           ]),
     },
     {

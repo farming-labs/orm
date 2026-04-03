@@ -5,7 +5,7 @@ description: |
   runtime drivers, relation translation, docs updates, release flow, and real
   local database integration tests. Triggers: createOrm, Prisma driver,
   Drizzle driver, Kysely driver, MikroORM driver, TypeORM driver, Sequelize driver, Cloudflare D1,
-  Cloudflare KV, Redis, EdgeDB, Firestore, DynamoDB, Unstorage, Mongo runtime,
+  Cloudflare KV, Redis, Supabase JS, EdgeDB, Firestore, DynamoDB, Unstorage, Mongo runtime,
   Mongoose runtime, update docs, test:local, release latest, compound unique,
   native relation loading.
 ---
@@ -41,6 +41,8 @@ repo-specific knowledge about the unified ORM API.
   Cloudflare KV runtime driver
 - `packages/redis`
   Redis and Upstash-compatible runtime driver
+- `packages/supabase`
+  Supabase JS runtime driver
 - `packages/firestore`
   Firestore runtime driver
 - `packages/dynamodb`
@@ -113,6 +115,7 @@ pnpm test:local:sequelize
 pnpm test:local:typeorm
 pnpm test:local:dynamodb
 pnpm test:local:redis
+pnpm test:local:supabase
 pnpm test:local:unstorage
 pnpm test:local:mongodb
 pnpm test:local:prisma
@@ -189,6 +192,8 @@ Current runtime packages in this repo:
   - Cloudflare KV runtime
 - `@farming-labs/orm-redis`
   - Redis and Upstash-compatible key-value runtime
+- `@farming-labs/orm-supabase`
+  - direct Supabase JS runtime
 - `@farming-labs/orm-firestore`
   - Firestore runtime
 - `@farming-labs/orm-dynamodb`
@@ -222,6 +227,9 @@ Important boundary:
 - `@farming-labs/orm-redis` is for Redis and Upstash-compatible key-value
   workloads such as sessions, cache metadata, tokens, and rate limits. It is
   not the preferred fit for highly relational or join-heavy workloads.
+- `@farming-labs/orm-supabase` uses Supabase's own client API rather than a
+  hidden raw `pg` bridge. It is query-first, keeps setup as a no-op, and is a
+  good fit when the app already owns a `createClient(...)` instance.
 - `@farming-labs/orm-unstorage` is meant for lightweight key-value/document
   storage and shared storage layers, not for highly relational or join-heavy
   workloads.

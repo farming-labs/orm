@@ -331,6 +331,47 @@ describe("runtime contract", () => {
     expect(inspectDatabaseRuntime(redis).runtime?.kind).toBe("redis");
   });
 
+  it("detects Supabase runtimes from client shapes", () => {
+    const supabase = {
+      from() {
+        return {
+          select() {
+            return this;
+          },
+          eq() {
+            return this;
+          },
+          then: async (resolve?: (value: unknown) => unknown) =>
+            resolve?.({
+              data: [],
+              error: null,
+            }),
+        };
+      },
+      schema() {
+        return this;
+      },
+      rpc: async () => ({
+        data: null,
+        error: null,
+      }),
+      auth: {},
+      storage: {},
+      functions: {},
+      constructor: {
+        name: "SupabaseClient",
+      },
+    };
+
+    expect(detectDatabaseRuntime(supabase)).toEqual({
+      kind: "supabase",
+      client: supabase,
+      dialect: "postgres",
+      source: "client",
+    });
+    expect(inspectDatabaseRuntime(supabase).runtime?.kind).toBe("supabase");
+  });
+
   it("detects Upstash-style Redis runtimes from client shapes", () => {
     const upstash = {
       get: async () => null,
