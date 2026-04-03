@@ -6,7 +6,7 @@ const changelogDescription =
   "Release notes for runtime additions, docs shifts, and broader platform changes across Farming Labs ORM.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://docs.farming-labs.dev"),
+  metadataBase: new URL("https://orm.farming-labs.dev"),
   title: "Changelogs - Farming Labs ORM",
   description: changelogDescription,
   openGraph: {
