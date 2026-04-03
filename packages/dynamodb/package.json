@@ -1,6 +1,6 @@
 {
   "name": "@farming-labs/orm-dynamodb",
-  "version": "0.0.47",
+  "version": "0.0.48",
   "files": [
     "dist"
   ],
