@@ -32,6 +32,7 @@ import type {
 import type { KyselyDialect } from "@farming-labs/orm-kysely";
 import type { MikroormDriverHandle } from "@farming-labs/orm-mikroorm";
 import type { PrismaDriverConfig, PrismaDriverHandle } from "@farming-labs/orm-prisma";
+import type { Neo4jDriverConfig, Neo4jDriverHandle } from "@farming-labs/orm-neo4j";
 import type { RedisDriverConfig, RedisDriverHandle } from "@farming-labs/orm-redis";
 import type { SupabaseDriverConfig, SupabaseDriverHandle } from "@farming-labs/orm-supabase";
 import type { SequelizeDriverDialect, SequelizeDriverHandle } from "@farming-labs/orm-sequelize";
@@ -54,6 +55,7 @@ export type AutoDriverHandle<TClient = unknown> =
   | MikroormDriverHandle<TClient, AutoDialect>
   | OrmDriverHandle<"mongo", unknown>
   | OrmDriverHandle<"mongoose", unknown>
+  | Neo4jDriverHandle<any>
   | RedisDriverHandle<any>
   | SupabaseDriverHandle<any>
   | SequelizeDriverHandle<TClient, SequelizeDriverDialect>
@@ -93,6 +95,11 @@ export type CreateDriverFromRuntimeOptions<
     base?: RedisDriverConfig<TSchema>["base"];
     prefixes?: RedisDriverConfig<TSchema>["prefixes"];
     transforms?: RedisDriverConfig<TSchema>["transforms"];
+  };
+  neo4j?: {
+    base?: Neo4jDriverConfig<TSchema>["base"];
+    database?: Neo4jDriverConfig<TSchema>["database"];
+    transforms?: Neo4jDriverConfig<TSchema>["transforms"];
   };
   supabase?: {
     transforms?: SupabaseDriverConfig<TSchema>["transforms"];

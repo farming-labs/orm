@@ -22,6 +22,8 @@ This repository is a TypeScript monorepo for @farming-labs/orm
   Sequelize runtime driver
 - `packages/edgedb`
   EdgeDB / Gel SQL runtime driver
+- `packages/neo4j`
+  Neo4j graph runtime driver
 - `packages/d1`
   Cloudflare D1 runtime driver
 - `packages/kv`
@@ -77,6 +79,7 @@ pnpm test:local:sql
 pnpm test:local:d1
 pnpm test:local:kv
 pnpm test:local:edgedb
+pnpm test:local:neo4j
 pnpm test:local:drizzle
 pnpm test:local:kysely
 pnpm test:local:mikroorm
@@ -119,6 +122,10 @@ pnpm release:beta
 - EdgeDB / Gel is supported as a runtime-first SQL bridge through the Gel SQL
   client. Use the runtime path for query execution, and keep schema management
   in the app's own Gel migration or SQL workflow.
+- Neo4j is supported as a runtime-first graph backend through the official
+  Neo4j driver or session shapes. It keeps one schema and one ORM surface, but
+  relation loading stays conservative instead of becoming a Cypher-native graph
+  query builder.
 - Redis support covers both Redis and Upstash-compatible clients through one
   key-value runtime family. It is a good fit for sessions, tokens, cache
   metadata, and rate limits, not highly relational or join-heavy workloads.

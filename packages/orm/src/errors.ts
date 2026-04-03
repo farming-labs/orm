@@ -374,6 +374,27 @@ function normalizeRedisError(handle: OrmDriverHandle, error: unknown) {
   return null;
 }
 
+function normalizeNeo4jError(handle: OrmDriverHandle, error: unknown) {
+  const record = isRecord(error) ? error : {};
+  const code = typeof record.code === "string" ? record.code : undefined;
+  const name = typeof record.name === "string" ? record.name : undefined;
+  const message = getMessage(error);
+  const target =
+    Array.isArray(record.target) || typeof record.target === "string"
+      ? (record.target as string | string[])
+      : undefined;
+
+  if (
+    code === "NEO4J_UNIQUE_CONSTRAINT" ||
+    name === "Neo4jUniqueConstraintError" ||
+    /neo4j unique constraint violation/i.test(message)
+  ) {
+    return createOrmError(handle, "UNIQUE_CONSTRAINT_VIOLATION", error, { target });
+  }
+
+  return null;
+}
+
 function normalizeKvError(handle: OrmDriverHandle, error: unknown) {
   const record = isRecord(error) ? error : {};
   const code = typeof record.code === "string" ? record.code : undefined;
@@ -432,6 +453,8 @@ export function normalizeOrmError(handle: OrmDriverHandle, error: unknown) {
       return normalizeKvError(handle, error);
     case "redis":
       return normalizeRedisError(handle, error);
+    case "neo4j":
+      return normalizeNeo4jError(handle, error);
     case "supabase":
       return normalizeSupabaseError(handle, error);
     case "unstorage":

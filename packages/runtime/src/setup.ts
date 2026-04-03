@@ -66,6 +66,15 @@ type D1DatabaseLike = {
   batch?(statements: readonly D1PreparedStatementLike[]): Promise<unknown> | unknown;
 };
 
+type Neo4jRunnableLike = {
+  run(query: string, params?: Record<string, unknown>): Promise<unknown> | unknown;
+  close?(): Promise<unknown> | unknown;
+};
+
+type Neo4jSessionFactoryLike = {
+  session(config?: { database?: string }): Neo4jRunnableLike;
+};
+
 type InitializableConnectionLike = {
   isInitialized?: boolean;
   initialize?(): Promise<unknown>;
@@ -477,6 +486,49 @@ async function applySqlSchemaToClient(client: unknown, dialect: AutoDialect, sql
   );
 }
 
+async function runNeo4jStatement(client: unknown, statement: string, database?: string) {
+  if (hasFunction(client, "session")) {
+    const session = (client as Neo4jSessionFactoryLike).session(
+      database ? { database } : undefined,
+    );
+    try {
+      await session.run(statement, {});
+      return;
+    } finally {
+      if (typeof session.close === "function") {
+        await session.close();
+      }
+    }
+  }
+
+  if (hasFunction(client, "run")) {
+    await (client as Neo4jRunnableLike).run(statement, {});
+    return;
+  }
+
+  throw new Error("Could not apply Neo4j setup statements to the provided runtime client.");
+}
+
+function neo4jSetupStatements() {
+  return [
+    `CREATE CONSTRAINT farm_orm_neo4j_record_identity IF NOT EXISTS
+FOR (n:FarmOrmRecord)
+REQUIRE (n.__ormNamespace, n.__ormModel, n.__ormDocId) IS UNIQUE`,
+    `CREATE CONSTRAINT farm_orm_neo4j_unique_identity IF NOT EXISTS
+FOR (u:FarmOrmUnique)
+REQUIRE (u.__ormNamespace, u.__ormKey) IS UNIQUE`,
+    `CREATE INDEX farm_orm_neo4j_record_lookup IF NOT EXISTS
+FOR (n:FarmOrmRecord)
+ON (n.__ormNamespace, n.__ormModel)`,
+  ];
+}
+
+async function applyNeo4jSchemaToClient(client: unknown, database?: string) {
+  for (const statement of neo4jSetupStatements()) {
+    await runNeo4jStatement(client, statement, database);
+  }
+}
+
 async function ensureInitializedConnection(client: unknown) {
   if (isRecord(client) && client.isInitialized === false && hasFunction(client, "initialize")) {
     await (client as InitializableConnectionLike).initialize?.();
@@ -700,6 +752,11 @@ async function applySchemaInternal<TSchema extends SchemaDefinition<any>, TClien
     }
 
     if (runtime.kind === "edgedb") {
+      return;
+    }
+
+    if (runtime.kind === "neo4j") {
+      await applyNeo4jSchemaToClient(runtime.client, options.neo4j?.database);
       return;
     }
 

@@ -245,6 +245,7 @@ export default defineDocs({
         { slug: "sequelize" },
         { slug: "sql-databases" },
         { slug: "edgedb" },
+        { slug: "neo4j" },
         { slug: "cloudflare-d1" },
         { slug: "cloudflare-kv" },
         { slug: "redis" },

@@ -1,6 +1,6 @@
 ---
 title: "Integrations"
-description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, EdgeDB / Gel, Cloudflare D1, Cloudflare KV, Redis / Upstash, SQL-first, Supabase, Firestore, DynamoDB, Unstorage, and MongoDB-oriented workflows."
+description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, EdgeDB / Gel, Neo4j, Cloudflare D1, Cloudflare KV, Redis / Upstash, SQL-first, Supabase, Firestore, DynamoDB, Unstorage, and MongoDB-oriented workflows."
 order: 6
 icon: package
 ---
@@ -37,7 +37,7 @@ Use these when the app wants generated artifacts:
 These are the right fit when the app already wants `schema.prisma`, generated
 Drizzle tables, or plain SQL DDL files as part of its own workflow.
 
-### Runtime-first relational stacks
+### Runtime-first SQL and graph stacks
 
 Use these when the app already owns a live relational client:
 
@@ -48,6 +48,7 @@ Use these when the app already owns a live relational client:
 - TypeORM
 - Sequelize
 - EdgeDB / Gel
+- Neo4j
 - Cloudflare D1
 - direct SQL clients
 
@@ -105,6 +106,7 @@ Examples:
 - `@farming-labs/orm-typeorm` translates into TypeORM-backed relational operations
 - `@farming-labs/orm-sequelize` translates into Sequelize-backed relational operations
 - `@farming-labs/orm-edgedb` translates into Gel SQL-backed relational operations
+- `@farming-labs/orm-neo4j` translates into Neo4j-backed graph/document operations through the shared ORM surface
 - `@farming-labs/orm-d1` translates into Cloudflare D1 binding operations
 - `@farming-labs/orm-kv` translates into Cloudflare KV namespace operations
 - `@farming-labs/orm-redis` translates into Redis and Upstash-compatible key-value operations
@@ -200,6 +202,17 @@ Examples:
   linkLabel="Open EdgeDB guide"
 >
   EdgeDB integration
+</HoverLink>
+
+<span>·</span>
+
+<HoverLink
+  href="/docs/integrations/neo4j"
+  title="Neo4j"
+  description="See how Farming Labs ORM uses the official Neo4j driver or session while keeping one schema and one storage layer."
+  linkLabel="Open Neo4j guide"
+>
+  Neo4j integration
 </HoverLink>
 
 <span>·</span>

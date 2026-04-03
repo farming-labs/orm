@@ -9,6 +9,7 @@ export type DetectedDatabaseRuntime<TClient = unknown> = Readonly<{
     | "kysely"
     | "edgedb"
     | "mikroorm"
+    | "neo4j"
     | "d1"
     | "kv"
     | "dynamodb"
@@ -208,6 +209,28 @@ function isDynamoDbClient(client: unknown): client is Record<string, unknown> {
 
 function isD1PreparedStatement(client: unknown): client is Record<string, unknown> {
   return hasFunction(client, "bind") && hasFunction(client, "run");
+}
+
+function isNeo4jDriver(client: unknown): client is Record<string, unknown> {
+  const constructorName = getConstructorName(client);
+  return (
+    hasFunction(client, "session") &&
+    (hasFunction(client, "close") ||
+      hasFunction(client, "verifyConnectivity") ||
+      hasFunction(client, "getServerInfo") ||
+      /driver/i.test(constructorName))
+  );
+}
+
+function isNeo4jSession(client: unknown): client is Record<string, unknown> {
+  const constructorName = getConstructorName(client);
+  return (
+    hasFunction(client, "run") &&
+    (hasFunction(client, "beginTransaction") ||
+      hasFunction(client, "executeRead") ||
+      hasFunction(client, "executeWrite")) &&
+    (hasFunction(client, "close") || /session/i.test(constructorName))
+  );
 }
 
 function isD1DatabaseSession(client: unknown): client is Record<string, unknown> {
@@ -495,6 +518,14 @@ export function detectDatabaseRuntime<TClient>(
     }
   }
 
+  if (isNeo4jDriver(client) || isNeo4jSession(client)) {
+    return Object.freeze({
+      kind: "neo4j",
+      client,
+      source: "client",
+    });
+  }
+
   if (isDynamoDbClient(client)) {
     return Object.freeze({
       kind: "dynamodb",
@@ -704,6 +735,16 @@ export function inspectDatabaseRuntime<TClient>(
               ]
           : missingFunctions(client, ["getConnection", "transactional"]).concat([
               'expected either a MikroORM instance ("em", "connect", "close") or an EntityManager-like runtime',
+            ]),
+    },
+    {
+      kind: "neo4j",
+      matched: isNeo4jDriver(client) || isNeo4jSession(client),
+      reasons:
+        isNeo4jDriver(client) || isNeo4jSession(client)
+          ? []
+          : missingFunctions(client, ["run"]).concat([
+              'expected a Neo4j driver ("session") or session ("run", "beginTransaction"/"executeWrite") shape',
             ]),
     },
     {

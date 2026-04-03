@@ -41,6 +41,7 @@
     "@farming-labs/orm-mikroorm": "workspace:*",
     "@farming-labs/orm-mongo": "workspace:*",
     "@farming-labs/orm-mongoose": "workspace:*",
+    "@farming-labs/orm-neo4j": "workspace:*",
     "@farming-labs/orm-prisma": "workspace:*",
     "@farming-labs/orm-redis": "workspace:*",
     "@farming-labs/orm-sequelize": "workspace:*",

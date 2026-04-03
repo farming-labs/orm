@@ -39,6 +39,7 @@ If you want the full story for one stack, use
 | TypeORM         | No         | Yes     | Full    | Runtime-first relational integration                            |
 | Sequelize       | No         | Yes     | Full    | Runtime-first relational integration                            |
 | EdgeDB / Gel    | No         | Yes     | No-op   | Runtime bridge through the official Gel SQL client              |
+| Neo4j           | No         | Yes     | Full    | Graph runtime through the official Neo4j driver/session shapes  |
 | Cloudflare D1   | No         | Yes     | Limited | Worker-native SQLite binding with local/CI setup helpers        |
 | Cloudflare KV   | No         | Yes     | No-op   | Worker-native key-value runtime                                 |
 | Redis / Upstash | No         | Yes     | No-op   | Key-value runtime for Redis and Upstash-compatible clients      |
@@ -98,6 +99,22 @@ Setup is intentionally conservative here:
 - `pushSchema(...)` and `applySchema(...)` are no-ops
 - `bootstrapDatabase(...)` still gives the single convenience entrypoint
 - the runtime is for query execution, not Gel SDL management
+
+### Neo4j
+
+Neo4j is supported as a runtime-first graph backend through the official
+Neo4j driver and session shapes.
+
+That means:
+
+- pass the raw Neo4j driver or session directly
+- keep one schema definition and one query surface
+- let the runtime setup helpers create the ORM-owned labels, constraints, and indexes
+
+Two boundaries matter:
+
+- this is not a Cypher-native graph query builder
+- relation loading stays conservative and uses follow-up reads instead of claiming native graph traversal planning
 
 ### Cloudflare KV
 
@@ -167,7 +184,7 @@ That means they rely more on:
 ### Numeric IDs and namespaces
 
 - generated numeric IDs are first-class on the relational runtimes, including D1
-- MongoDB, Mongoose, Firestore, DynamoDB, Cloudflare KV, Redis, and Unstorage keep numeric IDs manual-only
+- Neo4j, MongoDB, Mongoose, Firestore, DynamoDB, Cloudflare KV, Redis, and Unstorage keep numeric IDs manual-only
 - schema namespaces are only meaningful on Postgres-style relational runtimes
 
 ### Unstorage boundary

@@ -14,6 +14,7 @@ import type { KyselyDialect, KyselyDriverConfig } from "@farming-labs/orm-kysely
 import type { MikroormDriverConfig, MikroormDriverDialect } from "@farming-labs/orm-mikroorm";
 import type { MongoDriverConfig } from "@farming-labs/orm-mongo";
 import type { MongooseDriverConfig } from "@farming-labs/orm-mongoose";
+import type { Neo4jDriverConfig } from "@farming-labs/orm-neo4j";
 import type { PrismaDriverConfig } from "@farming-labs/orm-prisma";
 import type { RedisDriverConfig } from "@farming-labs/orm-redis";
 import type { SupabaseDriverConfig } from "@farming-labs/orm-supabase";
@@ -114,6 +115,15 @@ export async function createDriverFromRuntime<
       return createMikroormDriver<TSchema>({
         orm: runtime.client as MikroormDriverConfig<TSchema>["orm"],
         dialect: resolveDialect(runtime, options.dialect) as MikroormDriverDialect,
+      }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
+    }
+    case "neo4j": {
+      const { createNeo4jDriver } = await import("@farming-labs/orm-neo4j");
+      return createNeo4jDriver<TSchema>({
+        client: runtime.client as Neo4jDriverConfig<TSchema>["client"],
+        base: options.neo4j?.base,
+        database: options.neo4j?.database,
+        transforms: options.neo4j?.transforms as Neo4jDriverConfig<TSchema>["transforms"],
       }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
     }
     case "firestore": {
