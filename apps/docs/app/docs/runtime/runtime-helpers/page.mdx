@@ -1,6 +1,6 @@
 ---
 title: "Runtime Helpers"
-description: "Create a driver or ORM directly from a raw Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, EdgeDB / Gel, Cloudflare D1, Cloudflare KV, Redis / Upstash, Supabase, SQL, Firestore, DynamoDB, Unstorage, MongoDB, or Mongoose runtime."
+description: "Create a driver or ORM directly from a raw Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, EdgeDB / Gel, Neo4j, Cloudflare D1, Cloudflare KV, Redis / Upstash, Supabase, SQL, Firestore, DynamoDB, Unstorage, MongoDB, or Mongoose runtime."
 order: 2
 icon: harddrive
 ---
@@ -42,6 +42,7 @@ That is especially useful when another library wants to accept:
 - a Drizzle database
 - a Kysely instance
 - an EdgeDB / Gel SQL client
+- a Neo4j driver or session
 - a MikroORM instance or `EntityManager`
 - a TypeORM `DataSource`
 - a Sequelize instance
@@ -256,6 +257,23 @@ This runtime is intentionally query-first:
 - `createOrmFromRuntime(...)` detects the Gel SQL client directly
 - `pushSchema(...)` and `applySchema(...)` are no-ops
 - `bootstrapDatabase(...)` still returns the ORM, but assumes the Gel schema already exists
+
+### Neo4j
+
+For Neo4j, pass the official driver or session directly:
+
+```ts
+const orm = await createOrmFromRuntime({
+  schema,
+  client: neo4jDriver,
+});
+```
+
+This runtime is intentionally graph-aware but conservative:
+
+- `createOrmFromRuntime(...)` detects the Neo4j driver or session directly
+- `pushSchema(...)` and `applySchema(...)` create ORM-owned constraints and indexes
+- relation loading stays on the shared resolver path instead of claiming Cypher-native graph traversal planning
 
 ### Cloudflare KV
 

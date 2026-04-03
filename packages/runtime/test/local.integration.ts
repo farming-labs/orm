@@ -20,6 +20,7 @@ import { startLocalD1 } from "../../d1/test/support/local-d1";
 import { startLocalDynamoDb } from "../../dynamodb/test/support/local-dynamodb";
 import { startLocalEdgeDb } from "../../edgedb/test/support/local-edgedb";
 import { startLocalKv } from "../../kv/test/support/local-kv";
+import { startLocalNeo4j } from "../../neo4j/test/support/local-neo4j";
 import { hasLocalRedisServerBinary, startLocalRedis } from "../../redis/test/support/local-redis";
 import { startLocalSupabase } from "../../supabase/test/support/local-supabase";
 import { startLocalUnstorage } from "../../unstorage/test/support/local-unstorage";
@@ -371,6 +372,50 @@ describe("runtime helper local integration", () => {
         email: "edgedb@farminglabs.dev",
       });
       expect(inspectDatabaseRuntime(local.client).runtime?.kind).toBe("edgedb");
+    } finally {
+      await local.close();
+    }
+  });
+
+  it("creates and bootstraps a Neo4j runtime from a raw driver", async () => {
+    const local = await startLocalNeo4j();
+
+    try {
+      await pushSchema({
+        schema,
+        client: local.client,
+      });
+      await applySchema({
+        schema,
+        client: local.client,
+      });
+
+      const driver = await createDriverFromRuntime({
+        schema,
+        client: local.client,
+      });
+      const orm = await bootstrapDatabase({
+        schema,
+        client: local.client,
+      });
+
+      const created = await orm.user.create({
+        data: {
+          email: "neo4j@farminglabs.dev",
+          name: "Neo4j",
+        },
+        select: {
+          id: true,
+          email: true,
+        },
+      });
+
+      expect(driver.handle.kind).toBe("neo4j");
+      expect(created).toEqual({
+        id: expect.any(String),
+        email: "neo4j@farminglabs.dev",
+      });
+      expect(inspectDatabaseRuntime(local.client).runtime?.kind).toBe("neo4j");
     } finally {
       await local.close();
     }

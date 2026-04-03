@@ -1,0 +1,34 @@
+{
+  "name": "@farming-labs/orm-neo4j",
+  "version": "0.0.48",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsx ./scripts/build.ts",
+    "test": "vitest run --config vitest.local.config.ts",
+    "test:real": "tsx ./scripts/test-real.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@farming-labs/orm": "workspace:*"
+  },
+  "devDependencies": {
+    "neo4j-driver": "^5.28.2",
+    "tsup": "^8.4.0"
+  }
+}

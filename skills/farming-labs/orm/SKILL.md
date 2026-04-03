@@ -4,7 +4,7 @@ description: |
   Use when working in the Farming Labs ORM monorepo. Covers the schema DSL,
   runtime drivers, relation translation, docs updates, release flow, and real
   local database integration tests. Triggers: createOrm, Prisma driver,
-  Drizzle driver, Kysely driver, MikroORM driver, TypeORM driver, Sequelize driver, Cloudflare D1,
+  Drizzle driver, Kysely driver, MikroORM driver, TypeORM driver, Sequelize driver, Neo4j driver, Cloudflare D1,
   Cloudflare KV, Redis, Supabase JS, EdgeDB, Firestore, DynamoDB, Unstorage, Mongo runtime,
   Mongoose runtime, update docs, test:local, release latest, compound unique,
   native relation loading.
@@ -35,6 +35,8 @@ repo-specific knowledge about the unified ORM API.
   Sequelize runtime driver
 - `packages/edgedb`
   EdgeDB / Gel SQL runtime driver
+- `packages/neo4j`
+  Neo4j graph runtime driver
 - `packages/d1`
   Cloudflare D1 runtime driver
 - `packages/kv`
@@ -108,6 +110,7 @@ pnpm test:local:sql
 pnpm test:local:d1
 pnpm test:local:kv
 pnpm test:local:edgedb
+pnpm test:local:neo4j
 pnpm test:local:drizzle
 pnpm test:local:kysely
 pnpm test:local:mikroorm
@@ -186,6 +189,8 @@ Current runtime packages in this repo:
   - Sequelize runtime
 - `@farming-labs/orm-edgedb`
   - EdgeDB / Gel SQL runtime bridge
+- `@farming-labs/orm-neo4j`
+  - Neo4j graph runtime
 - `@farming-labs/orm-d1`
   - Cloudflare D1 runtime
 - `@farming-labs/orm-kv`
@@ -224,6 +229,10 @@ Important boundary:
 - `@farming-labs/orm-edgedb` is a runtime-first bridge through the official Gel
   SQL client. It is meant for query execution on top of an existing Gel
   database, not for replacing the app's own Gel schema or migration workflow.
+- `@farming-labs/orm-neo4j` is a runtime-first graph backend through the
+  official Neo4j driver and session shapes. It is a good fit for connected
+  app data, auth/org/member graphs, and shared storage layers that still want
+  one ORM surface, but it is not a Cypher-native graph query builder.
 - `@farming-labs/orm-redis` is for Redis and Upstash-compatible key-value
   workloads such as sessions, cache metadata, tokens, and rate limits. It is
   not the preferred fit for highly relational or join-heavy workloads.

@@ -24,6 +24,7 @@
       "@farming-labs/orm-kysely": ["packages/kysely/src/index.ts"],
       "@farming-labs/orm-mikroorm": ["packages/mikroorm/src/index.ts"],
       "@farming-labs/orm-mongo": ["packages/mongo/src/index.ts"],
+      "@farming-labs/orm-neo4j": ["packages/neo4j/src/index.ts"],
       "@farming-labs/orm-runtime/setup": ["packages/runtime/src/setup.ts"],
       "@farming-labs/orm-runtime": ["packages/runtime/src/index.ts"],
       "@farming-labs/orm-redis": ["packages/redis/src/index.ts"],

@@ -18,6 +18,7 @@ export default defineConfig({
       "@farming-labs/orm-mikroorm": path.resolve(dirname, "../mikroorm/src/index.ts"),
       "@farming-labs/orm-mongo": path.resolve(dirname, "../mongo/src/index.ts"),
       "@farming-labs/orm-mongoose": path.resolve(dirname, "../mongoose/src/index.ts"),
+      "@farming-labs/orm-neo4j": path.resolve(dirname, "../neo4j/src/index.ts"),
       "@farming-labs/orm-prisma": path.resolve(dirname, "../prisma/src/index.ts"),
       "@farming-labs/orm-redis": path.resolve(dirname, "../redis/src/index.ts"),
       "@farming-labs/orm-supabase": path.resolve(dirname, "../supabase/src/index.ts"),

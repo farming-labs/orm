@@ -273,6 +273,43 @@ describe("runtime contract", () => {
     expect(inspectDatabaseRuntime(dynamo).runtime?.kind).toBe("dynamodb");
   });
 
+  it("detects Neo4j runtimes from driver and session shapes", () => {
+    const session = {
+      run: async () => ({ records: [] }),
+      beginTransaction: async () => ({
+        run: async () => ({ records: [] }),
+        commit: async () => undefined,
+        rollback: async () => undefined,
+      }),
+      close: async () => undefined,
+      constructor: {
+        name: "Session",
+      },
+    };
+
+    const driver = {
+      session: () => session,
+      close: async () => undefined,
+      verifyConnectivity: async () => undefined,
+      constructor: {
+        name: "Driver",
+      },
+    };
+
+    expect(detectDatabaseRuntime(driver)).toEqual({
+      kind: "neo4j",
+      client: driver,
+      source: "client",
+    });
+    expect(detectDatabaseRuntime(session)).toEqual({
+      kind: "neo4j",
+      client: session,
+      source: "client",
+    });
+    expect(inspectDatabaseRuntime(driver).runtime?.kind).toBe("neo4j");
+    expect(inspectDatabaseRuntime(session).runtime?.kind).toBe("neo4j");
+  });
+
   it("detects EdgeDB runtimes from Gel SQL client shapes", () => {
     const client = {
       querySQL: async () => [],

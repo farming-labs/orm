@@ -1,0 +1,252 @@
+---
+title: "Neo4j"
+description: "How the unified schema and runtime fit into Neo4j-backed graph applications."
+order: 8
+icon: network
+---
+
+# Neo4j
+
+Neo4j integration is runtime-first.
+
+Use `@farming-labs/orm-neo4j` when:
+
+- the app already owns a real Neo4j driver or session
+- a shared package wants to keep one storage layer across Neo4j, Prisma,
+  Drizzle, Kysely, MikroORM, TypeORM, Sequelize, direct SQL, Firestore,
+  DynamoDB, Redis, or MongoDB-style runtimes
+- you want one schema definition and one query surface while still letting the
+  app keep Neo4j underneath
+
+## Supported Neo4j runtime inputs
+
+- a `neo4j-driver` `Driver`
+- a `neo4j-driver` `Session`
+
+The current runtime uses those official driver/session shapes directly. It does
+not invent another graph client layer.
+
+## Runtime setup
+
+```ts title="neo4j-runtime.ts"
+import neo4j from "neo4j-driver";
+import { createOrm } from "@farming-labs/orm";
+import { createNeo4jDriver } from "@farming-labs/orm-neo4j";
+import { appSchema } from "./schema";
+
+const driver = neo4j.driver(
+  process.env.NEO4J_URI!,
+  neo4j.auth.basic(process.env.NEO4J_USERNAME!, process.env.NEO4J_PASSWORD!),
+);
+
+const orm = createOrm({
+  schema: appSchema,
+  driver: createNeo4jDriver({
+    client: driver,
+    database: "neo4j",
+  }),
+});
+```
+
+From there, shared code keeps using the same unified API:
+
+```ts
+const user = await orm.user.findUnique({
+  where: {
+    email: "ada@farminglabs.dev",
+  },
+  select: {
+    id: true,
+    email: true,
+    sessions: {
+      select: {
+        token: true,
+      },
+    },
+  },
+});
+```
+
+## What the Neo4j driver is doing
+
+The Neo4j driver keeps the shared ORM surface and stores records through
+Neo4j-managed nodes plus ORM-owned lookup metadata.
+
+It:
+
+1. accepts the app's real Neo4j driver or session
+2. executes writes through Neo4j transactions
+3. uses ORM-managed unique lookups and follow-up relation reads
+4. keeps the same normalized error and capability surface as the other runtimes
+
+That means a package can write its storage layer once while each app decides
+whether the actual execution stack is Neo4j, Prisma, Drizzle, Kysely,
+MikroORM, TypeORM, Sequelize, direct SQL, Firestore, DynamoDB, Redis,
+MongoDB, or Mongoose.
+
+## Runtime helper path
+
+If a framework or shared package wants to accept the raw Neo4j client directly,
+use the runtime helpers:
+
+```ts
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const orm = await createOrmFromRuntime({
+  schema: appSchema,
+  client: driver,
+});
+```
+
+You can also pass a Neo4j session directly:
+
+```ts
+const session = driver.session({ database: "neo4j" });
+
+const orm = await createOrmFromRuntime({
+  schema: appSchema,
+  client: session,
+});
+```
+
+That is the cleanest path for higher-level integrations that do not want to
+branch on Neo4j specifically.
+
+## Setup helpers
+
+The setup helpers work with Neo4j too:
+
+```ts
+import { bootstrapDatabase, pushSchema } from "@farming-labs/orm-runtime/setup";
+
+await pushSchema({
+  schema: appSchema,
+  client: driver,
+});
+
+const orm = await bootstrapDatabase({
+  schema: appSchema,
+  client: driver,
+});
+```
+
+For Neo4j runtimes, that setup path creates the ORM-owned constraints and
+indexes needed for record and unique-lock storage.
+
+That is useful when a package or framework wants:
+
+- repeatable local or CI bootstrap
+- one setup path across runtime families
+- no separate Neo4j-only setup API at the package boundary
+
+## Relation support
+
+The Neo4j runtime is graph-backed, but the current ORM layer still keeps
+relation loading conservative:
+
+- `belongsTo`
+- `hasOne`
+- `hasMany`
+- explicit join-table `manyToMany`
+
+Those reads work through the shared relation resolver and follow-up lookups.
+This runtime is not trying to expose a Cypher-native graph traversal planner
+through the ORM API.
+
+That makes it a strong fit for:
+
+- auth and account graphs
+- org/member/workspace graphs
+- connected app/platform state
+
+while still preserving the same shared query surface as the rest of the repo.
+
+## Transactions and mutations
+
+Neo4j write transactions map into the unified ORM transaction surface:
+
+```ts
+await orm.transaction(async (tx) => {
+  const user = await tx.user.create({
+    data: {
+      email: "ada@farminglabs.dev",
+      name: "Ada",
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  await tx.session.upsert({
+    where: {
+      token: "session-token",
+    },
+    create: {
+      userId: user.id,
+      token: "session-token",
+      expiresAt: new Date("2027-01-01T00:00:00.000Z"),
+    },
+    update: {
+      expiresAt: new Date("2027-01-01T00:00:00.000Z"),
+    },
+  });
+});
+```
+
+The same runtime also supports:
+
+- `create`
+- `createMany`
+- `update`
+- `updateMany`
+- `upsert`
+- `delete`
+- `deleteMany`
+- compound-unique lookups
+- model-level constraint enforcement
+
+## Verification
+
+Run the fast local Neo4j suite with:
+
+```bash title="terminal"
+pnpm test:local:neo4j
+```
+
+That package-local suite uses a Neo4j-shaped harness so you can verify the
+runtime, setup helpers, and transaction behavior without running a local Neo4j
+service first.
+
+If you want a real Bolt-backed run against your own local or shared Neo4j
+instance, use:
+
+```bash title="terminal"
+export FARM_ORM_LOCAL_NEO4J_URI=bolt://127.0.0.1:7687
+export FARM_ORM_LOCAL_NEO4J_USERNAME=neo4j
+export FARM_ORM_LOCAL_NEO4J_PASSWORD=your-password
+
+pnpm test:neo4j:real
+```
+
+## Important boundaries
+
+- generated integer IDs are not supported
+- schema-qualified table namespaces are not supported
+- this runtime is graph-backed, but it is not a Cypher-native graph query builder
+- relation loading stays conservative instead of claiming native graph
+  traversal planning
+
+## Why it fits well
+
+Neo4j already gives apps a strong graph runtime.
+
+Farming Labs ORM sits one layer above that:
+
+- app code keeps Neo4j
+- package code keeps one schema and one storage layer
+- runtime helpers can accept the raw Neo4j driver or session
+- setup helpers can bootstrap the ORM-owned constraints and indexes
+
+That is the main value: Neo4j apps can participate in the same package-level
+storage contract as Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize,
+direct SQL, Firestore, DynamoDB, Redis, MongoDB, and Mongoose apps.
