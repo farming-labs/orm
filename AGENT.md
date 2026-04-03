@@ -29,7 +29,7 @@ This repository is a TypeScript monorepo for @farming-labs/orm
 - `packages/redis`
   Redis and Upstash-compatible runtime driver
 - `packages/supabase`
-  Supabase JS runtime driver
+  Supabase JS runtime driver alongside the raw PostgreSQL Supabase helpers in `packages/sql`
 - `packages/firestore`
   Firestore runtime driver
 - `packages/dynamodb`
