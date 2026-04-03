@@ -291,6 +291,27 @@ The Redis runtime keeps setup intentionally light:
 - `bootstrapDatabase(...)` still works as the single convenience entrypoint
 - relation loading uses follow-up reads instead of a native join planner
 
+### Supabase
+
+For the direct Supabase JS path, pass the client created with
+`createClient(...)` directly:
+
+```ts
+const orm = await createOrmFromRuntime({
+  schema,
+  client: supabase,
+});
+```
+
+This path is intentionally query-first:
+
+- `pushSchema(...)` and `applySchema(...)` are no-ops
+- `bootstrapDatabase(...)` still works as the single convenience entrypoint
+- the runtime uses the Supabase table API instead of a hidden raw `pg` bridge
+
+If the app already owns a raw PostgreSQL client connected to Supabase, use the
+normal SQL runtime path instead.
+
 ### Prisma
 
 For Prisma, the helper renders a temporary Prisma schema and runs `prisma db
@@ -398,13 +419,23 @@ const orm = createOrm({
 - Prisma client
 - Drizzle database
 - Kysely instance
+- EdgeDB / Gel SQL client
+- MikroORM instance or `EntityManager`
 - TypeORM `DataSource`
 - Sequelize instance
+- Cloudflare D1 binding
+- Cloudflare KV namespace
+- Redis client
+- Upstash Redis client
+- Supabase client
 - SQLite database
 - `pg` Pool
 - `pg` Client
 - `mysql2` Pool
 - `mysql2` Connection
+- Firestore client
+- `DynamoDBClient`
+- `DynamoDBDocumentClient`
 - Unstorage storage
 - Mongo `Db`
 - Mongo `MongoClient`

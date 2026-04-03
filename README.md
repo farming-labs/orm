@@ -14,6 +14,11 @@ It gives you:
 - generated Prisma, Drizzle, and safe SQL artifacts
 - runtime helpers that accept raw clients and build the ORM for you
 
+Supabase support now comes through two honest paths:
+
+- `@farming-labs/orm-sql` when the app owns a raw PostgreSQL client connected to Supabase
+- `@farming-labs/orm-supabase` when the app already owns a `createClient(...)` instance
+
 ## Packages
 
 - `@farming-labs/orm`

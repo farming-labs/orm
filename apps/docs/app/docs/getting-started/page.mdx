@@ -288,6 +288,23 @@ const orm = createOrm({
 });
 ```
 
+### Supabase JS
+
+```ts title="supabase-runtime.ts"
+import { createClient } from "@supabase/supabase-js";
+import { createOrm } from "@farming-labs/orm";
+import { createSupabaseDriver } from "@farming-labs/orm-supabase";
+
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createSupabaseDriver({
+    client: supabase,
+  }),
+});
+```
+
 ### TypeORM
 
 ```ts title="typeorm-runtime.ts"
@@ -448,7 +465,8 @@ const orm = await createOrmFromRuntime({
 
 That path is especially useful for higher-level integrations that want to
 accept a raw Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, SQL,
-Firestore, DynamoDB, Cloudflare KV, Redis, Unstorage, MongoDB, or Mongoose runtime.
+EdgeDB / Gel, Cloudflare D1, Cloudflare KV, Redis, Supabase, Firestore,
+DynamoDB, Unstorage, MongoDB, or Mongoose runtime.
 
 ## 5. Use the client
 
@@ -506,6 +524,7 @@ pnpm test:local:mongodb
 - [SQL databases](/docs/integrations/sql-databases)
 - [Cloudflare KV](/docs/integrations/cloudflare-kv)
 - [Redis / Upstash Redis](/docs/integrations/redis)
+- [Supabase](/docs/integrations/supabase)
 - [DynamoDB](/docs/integrations/dynamodb)
 - [Unstorage](/docs/integrations/unstorage)
 - [MongoDB](/docs/integrations/mongodb)

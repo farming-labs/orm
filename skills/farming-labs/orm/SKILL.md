@@ -193,7 +193,7 @@ Current runtime packages in this repo:
 - `@farming-labs/orm-redis`
   - Redis and Upstash-compatible key-value runtime
 - `@farming-labs/orm-supabase`
-  - direct Supabase JS runtime
+  - direct Supabase JS runtime alongside the raw PostgreSQL helpers in `@farming-labs/orm-sql`
 - `@farming-labs/orm-firestore`
   - Firestore runtime
 - `@farming-labs/orm-dynamodb`
@@ -229,7 +229,9 @@ Important boundary:
   not the preferred fit for highly relational or join-heavy workloads.
 - `@farming-labs/orm-supabase` uses Supabase's own client API rather than a
   hidden raw `pg` bridge. It is query-first, keeps setup as a no-op, and is a
-  good fit when the app already owns a `createClient(...)` instance.
+  good fit when the app already owns a `createClient(...)` instance. Keep the
+  normal `@farming-labs/orm-sql` path when the app already owns a raw
+  PostgreSQL client connected to Supabase.
 - `@farming-labs/orm-unstorage` is meant for lightweight key-value/document
   storage and shared storage layers, not for highly relational or join-heavy
   workloads.

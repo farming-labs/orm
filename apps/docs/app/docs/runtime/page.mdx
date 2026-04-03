@@ -123,8 +123,8 @@ The setup helpers now live on the Node-only subpath:
 Import them from `@farming-labs/orm-runtime/setup`. They use the same runtime
 detection layer to prepare direct SQL, Prisma, Drizzle, Kysely, MikroORM,
 TypeORM, Sequelize, EdgeDB / Gel, Cloudflare D1, Cloudflare KV, Redis,
-MongoDB, Mongoose, Firestore, DynamoDB, and Unstorage runtimes without
-inventing a separate config surface.
+Supabase, MongoDB, Mongoose, Firestore, DynamoDB, and Unstorage runtimes
+without inventing a separate config surface.
 
 There is also a dedicated guide for this flow:
 
@@ -232,13 +232,17 @@ the stage, runtime kind, dialect, and underlying cause available.
 - `createMikroormDriver(...)` from `@farming-labs/orm-mikroorm`
 - `createTypeormDriver(...)` from `@farming-labs/orm-typeorm`
 - `createSequelizeDriver(...)` from `@farming-labs/orm-sequelize`
+- `createEdgeDbDriver(...)` from `@farming-labs/orm-edgedb`
 - `createD1Driver(...)` from `@farming-labs/orm-d1`
 - `createKvDriver(...)` from `@farming-labs/orm-kv`
 - `createRedisDriver(...)` from `@farming-labs/orm-redis`
+- `createSupabaseDriver(...)` from `@farming-labs/orm-supabase`
 - `createSqliteDriver(...)` from `@farming-labs/orm-sql`
 - `createMysqlDriver(...)` from `@farming-labs/orm-sql`
 - `createPgPoolDriver(...)` from `@farming-labs/orm-sql`
 - `createPgClientDriver(...)` from `@farming-labs/orm-sql`
+- `createSupabasePoolDriver(...)` from `@farming-labs/orm-sql`
+- `createSupabaseClientDriver(...)` from `@farming-labs/orm-sql`
 - `createFirestoreDriver(...)` from `@farming-labs/orm-firestore`
 - `createMongoDriver(...)` from `@farming-labs/orm-mongo`
 - `createMongooseDriver(...)` from `@farming-labs/orm-mongoose`
@@ -271,8 +275,8 @@ async function findUserByEmail(orm: typeof authOrm, email: string) {
 ```
 
 That helper stays the same whether the app uses Prisma, Drizzle, TypeORM,
-Sequelize, EdgeDB / Gel, Cloudflare D1, Cloudflare KV, Redis, direct SQL,
-Firestore, DynamoDB, Unstorage, MongoDB, or Mongoose.
+Sequelize, EdgeDB / Gel, Cloudflare D1, Cloudflare KV, Redis, Supabase, direct
+SQL, Firestore, DynamoDB, Unstorage, MongoDB, or Mongoose.
 
 The same is true for compound auth lookups:
 
