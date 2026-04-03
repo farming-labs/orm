@@ -16,6 +16,7 @@ import type { MongoDriverConfig } from "@farming-labs/orm-mongo";
 import type { MongooseDriverConfig } from "@farming-labs/orm-mongoose";
 import type { PrismaDriverConfig } from "@farming-labs/orm-prisma";
 import type { RedisDriverConfig } from "@farming-labs/orm-redis";
+import type { SupabaseDriverConfig } from "@farming-labs/orm-supabase";
 import type { SequelizeDriverConfig, SequelizeDriverDialect } from "@farming-labs/orm-sequelize";
 import type {
   MysqlConnectionLike,
@@ -157,6 +158,13 @@ export async function createDriverFromRuntime<
         base: options.redis?.base,
         prefixes: options.redis?.prefixes,
         transforms: options.redis?.transforms as RedisDriverConfig<TSchema>["transforms"],
+      }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
+    }
+    case "supabase": {
+      const { createSupabaseDriver } = await import("@farming-labs/orm-supabase");
+      return createSupabaseDriver<TSchema>({
+        client: runtime.client as SupabaseDriverConfig<TSchema>["client"],
+        transforms: options.supabase?.transforms as SupabaseDriverConfig<TSchema>["transforms"],
       }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
     }
     case "sequelize": {

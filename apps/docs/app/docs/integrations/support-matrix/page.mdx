@@ -30,25 +30,25 @@ If you want the full story for one stack, use
 
 ## Basic matrix
 
-| Stack           | Generation | Runtime | Setup   | Notes                                                      |
-| --------------- | ---------- | ------- | ------- | ---------------------------------------------------------- |
-| Prisma          | Yes        | Yes     | Full    | Generated `schema.prisma` plus live `PrismaClient` runtime |
-| Drizzle         | Yes        | Yes     | Full    | Generated schema files plus live Drizzle runtime           |
-| Kysely          | No         | Yes     | Full    | Runtime-first relational integration                       |
-| MikroORM        | No         | Yes     | Full    | Runtime-first relational integration                       |
-| TypeORM         | No         | Yes     | Full    | Runtime-first relational integration                       |
-| Sequelize       | No         | Yes     | Full    | Runtime-first relational integration                       |
-| EdgeDB / Gel    | No         | Yes     | No-op   | Runtime bridge through the official Gel SQL client         |
-| Cloudflare D1   | No         | Yes     | Limited | Worker-native SQLite binding with local/CI setup helpers   |
-| Cloudflare KV   | No         | Yes     | No-op   | Worker-native key-value runtime                            |
-| Redis / Upstash | No         | Yes     | No-op   | Key-value runtime for Redis and Upstash-compatible clients |
-| Direct SQL      | Yes        | Yes     | Full    | Safe SQL generation plus direct SQL runtime                |
-| Supabase        | Via SQL    | Via SQL | Via SQL | Uses the PostgreSQL layer, not a separate runtime family   |
-| MongoDB         | No         | Yes     | Full    | Native Mongo runtime                                       |
-| Mongoose        | No         | Yes     | Full    | Mongoose-backed runtime                                    |
-| Firestore       | No         | Yes     | Limited | Real runtime, but no SQL-style schema push                 |
-| DynamoDB        | No         | Yes     | Full    | Creates one table per model through the runtime setup path |
-| Unstorage       | No         | Yes     | No-op   | Lightweight key-value/document runtime                     |
+| Stack           | Generation | Runtime | Setup   | Notes                                                           |
+| --------------- | ---------- | ------- | ------- | --------------------------------------------------------------- |
+| Prisma          | Yes        | Yes     | Full    | Generated `schema.prisma` plus live `PrismaClient` runtime      |
+| Drizzle         | Yes        | Yes     | Full    | Generated schema files plus live Drizzle runtime                |
+| Kysely          | No         | Yes     | Full    | Runtime-first relational integration                            |
+| MikroORM        | No         | Yes     | Full    | Runtime-first relational integration                            |
+| TypeORM         | No         | Yes     | Full    | Runtime-first relational integration                            |
+| Sequelize       | No         | Yes     | Full    | Runtime-first relational integration                            |
+| EdgeDB / Gel    | No         | Yes     | No-op   | Runtime bridge through the official Gel SQL client              |
+| Cloudflare D1   | No         | Yes     | Limited | Worker-native SQLite binding with local/CI setup helpers        |
+| Cloudflare KV   | No         | Yes     | No-op   | Worker-native key-value runtime                                 |
+| Redis / Upstash | No         | Yes     | No-op   | Key-value runtime for Redis and Upstash-compatible clients      |
+| Direct SQL      | Yes        | Yes     | Full    | Safe SQL generation plus direct SQL runtime                     |
+| Supabase        | Via SQL    | Yes     | Mixed   | Works through raw PostgreSQL clients or the Supabase JS runtime |
+| MongoDB         | No         | Yes     | Full    | Native Mongo runtime                                            |
+| Mongoose        | No         | Yes     | Full    | Mongoose-backed runtime                                         |
+| Firestore       | No         | Yes     | Limited | Real runtime, but no SQL-style schema push                      |
+| DynamoDB        | No         | Yes     | Full    | Creates one table per model through the runtime setup path      |
+| Unstorage       | No         | Yes     | No-op   | Lightweight key-value/document runtime                          |
 
 ## Important details
 
@@ -136,15 +136,13 @@ recommended fit for highly relational or join-heavy workloads.
 
 ### Supabase
 
-Supabase is already covered through the PostgreSQL path.
+Supabase now works through two honest paths:
 
-That means:
+- a raw PostgreSQL client connected to Supabase
+- the direct Supabase JS runtime
 
-- keep the same schema definition
-- keep the same ORM layer
-- connect through a PostgreSQL client that talks to Supabase
-
-There is no separate Supabase-only schema model here.
+The PostgreSQL path keeps full SQL-style setup helpers. The direct Supabase JS
+runtime is query-first and keeps setup as a no-op.
 
 ### Document and key-value runtimes
 

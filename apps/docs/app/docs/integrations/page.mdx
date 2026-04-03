@@ -56,14 +56,14 @@ the higher-level storage logic unchanged.
 
 ### PostgreSQL platforms
 
-Hosted PostgreSQL platforms such as Supabase fit through the same PostgreSQL
-layer rather than needing a separate database model.
+Hosted PostgreSQL platforms such as Supabase can fit through either the raw
+PostgreSQL layer or the direct Supabase JS client runtime.
 
 That means the same schema can still power:
 
 - generated Prisma / Drizzle / SQL output
-- live ORM queries through a PostgreSQL client
-- setup helpers such as `pushSchema(...)` and `bootstrapDatabase(...)`
+- live ORM queries through a PostgreSQL client or a Supabase client
+- setup helpers when the app chooses the PostgreSQL path
 
 ### Document and key-value runtimes
 
@@ -239,7 +239,7 @@ Examples:
 <HoverLink
   href="/docs/integrations/supabase"
   title="Supabase"
-  description="See how Farming Labs ORM uses the PostgreSQL layer to work with Supabase without creating a separate database model."
+  description="See how Farming Labs ORM works with both raw PostgreSQL connections to Supabase and direct Supabase JS clients."
   linkLabel="Open Supabase guide"
 >
   Supabase integration

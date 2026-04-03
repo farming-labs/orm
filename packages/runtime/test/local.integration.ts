@@ -21,6 +21,7 @@ import { startLocalDynamoDb } from "../../dynamodb/test/support/local-dynamodb";
 import { startLocalEdgeDb } from "../../edgedb/test/support/local-edgedb";
 import { startLocalKv } from "../../kv/test/support/local-kv";
 import { hasLocalRedisServerBinary, startLocalRedis } from "../../redis/test/support/local-redis";
+import { startLocalSupabase } from "../../supabase/test/support/local-supabase";
 import { startLocalUnstorage } from "../../unstorage/test/support/local-unstorage";
 
 const schema = defineSchema({
@@ -414,6 +415,51 @@ describe("runtime helper local integration", () => {
         email: "redis@farminglabs.dev",
       });
       expect(inspectDatabaseRuntime(local.client).runtime?.kind).toBe("redis");
+    } finally {
+      await local.close();
+    }
+  });
+
+  it("creates and bootstraps a Supabase runtime from a raw Supabase client", async () => {
+    const local = await startLocalSupabase();
+
+    try {
+      await pushSchema({
+        schema,
+        client: local.client,
+      });
+      await applySchema({
+        schema,
+        client: local.client,
+      });
+
+      const driver = await createDriverFromRuntime({
+        schema,
+        client: local.client,
+      });
+      const orm = await bootstrapDatabase({
+        schema,
+        client: local.client,
+      });
+
+      const created = await orm.user.create({
+        data: {
+          email: "supabase@farminglabs.dev",
+          name: "Supabase",
+        },
+        select: {
+          id: true,
+          email: true,
+        },
+      });
+
+      expect(driver.handle.kind).toBe("supabase");
+      expect(driver.handle.dialect).toBe("postgres");
+      expect(created).toEqual({
+        id: expect.any(String),
+        email: "supabase@farminglabs.dev",
+      });
+      expect(inspectDatabaseRuntime(local.client).runtime?.kind).toBe("supabase");
     } finally {
       await local.close();
     }
