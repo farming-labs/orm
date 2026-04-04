@@ -125,6 +125,11 @@ pnpm test:local:xata
 pnpm test:local:unstorage
 pnpm test:local:mongodb
 pnpm test:local:prisma
+```
+
+For live credential-backed verification, use the opt-in path:
+
+```bash
 pnpm test:xata:real
 ```
 

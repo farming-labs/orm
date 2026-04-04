@@ -473,6 +473,36 @@ describe("runtime contract", () => {
     expect(inspectDatabaseRuntime(xata).runtime?.kind).toBe("xata");
   });
 
+  it("detects Xata runtimes from batch metadata when the sql function has no connection string", () => {
+    const sql = Object.assign(
+      async () => ({
+        records: [],
+        columns: [],
+      }),
+      {
+        batch: async () => ({
+          results: [],
+        }),
+      },
+    );
+
+    const xata = {
+      db: {},
+      sql,
+      constructor: {
+        name: "AnonymousClient",
+      },
+    };
+
+    expect(detectDatabaseRuntime(xata)).toEqual({
+      kind: "xata",
+      client: xata,
+      dialect: "postgres",
+      source: "client",
+    });
+    expect(inspectDatabaseRuntime(xata).runtime?.kind).toBe("xata");
+  });
+
   it("detects Upstash-style Redis runtimes from client shapes", () => {
     const upstash = {
       get: async () => null,

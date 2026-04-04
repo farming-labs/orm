@@ -116,6 +116,19 @@ function tokenizeTopLevelSql(sql: string) {
     const char = sql[index];
     const next = sql[index + 1];
 
+    if (char === "$") {
+      let endTag = index + 1;
+      while (endTag < sql.length && /[A-Za-z0-9_]/.test(sql[endTag]!)) {
+        endTag += 1;
+      }
+      if (sql[endTag] === "$") {
+        const tag = sql.slice(index, endTag + 1);
+        const closeIndex = sql.indexOf(tag, endTag + 1);
+        index = closeIndex === -1 ? sql.length : closeIndex + tag.length;
+        continue;
+      }
+    }
+
     if (char === "'" || char === '"') {
       const quote = char;
       index += 1;
@@ -212,6 +225,12 @@ function primaryStatementKeyword(sql: string) {
     }
 
     index += 1;
+    if (tokens[index] === "NOT") {
+      index += 1;
+    }
+    if (tokens[index] === "MATERIALIZED") {
+      index += 1;
+    }
     if (tokens[index] === ",") {
       index += 1;
       continue;
@@ -238,6 +257,14 @@ function isMutationQuery(sql: string) {
 function hasReturningClause(sql: string) {
   return tokenizeTopLevelSql(sql).includes("RETURNING");
 }
+
+export const xataSqlIntrospection = {
+  tokenizeTopLevelSql,
+  primaryStatementKeyword,
+  isReadQuery,
+  isMutationQuery,
+  hasReturningClause,
+} as const;
 
 function trimStatement(sql: string) {
   return sql.trim().replace(/;+$/g, "");

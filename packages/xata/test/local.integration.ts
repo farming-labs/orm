@@ -26,7 +26,7 @@ import {
   assertOneToOneAndHasManyQueries,
   schema,
 } from "../../mongoose/test/support/auth";
-import { createXataDriver } from "../src";
+import { createXataDriver, xataSqlIntrospection } from "../src";
 import { startLocalXata } from "./support/local-xata";
 
 const LOCAL_TIMEOUT_MS = 30_000;
@@ -201,6 +201,29 @@ describe("xata integration", () => {
     },
     LOCAL_TIMEOUT_MS,
   );
+
+  it("parses CTE modifiers and dollar-quoted SQL safely", () => {
+    expect(
+      xataSqlIntrospection.primaryStatementKeyword(
+        "with seeded as materialized (select 1 as id) select * from seeded",
+      ),
+    ).toBe("SELECT");
+    expect(
+      xataSqlIntrospection.primaryStatementKeyword(
+        "with seeded as not materialized (select 1 as id) update users set name = 'Ada' where id = 1",
+      ),
+    ).toBe("UPDATE");
+    expect(
+      xataSqlIntrospection.hasReturningClause(
+        "update notes set body = $$returning should stay text$$ where id = 1",
+      ),
+    ).toBe(false);
+    expect(
+      xataSqlIntrospection.hasReturningClause(
+        "with changed as not materialized (select 1) update notes set title = 'Ada' returning id",
+      ),
+    ).toBe(true);
+  });
 
   it(
     "runs auth-style one-to-one and has-many queries",

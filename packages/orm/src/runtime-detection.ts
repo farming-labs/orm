@@ -319,13 +319,15 @@ function isXataClient(client: unknown): client is Record<string, unknown> {
   const constructorName = getConstructorName(client);
   const record = client as Record<string, unknown>;
   const sql = isRecord(record) ? record.sql : undefined;
+  const sqlRecord = sql as unknown as Record<string, unknown>;
 
   return (
     isRecord(client) &&
     typeof record.sql === "function" &&
     isRecord(record.db) &&
     (hasFunction(client, "getConfig") ||
-      (typeof sql === "function" && ("connectionString" in sql || hasFunction(sql, "batch"))) ||
+      (typeof sql === "function" &&
+        ("connectionString" in sqlRecord || typeof sqlRecord.batch === "function")) ||
       /xata|baseclient/i.test(constructorName))
   );
 }

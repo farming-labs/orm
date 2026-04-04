@@ -39,9 +39,23 @@ const REAL_XATA_TIMEOUT_MS = 90_000;
 const pendingCleanups: Array<() => Promise<void>> = [];
 
 afterEach(async () => {
+  const cleanupErrors: unknown[] = [];
+
   while (pendingCleanups.length) {
     const cleanup = pendingCleanups.pop()!;
-    await cleanup();
+    try {
+      await cleanup();
+    } catch (error) {
+      cleanupErrors.push(error);
+    }
+  }
+
+  if (cleanupErrors.length === 1) {
+    throw cleanupErrors[0];
+  }
+
+  if (cleanupErrors.length > 1) {
+    throw new AggregateError(cleanupErrors, "One or more Xata cleanup hooks failed");
   }
 });
 
