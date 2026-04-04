@@ -1,6 +1,6 @@
 ---
 title: "Integrations"
-description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, EdgeDB / Gel, Neo4j, Cloudflare D1, Cloudflare KV, Redis / Upstash, SQL-first, Supabase, Firestore, DynamoDB, Unstorage, and MongoDB-oriented workflows."
+description: "How Farming Labs ORM fits into Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, EdgeDB / Gel, Neo4j, Cloudflare D1, Cloudflare KV, Redis / Upstash, SQL-first, Supabase, Xata, Firestore, DynamoDB, Unstorage, and MongoDB-oriented workflows."
 order: 6
 icon: package
 ---
@@ -50,6 +50,7 @@ Use these when the app already owns a live relational client:
 - EdgeDB / Gel
 - Neo4j
 - Cloudflare D1
+- Xata
 - direct SQL clients
 
 This is the path for package authors who want to accept a raw client and keep
@@ -111,6 +112,7 @@ Examples:
 - `@farming-labs/orm-kv` translates into Cloudflare KV namespace operations
 - `@farming-labs/orm-redis` translates into Redis and Upstash-compatible key-value operations
 - `@farming-labs/orm-supabase` translates into direct Supabase table API operations
+- `@farming-labs/orm-xata` translates into Xata-backed SQL operations through the official client
 - `@farming-labs/orm-firestore` translates into Firestore document operations
 - `@farming-labs/orm-dynamodb` translates into DynamoDB document / key-value operations
 - `@farming-labs/orm-unstorage` translates into Unstorage-backed key-value operations
@@ -257,6 +259,17 @@ Examples:
   linkLabel="Open Supabase guide"
 >
   Supabase integration
+</HoverLink>
+
+<span>·</span>
+
+<HoverLink
+  href="/docs/integrations/xata"
+  title="Xata"
+  description="See how Farming Labs ORM uses the official Xata client while keeping one schema, one setup path, and one storage layer."
+  linkLabel="Open Xata guide"
+>
+  Xata integration
 </HoverLink>
 
 <span>·</span>

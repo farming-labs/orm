@@ -32,6 +32,8 @@ This repository is a TypeScript monorepo for @farming-labs/orm
   Redis and Upstash-compatible runtime driver
 - `packages/supabase`
   Supabase JS runtime driver alongside the raw PostgreSQL Supabase helpers in `packages/sql`
+- `packages/xata`
+  Xata runtime driver
 - `packages/firestore`
   Firestore runtime driver
 - `packages/dynamodb`
@@ -88,9 +90,16 @@ pnpm test:local:typeorm
 pnpm test:local:dynamodb
 pnpm test:local:redis
 pnpm test:local:supabase
+pnpm test:local:xata
 pnpm test:local:unstorage
 pnpm test:local:mongodb
 pnpm test:local:prisma
+```
+
+For live credential-backed verification, use the opt-in path:
+
+```bash
+pnpm test:xata:real
 ```
 
 ## Release flow
@@ -131,6 +140,11 @@ pnpm release:beta
   metadata, and rate limits, not highly relational or join-heavy workloads.
 - Supabase support now covers both direct Supabase JS clients and raw
   PostgreSQL clients connected to Supabase.
+- Xata is supported as a runtime-first SQL-backed client integration. It keeps
+  one schema and one setup path, but its transaction semantics stay
+  conservative instead of claiming long-lived interactive rollback behavior.
+  There is also an opt-in `pnpm test:xata:real` path for verifying against a
+  real Xata project.
 - Unstorage is supported as a lightweight key-value/document runtime, but it is
   not the preferred fit for highly relational or join-heavy workloads.
 - Docs live under `apps/docs/app/docs`.

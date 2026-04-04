@@ -22,6 +22,7 @@ export default defineConfig({
       "@farming-labs/orm-prisma": path.resolve(dirname, "../prisma/src/index.ts"),
       "@farming-labs/orm-redis": path.resolve(dirname, "../redis/src/index.ts"),
       "@farming-labs/orm-supabase": path.resolve(dirname, "../supabase/src/index.ts"),
+      "@farming-labs/orm-xata": path.resolve(dirname, "../xata/src/index.ts"),
       "@farming-labs/orm-runtime/setup": path.resolve(dirname, "../runtime/src/setup.ts"),
       "@farming-labs/orm-runtime": path.resolve(dirname, "../runtime/src/index.ts"),
       "@farming-labs/orm-sequelize": path.resolve(dirname, "./src/index.ts"),

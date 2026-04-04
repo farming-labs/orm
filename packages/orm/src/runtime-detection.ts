@@ -7,6 +7,7 @@ export type DetectedDatabaseRuntime<TClient = unknown> = Readonly<{
     | "prisma"
     | "drizzle"
     | "kysely"
+    | "xata"
     | "edgedb"
     | "mikroorm"
     | "neo4j"
@@ -314,6 +315,23 @@ function isSupabaseClient(client: unknown): client is Record<string, unknown> {
   );
 }
 
+function isXataClient(client: unknown): client is Record<string, unknown> {
+  const constructorName = getConstructorName(client);
+  const record = client as Record<string, unknown>;
+  const sql = isRecord(record) ? record.sql : undefined;
+  const sqlRecord = sql as unknown as Record<string, unknown>;
+
+  return (
+    isRecord(client) &&
+    typeof record.sql === "function" &&
+    isRecord(record.db) &&
+    (hasFunction(client, "getConfig") ||
+      (typeof sql === "function" &&
+        ("connectionString" in sqlRecord || typeof sqlRecord.batch === "function")) ||
+      /xata|baseclient/i.test(constructorName))
+  );
+}
+
 function isEdgeDbClient(client: unknown): client is Record<string, unknown> {
   return (
     hasFunction(client, "querySQL") &&
@@ -576,6 +594,15 @@ export function detectDatabaseRuntime<TClient>(
     });
   }
 
+  if (isXataClient(client)) {
+    return Object.freeze({
+      kind: "xata",
+      client,
+      dialect: "postgres",
+      source: "client",
+    });
+  }
+
   if (isSequelizeClient(client)) {
     const dialect = detectSequelizeDialect(client);
     if (dialect) {
@@ -805,6 +832,18 @@ export function inspectDatabaseRuntime<TClient>(
         : missingFunctions(client, ["from", "rpc"]).concat([
             "expected a Supabase client created with createClient(...)",
           ]),
+    },
+    {
+      kind: "xata",
+      matched: isXataClient(client),
+      reasons: isXataClient(client)
+        ? []
+        : missingFunctions(client, ["sql"]).concat(
+            isRecord(client) && isRecord((client as Record<string, unknown>).db)
+              ? []
+              : ['missing object property "db"'],
+            ["expected an official Xata client with db repositories and sql() support"],
+          ),
     },
     {
       kind: "sequelize",

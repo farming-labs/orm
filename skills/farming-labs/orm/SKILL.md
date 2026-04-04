@@ -5,7 +5,7 @@ description: |
   runtime drivers, relation translation, docs updates, release flow, and real
   local database integration tests. Triggers: createOrm, Prisma driver,
   Drizzle driver, Kysely driver, MikroORM driver, TypeORM driver, Sequelize driver, Neo4j driver, Cloudflare D1,
-  Cloudflare KV, Redis, Supabase JS, EdgeDB, Firestore, DynamoDB, Unstorage, Mongo runtime,
+  Cloudflare KV, Redis, Supabase JS, Xata, EdgeDB, Firestore, DynamoDB, Unstorage, Mongo runtime,
   Mongoose runtime, update docs, test:local, release latest, compound unique,
   native relation loading.
 ---
@@ -45,6 +45,8 @@ repo-specific knowledge about the unified ORM API.
   Redis and Upstash-compatible runtime driver
 - `packages/supabase`
   Supabase JS runtime driver
+- `packages/xata`
+  Xata runtime driver
 - `packages/firestore`
   Firestore runtime driver
 - `packages/dynamodb`
@@ -119,9 +121,16 @@ pnpm test:local:typeorm
 pnpm test:local:dynamodb
 pnpm test:local:redis
 pnpm test:local:supabase
+pnpm test:local:xata
 pnpm test:local:unstorage
 pnpm test:local:mongodb
 pnpm test:local:prisma
+```
+
+For live credential-backed verification, use the opt-in path:
+
+```bash
+pnpm test:xata:real
 ```
 
 Use the package-local test files to find coverage:
@@ -199,6 +208,8 @@ Current runtime packages in this repo:
   - Redis and Upstash-compatible key-value runtime
 - `@farming-labs/orm-supabase`
   - direct Supabase JS runtime alongside the raw PostgreSQL helpers in `@farming-labs/orm-sql`
+- `@farming-labs/orm-xata`
+  - Xata runtime
 - `@farming-labs/orm-firestore`
   - Firestore runtime
 - `@farming-labs/orm-dynamodb`
@@ -241,6 +252,11 @@ Important boundary:
   good fit when the app already owns a `createClient(...)` instance. Keep the
   normal `@farming-labs/orm-sql` path when the app already owns a raw
   PostgreSQL client connected to Supabase.
+- `@farming-labs/orm-xata` uses the official Xata client through its SQL
+  surface. It preserves the shared setup path and Postgres-style numeric ID and
+  namespace behavior, but it keeps transaction semantics conservative instead
+  of claiming full long-lived rollback behavior. Use `pnpm test:xata:real` for
+  opt-in live-project verification when credentials are available.
 - `@farming-labs/orm-unstorage` is meant for lightweight key-value/document
   storage and shared storage layers, not for highly relational or join-heavy
   workloads.

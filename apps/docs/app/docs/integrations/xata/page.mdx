@@ -1,0 +1,168 @@
+---
+title: "Xata"
+description: "How to use Farming Labs ORM with the official Xata client through one schema and one shared runtime surface."
+order: 13
+icon: xata
+---
+
+# Xata
+
+Xata integration is runtime-first.
+
+Use `@farming-labs/orm-xata` when:
+
+- the app already owns a real Xata client
+- a shared package wants to keep one storage layer across Xata, Prisma,
+  Drizzle, Kysely, MikroORM, TypeORM, Sequelize, direct SQL, Neo4j,
+  Firestore, DynamoDB, Redis, or MongoDB-style runtimes
+- you want one schema definition and one query surface while still letting the
+  app keep Xata underneath
+
+## Supported Xata runtime inputs
+
+- an official Xata client that exposes `client.sql(...)`
+- the same client passed directly into `createOrmFromRuntime(...)`
+
+The current runtime uses Xata's own SQL surface directly. It does **not**
+invent another hidden PostgreSQL client.
+
+## Runtime setup
+
+```ts title="xata-runtime.ts"
+import { createOrm } from "@farming-labs/orm";
+import { createXataDriver } from "@farming-labs/orm-xata";
+import { xata } from "./xata-client";
+import { appSchema } from "./schema";
+
+const orm = createOrm({
+  schema: appSchema,
+  driver: createXataDriver({
+    client: xata,
+  }),
+});
+```
+
+From there, shared code keeps using the same unified API:
+
+```ts
+const user = await orm.user.findUnique({
+  where: {
+    email: "ada@farminglabs.dev",
+  },
+  select: {
+    id: true,
+    email: true,
+    sessions: {
+      select: {
+        token: true,
+      },
+    },
+  },
+});
+```
+
+## What the Xata driver is doing
+
+The Xata driver keeps the shared ORM surface and translates it through
+`client.sql(...)` against Xata's SQL layer.
+
+It:
+
+1. accepts the app's real Xata client
+2. executes reads and writes through Xata's SQL API
+3. keeps the same normalized error and capability surface as the rest of the repo
+4. preserves Postgres-style features such as generated numeric IDs and schema namespaces
+
+That means a package can write its storage layer once while each app decides
+whether the actual execution stack is Xata, Prisma, Drizzle, Kysely,
+MikroORM, TypeORM, Sequelize, direct SQL, Supabase, Neo4j, Firestore,
+DynamoDB, Redis, MongoDB, or Mongoose.
+
+## Runtime helper path
+
+If a framework or shared package wants to accept the raw Xata client directly,
+use the runtime helpers:
+
+```ts
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const orm = await createOrmFromRuntime({
+  schema: appSchema,
+  client: xata,
+});
+```
+
+That is the cleanest path for higher-level integrations that do not want to
+branch on Xata specifically.
+
+## Setup helpers
+
+The setup helpers work with Xata too:
+
+```ts
+import { bootstrapDatabase, pushSchema } from "@farming-labs/orm-runtime/setup";
+
+await pushSchema({
+  schema: appSchema,
+  client: xata,
+});
+
+const orm = await bootstrapDatabase({
+  schema: appSchema,
+  client: xata,
+});
+```
+
+For Xata runtimes, that setup path renders safe PostgreSQL DDL and applies it
+through the Xata client.
+
+That is useful when a package or framework wants:
+
+- repeatable local or CI bootstrap
+- one setup path across runtime families
+- no separate Xata-only setup API at the package boundary
+
+## Transactions and limits
+
+The current Xata runtime is intentionally conservative about transactions.
+
+That means:
+
+- the runtime supports normal reads, writes, upserts, and compound-unique lookups
+- `pushSchema(...)` and `bootstrapDatabase(...)` work through the same runtime helper path
+- `orm.transaction(...)` does **not** claim full long-lived interactive rollback semantics the way a direct Node PostgreSQL connection can
+
+This keeps the runtime honest while still making it useful for real package and
+framework storage layers.
+
+## Numeric IDs and namespaces
+
+Because the Xata runtime uses the PostgreSQL SQL surface, it supports the same
+high-value pieces many shared packages care about:
+
+- generated integer IDs through `id({ type: "integer", generated: "increment" })`
+- Postgres-style schema-qualified tables through `tableName("users", { schema: "auth" })`
+- SQL-style compound unique behavior
+
+## Local verification
+
+Run the local Xata suite with:
+
+```bash title="terminal"
+pnpm test:local:xata
+```
+
+That package-local suite uses a real local PostgreSQL-backed Xata-shaped
+runtime harness so the query, setup, generated numeric ID, and namespace paths
+are all exercised against a live SQL backend.
+
+If you also want to verify the runtime against a real Xata project, run:
+
+```bash title="terminal"
+export XATA_API_KEY=your-xata-api-key
+export XATA_DATABASE_URL=https://workspace.region.xata.sh/db/database:branch
+pnpm test:xata:real
+```
+
+That opt-in suite talks to the official Xata client directly and is meant for a
+dedicated test branch or database URL.

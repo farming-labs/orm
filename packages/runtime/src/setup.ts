@@ -66,6 +66,24 @@ type D1DatabaseLike = {
   batch?(statements: readonly D1PreparedStatementLike[]): Promise<unknown> | unknown;
 };
 
+type XataSqlQueryLike = ((query: {
+  statement: string;
+  params?: readonly unknown[];
+  responseType?: "json" | "array";
+}) => Promise<unknown> | unknown) & {
+  batch?: (query: {
+    statements: readonly {
+      statement: string;
+      params?: readonly unknown[];
+    }[];
+    responseType?: "json" | "array";
+  }) => Promise<unknown> | unknown;
+};
+
+type XataClientLike = {
+  sql: XataSqlQueryLike;
+};
+
 type Neo4jRunnableLike = {
   run(query: string, params?: Record<string, unknown>): Promise<unknown> | unknown;
   close?(): Promise<unknown> | unknown;
@@ -509,6 +527,26 @@ async function runNeo4jStatement(client: unknown, statement: string, database?: 
   throw new Error("Could not apply Neo4j setup statements to the provided runtime client.");
 }
 
+async function runXataStatement(client: unknown, statement: string) {
+  if (isRecord(client) && typeof client.sql === "function") {
+    await (client as XataClientLike).sql({
+      statement,
+      params: [],
+      responseType: "json",
+    });
+    return;
+  }
+
+  throw new Error("Could not apply Xata setup statements to the provided runtime client.");
+}
+
+async function applyXataSchemaToClient(client: unknown, sql: string) {
+  const statements = splitSqlStatements(sql);
+  await runSqlStatements("postgres", statements, (statement) =>
+    runXataStatement(client, statement),
+  );
+}
+
 function neo4jSetupStatements() {
   return [
     `CREATE CONSTRAINT farm_orm_neo4j_record_identity IF NOT EXISTS
@@ -792,6 +830,14 @@ async function applySchemaInternal<TSchema extends SchemaDefinition<any>, TClien
     }
 
     if (runtime.kind === "supabase") {
+      return;
+    }
+
+    if (runtime.kind === "xata") {
+      await applyXataSchemaToClient(
+        runtime.client,
+        renderSafeSql(options.schema, { dialect: "postgres" }),
+      );
       return;
     }
 

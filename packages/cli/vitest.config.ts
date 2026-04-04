@@ -10,6 +10,7 @@ export default defineConfig({
       "@farming-labs/orm": path.resolve(dirname, "../orm/src/index.ts"),
       "@farming-labs/orm-d1": path.resolve(dirname, "../d1/src/index.ts"),
       "@farming-labs/orm-neo4j": path.resolve(dirname, "../neo4j/src/index.ts"),
+      "@farming-labs/orm-xata": path.resolve(dirname, "../xata/src/index.ts"),
     },
   },
 });

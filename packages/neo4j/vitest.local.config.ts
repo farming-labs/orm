@@ -28,6 +28,7 @@ export default defineConfig({
       "@farming-labs/orm-supabase": path.resolve(dirname, "../supabase/src/index.ts"),
       "@farming-labs/orm-typeorm": path.resolve(dirname, "../typeorm/src/index.ts"),
       "@farming-labs/orm-unstorage": path.resolve(dirname, "../unstorage/src/index.ts"),
+      "@farming-labs/orm-xata": path.resolve(dirname, "../xata/src/index.ts"),
     },
   },
   test: {

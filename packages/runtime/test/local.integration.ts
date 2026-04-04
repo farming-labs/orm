@@ -24,6 +24,7 @@ import { startLocalNeo4j } from "../../neo4j/test/support/local-neo4j";
 import { hasLocalRedisServerBinary, startLocalRedis } from "../../redis/test/support/local-redis";
 import { startLocalSupabase } from "../../supabase/test/support/local-supabase";
 import { startLocalUnstorage } from "../../unstorage/test/support/local-unstorage";
+import { startLocalXata } from "../../xata/test/support/local-xata";
 
 const schema = defineSchema({
   user: model({
@@ -505,6 +506,51 @@ describe("runtime helper local integration", () => {
         email: "supabase@farminglabs.dev",
       });
       expect(inspectDatabaseRuntime(local.client).runtime?.kind).toBe("supabase");
+    } finally {
+      await local.close();
+    }
+  });
+
+  it("creates and bootstraps a Xata runtime from a raw Xata client", async () => {
+    const local = await startLocalXata();
+
+    try {
+      await pushSchema({
+        schema,
+        client: local.client,
+      });
+      await applySchema({
+        schema,
+        client: local.client,
+      });
+
+      const driver = await createDriverFromRuntime({
+        schema,
+        client: local.client,
+      });
+      const orm = await bootstrapDatabase({
+        schema,
+        client: local.client,
+      });
+
+      const created = await orm.user.create({
+        data: {
+          email: "xata@farminglabs.dev",
+          name: "Xata",
+        },
+        select: {
+          id: true,
+          email: true,
+        },
+      });
+
+      expect(driver.handle.kind).toBe("xata");
+      expect(driver.handle.dialect).toBe("postgres");
+      expect(created).toEqual({
+        id: expect.any(String),
+        email: "xata@farminglabs.dev",
+      });
+      expect(inspectDatabaseRuntime(local.client).runtime?.kind).toBe("xata");
     } finally {
       await local.close();
     }

@@ -69,6 +69,16 @@ const kyselyIcon = icon(
   </svg>,
 );
 
+const xataIcon = icon(
+  <svg aria-hidden="true" viewBox="0 0 24 24" role="img">
+    <title>Xata</title>
+    <path
+      fill="currentColor"
+      d="M5 4h4.2l2.85 4.23L14.82 4H19l-4.8 7.24L19.35 20H15.1l-3.05-4.74L8.93 20H4.74l5.12-8.38z"
+    />
+  </svg>,
+);
+
 const mikroormIcon = icon(
   <svg aria-hidden="true" viewBox="1637 0 441 461" role="img">
     <title>MikroORM</title>
@@ -250,6 +260,7 @@ export default defineDocs({
         { slug: "cloudflare-kv" },
         { slug: "redis" },
         { slug: "supabase" },
+        { slug: "xata" },
         { slug: "firestore" },
         { slug: "dynamodb" },
         { slug: "unstorage" },
@@ -291,6 +302,7 @@ export default defineDocs({
     redis: redisIcon,
     mongodb: brandIcon(siMongodb.path, siMongodb.title),
     supabase: brandIcon(siSupabase.path, siSupabase.title),
+    xata: xataIcon,
     firestore: brandIcon(siFirebase.path, siFirebase.title),
     dynamodb: dynamodbIcon,
     unstorage: brandIcon(siUnjs.path, siUnjs.title),

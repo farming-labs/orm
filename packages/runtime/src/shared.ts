@@ -39,6 +39,7 @@ import type { SequelizeDriverDialect, SequelizeDriverHandle } from "@farming-lab
 import type { SqlDriverHandle } from "@farming-labs/orm-sql";
 import type { TypeormDriverHandle } from "@farming-labs/orm-typeorm";
 import type { UnstorageDriverConfig, UnstorageDriverHandle } from "@farming-labs/orm-unstorage";
+import type { XataDriverHandle } from "@farming-labs/orm-xata";
 
 export type AutoDialect = DetectedDatabaseDialect;
 
@@ -60,7 +61,8 @@ export type AutoDriverHandle<TClient = unknown> =
   | SupabaseDriverHandle<any>
   | SequelizeDriverHandle<TClient, SequelizeDriverDialect>
   | TypeormDriverHandle<TClient, AutoDialect>
-  | UnstorageDriverHandle<any>;
+  | UnstorageDriverHandle<any>
+  | XataDriverHandle<any>;
 
 export type CreateDriverFromRuntimeOptions<
   TSchema extends SchemaDefinition<any>,
