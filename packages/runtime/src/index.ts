@@ -28,6 +28,7 @@ import type {
 } from "@farming-labs/orm-sql";
 import type { TypeormDriverConfig } from "@farming-labs/orm-typeorm";
 import type { UnstorageDriverConfig } from "@farming-labs/orm-unstorage";
+import type { XataDriverConfig } from "@farming-labs/orm-xata";
 import {
   inferMongooseModels,
   resolveDialect,
@@ -175,6 +176,12 @@ export async function createDriverFromRuntime<
       return createSupabaseDriver<TSchema>({
         client: runtime.client as SupabaseDriverConfig<TSchema>["client"],
         transforms: options.supabase?.transforms as SupabaseDriverConfig<TSchema>["transforms"],
+      }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
+    }
+    case "xata": {
+      const { createXataDriver } = await import("@farming-labs/orm-xata");
+      return createXataDriver<TSchema>({
+        client: runtime.client as XataDriverConfig<TSchema>["client"],
       }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
     }
     case "sequelize": {

@@ -45,6 +45,7 @@ If you want the full story for one stack, use
 | Redis / Upstash | No         | Yes     | No-op   | Key-value runtime for Redis and Upstash-compatible clients      |
 | Direct SQL      | Yes        | Yes     | Full    | Safe SQL generation plus direct SQL runtime                     |
 | Supabase        | Via SQL    | Yes     | Mixed   | Works through raw PostgreSQL clients or the Supabase JS runtime |
+| Xata            | No         | Yes     | Full    | Direct Xata client runtime through its SQL surface              |
 | MongoDB         | No         | Yes     | Full    | Native Mongo runtime                                            |
 | Mongoose        | No         | Yes     | Full    | Mongoose-backed runtime                                         |
 | Firestore       | No         | Yes     | Limited | Real runtime, but no SQL-style schema push                      |
@@ -161,6 +162,21 @@ Supabase now works through two honest paths:
 The PostgreSQL path keeps full SQL-style setup helpers. The direct Supabase JS
 runtime is query-first and keeps setup as a no-op.
 
+### Xata
+
+Xata is supported as its own runtime family through the official Xata client.
+
+That means:
+
+- pass the real Xata client directly
+- keep one schema definition and one query surface
+- use the same runtime helper and setup path as the other SQL-backed stacks
+
+Two boundaries matter:
+
+- the runtime executes through Xata's SQL surface, not a hidden raw `pg` client
+- `orm.transaction(...)` stays conservative instead of claiming fully interactive rollback semantics
+
 ### Document and key-value runtimes
 
 MongoDB, Mongoose, Firestore, DynamoDB, Cloudflare KV, Redis / Upstash Redis,
@@ -183,7 +199,7 @@ That means they rely more on:
 
 ### Numeric IDs and namespaces
 
-- generated numeric IDs are first-class on the relational runtimes, including D1
+- generated numeric IDs are first-class on the relational runtimes, including D1 and Xata
 - Neo4j, MongoDB, Mongoose, Firestore, DynamoDB, Cloudflare KV, Redis, and Unstorage keep numeric IDs manual-only
 - schema namespaces are only meaningful on Postgres-style relational runtimes
 

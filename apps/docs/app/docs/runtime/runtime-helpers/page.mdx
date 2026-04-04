@@ -1,6 +1,6 @@
 ---
 title: "Runtime Helpers"
-description: "Create a driver or ORM directly from a raw Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, EdgeDB / Gel, Neo4j, Cloudflare D1, Cloudflare KV, Redis / Upstash, Supabase, SQL, Firestore, DynamoDB, Unstorage, MongoDB, or Mongoose runtime."
+description: "Create a driver or ORM directly from a raw Prisma, Drizzle, Kysely, MikroORM, TypeORM, Sequelize, EdgeDB / Gel, Neo4j, Cloudflare D1, Cloudflare KV, Redis / Upstash, Supabase, Xata, SQL, Firestore, DynamoDB, Unstorage, MongoDB, or Mongoose runtime."
 order: 2
 icon: harddrive
 ---
@@ -50,6 +50,7 @@ That is especially useful when another library wants to accept:
 - a Cloudflare KV namespace
 - a Redis or Upstash Redis client
 - a Supabase client created with `createClient(...)`
+- a Xata client with `client.sql(...)`
 - a `pg` pool/client
 - a `mysql2` pool/connection
 - a Firestore client
@@ -329,6 +330,23 @@ This path is intentionally query-first:
 
 If the app already owns a raw PostgreSQL client connected to Supabase, use the
 normal SQL runtime path instead.
+
+### Xata
+
+For Xata, pass the official client directly:
+
+```ts
+const orm = await createOrmFromRuntime({
+  schema,
+  client: xata,
+});
+```
+
+This runtime stays SQL-backed but conservative:
+
+- `createOrmFromRuntime(...)` detects the Xata client through its SQL surface
+- `pushSchema(...)` and `applySchema(...)` render PostgreSQL-safe SQL and apply it through the Xata client
+- `orm.transaction(...)` does not overclaim interactive rollback semantics
 
 ### Prisma
 

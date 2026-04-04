@@ -65,7 +65,7 @@ importers:
         version: 6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3)
       drizzle-orm:
         specifier: ^0.44.6
-        version: 0.44.7(@opentelemetry/api@1.9.1)(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(@types/sql.js@1.4.11)(better-sqlite3@11.10.0)(kysely@0.28.15)(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0)(prisma@6.19.2(typescript@5.9.3))(sql.js@1.14.1)
+        version: 0.44.7(@opentelemetry/api@1.9.1)(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(@types/sql.js@1.4.11)(@xata.io/client@0.30.1(typescript@5.9.3))(better-sqlite3@11.10.0)(kysely@0.28.15)(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0)(prisma@6.19.2(typescript@5.9.3))(sql.js@1.14.1)
       mongodb:
         specifier: ^6.20.0
         version: 6.20.0
@@ -202,7 +202,7 @@ importers:
         version: 8.20.0
       drizzle-orm:
         specifier: ^0.44.6
-        version: 0.44.7(@opentelemetry/api@1.9.1)(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(@types/sql.js@1.4.11)(better-sqlite3@11.10.0)(kysely@0.28.15)(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0)(prisma@6.19.2(typescript@5.9.3))(sql.js@1.14.1)
+        version: 0.44.7(@opentelemetry/api@1.9.1)(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(@types/sql.js@1.4.11)(@xata.io/client@0.30.1(typescript@5.9.3))(better-sqlite3@11.10.0)(kysely@0.28.15)(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0)(prisma@6.19.2(typescript@5.9.3))(sql.js@1.14.1)
       mysql2:
         specifier: ^3.15.2
         version: 3.20.0(@types/node@22.19.15)
@@ -478,6 +478,9 @@ importers:
       '@farming-labs/orm-unstorage':
         specifier: workspace:*
         version: link:../unstorage
+      '@farming-labs/orm-xata':
+        specifier: workspace:*
+        version: link:../xata
     devDependencies:
       tsup:
         specifier: ^8.4.0
@@ -577,6 +580,28 @@ importers:
         specifier: ^1.17.3
         version: 1.17.5
     devDependencies:
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)
+
+  packages/xata:
+    dependencies:
+      '@farming-labs/orm':
+        specifier: workspace:*
+        version: link:../orm
+      '@farming-labs/orm-sql':
+        specifier: workspace:*
+        version: link:../sql
+    devDependencies:
+      '@types/pg':
+        specifier: ^8.15.6
+        version: 8.20.0
+      '@xata.io/client':
+        specifier: ^0.30.1
+        version: 0.30.1(typescript@5.9.3)
+      pg:
+        specifier: ^8.16.3
+        version: 8.20.0
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)
@@ -2652,6 +2677,12 @@ packages:
 
   '@webgpu/types@0.1.69':
     resolution: {integrity: sha512-RPmm6kgRbI8e98zSD3RVACvnuktIja5+yLgDAkTmxLr90BEwdTXRQWNLF3ETTTyH/8mKhznZuN5AveXYFEsMGQ==}
+
+  '@xata.io/client@0.30.1':
+    resolution: {integrity: sha512-dAzDPHmIfenVIpF39m1elmW5ngjWu2mO8ZqJBN7dmYdXr98uhPANfLdVZnc3mUNG+NH37LqY1dSO862hIo2oRw==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+    peerDependencies:
+      typescript: '>=4.5'
 
   abort-controller@3.0.0:
     resolution: {integrity: sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==}
@@ -7774,6 +7805,10 @@ snapshots:
 
   '@webgpu/types@0.1.69': {}
 
+  '@xata.io/client@0.30.1(typescript@5.9.3)':
+    dependencies:
+      typescript: 5.9.3
+
   abort-controller@3.0.0:
     dependencies:
       event-target-shim: 5.0.1
@@ -8136,12 +8171,13 @@ snapshots:
 
   draco3d@1.5.7: {}
 
-  drizzle-orm@0.44.7(@opentelemetry/api@1.9.1)(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(@types/sql.js@1.4.11)(better-sqlite3@11.10.0)(kysely@0.28.15)(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0)(prisma@6.19.2(typescript@5.9.3))(sql.js@1.14.1):
+  drizzle-orm@0.44.7(@opentelemetry/api@1.9.1)(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(@types/sql.js@1.4.11)(@xata.io/client@0.30.1(typescript@5.9.3))(better-sqlite3@11.10.0)(kysely@0.28.15)(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0)(prisma@6.19.2(typescript@5.9.3))(sql.js@1.14.1):
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
       '@prisma/client': 6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3)
       '@types/pg': 8.20.0
       '@types/sql.js': 1.4.11
+      '@xata.io/client': 0.30.1(typescript@5.9.3)
       better-sqlite3: 11.10.0
       kysely: 0.28.15
       mysql2: 3.20.0(@types/node@22.19.15)

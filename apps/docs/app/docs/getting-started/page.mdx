@@ -219,6 +219,21 @@ const orm = createOrm({
 });
 ```
 
+### Xata
+
+```ts title="xata-runtime.ts"
+import { createOrm } from "@farming-labs/orm";
+import { createXataDriver } from "@farming-labs/orm-xata";
+import { xata } from "./xata-client";
+
+const orm = createOrm({
+  schema: authSchema,
+  driver: createXataDriver({
+    client: xata,
+  }),
+});
+```
+
 ### Cloudflare D1
 
 ```ts title="cloudflare-d1-runtime.ts"

@@ -123,7 +123,7 @@ The setup helpers now live on the Node-only subpath:
 Import them from `@farming-labs/orm-runtime/setup`. They use the same runtime
 detection layer to prepare direct SQL, Prisma, Drizzle, Kysely, MikroORM,
 TypeORM, Sequelize, EdgeDB / Gel, Neo4j, Cloudflare D1, Cloudflare KV, Redis,
-Supabase, MongoDB, Mongoose, Firestore, DynamoDB, and Unstorage runtimes
+Supabase, Xata, MongoDB, Mongoose, Firestore, DynamoDB, and Unstorage runtimes
 without inventing a separate config surface.
 
 There is also a dedicated guide for this flow:
@@ -217,7 +217,7 @@ That includes:
 Runtime failures are normalized too. Duplicate-key, foreign-key, missing-table,
 deadlock, and transaction-conflict failures are exposed as `OrmError` values
 through the unified ORM client, so higher-level integrations do not need to
-parse Prisma, SQL, EdgeDB, MongoDB, or Mongoose error formats separately.
+parse Prisma, SQL, EdgeDB, Xata, MongoDB, or Mongoose error formats separately.
 
 Runtime-aware schema setup failures from `@farming-labs/orm-runtime/setup` are
 exposed separately as `RuntimeSetupError`, so bootstrap and push failures keep
