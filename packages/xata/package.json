@@ -21,6 +21,7 @@
   "scripts": {
     "build": "tsx ./scripts/build.ts",
     "test": "vitest run --config vitest.local.config.ts",
+    "test:real": "tsx ./scripts/test-real.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -177,6 +177,32 @@ describe("xata integration", () => {
   );
 
   it(
+    "supports array response types in the local Xata harness",
+    async () => {
+      const local = await startLocalXata();
+
+      try {
+        const result = await local.client.sql({
+          statement: "select 1 as first, 2 as second",
+          params: [],
+          responseType: "array",
+        });
+
+        expect(result).toEqual({
+          rows: [[1, 2]],
+          columns: [
+            { name: "first", type: expect.any(String) },
+            { name: "second", type: expect.any(String) },
+          ],
+        });
+      } finally {
+        await local.close();
+      }
+    },
+    LOCAL_TIMEOUT_MS,
+  );
+
+  it(
     "runs auth-style one-to-one and has-many queries",
     async () => {
       const local = await createLocalXataOrm();

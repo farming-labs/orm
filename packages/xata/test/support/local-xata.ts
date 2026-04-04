@@ -2,6 +2,7 @@ import { userInfo } from "node:os";
 import { Pool, type PoolClient, type QueryResult } from "pg";
 import type {
   XataClientLike,
+  XataSqlQueryArrayResult,
   XataSqlBatchQuery,
   XataSqlBatchResult,
   XataSqlFunction,
@@ -36,8 +37,11 @@ async function resolvePostgresAdminUrl() {
   const candidates = [
     process.env.FARM_ORM_LOCAL_PG_ADMIN_URL,
     "postgres://postgres:postgres@127.0.0.1:5432/postgres",
-    `postgres://${userInfo().username}@127.0.0.1:5432/postgres`,
   ].filter(Boolean) as string[];
+
+  try {
+    candidates.push(`postgres://${userInfo().username}@127.0.0.1:5432/postgres`);
+  } catch {}
 
   let lastError: unknown;
   for (const candidate of candidates) {
@@ -61,6 +65,18 @@ async function resolvePostgresAdminUrl() {
 function normalizeResult(result: QueryResult<Record<string, unknown>>): XataSqlQueryJsonResult {
   return {
     records: result.rows,
+    columns: result.fields.map((field) => ({
+      name: field.name,
+      type: String(field.dataTypeID),
+    })),
+  };
+}
+
+function normalizeArrayResult(
+  result: QueryResult<Record<string, unknown>>,
+): XataSqlQueryArrayResult {
+  return {
+    rows: result.rows.map((row) => result.fields.map((field) => row[field.name])),
     columns: result.fields.map((field) => ({
       name: field.name,
       type: String(field.dataTypeID),
@@ -103,10 +119,10 @@ async function executeStatement(
   queryable: Pool | PoolClient,
   statement: string,
   params: readonly unknown[],
+  responseType: "json" | "array" = "json",
 ) {
-  return normalizeResult(
-    await queryable.query<Record<string, unknown>>(statement, params as any[]),
-  );
+  const result = await queryable.query<Record<string, unknown>>(statement, params as any[]);
+  return responseType === "array" ? normalizeArrayResult(result) : normalizeResult(result);
 }
 
 function createSqlFunction(pool: Pool, databaseUrl: string) {
@@ -115,7 +131,12 @@ function createSqlFunction(pool: Pool, databaseUrl: string) {
     ...parameters: unknown[]
   ) => {
     const normalized = normalizeQuery(query, parameters);
-    return executeStatement(pool, normalized.statement, normalized.params ?? []);
+    return executeStatement(
+      pool,
+      normalized.statement,
+      normalized.params ?? [],
+      normalized.responseType,
+    );
   }) as XataSqlFunction;
 
   sql.connectionString = databaseUrl;
@@ -127,7 +148,14 @@ function createSqlFunction(pool: Pool, databaseUrl: string) {
       const results: Array<Awaited<ReturnType<typeof executeStatement>>> = [];
 
       for (const statement of query.statements) {
-        results.push(await executeStatement(client, statement.statement, statement.params ?? []));
+        results.push(
+          await executeStatement(
+            client,
+            statement.statement,
+            statement.params ?? [],
+            query.responseType ?? "json",
+          ),
+        );
       }
 
       await client.query("commit");

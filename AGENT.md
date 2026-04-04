@@ -94,6 +94,7 @@ pnpm test:local:xata
 pnpm test:local:unstorage
 pnpm test:local:mongodb
 pnpm test:local:prisma
+pnpm test:xata:real
 ```
 
 ## Release flow
@@ -137,6 +138,8 @@ pnpm release:beta
 - Xata is supported as a runtime-first SQL-backed client integration. It keeps
   one schema and one setup path, but its transaction semantics stay
   conservative instead of claiming long-lived interactive rollback behavior.
+  There is also an opt-in `pnpm test:xata:real` path for verifying against a
+  real Xata project.
 - Unstorage is supported as a lightweight key-value/document runtime, but it is
   not the preferred fit for highly relational or join-heavy workloads.
 - Docs live under `apps/docs/app/docs`.

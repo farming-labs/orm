@@ -125,6 +125,7 @@ pnpm test:local:xata
 pnpm test:local:unstorage
 pnpm test:local:mongodb
 pnpm test:local:prisma
+pnpm test:xata:real
 ```
 
 Use the package-local test files to find coverage:
@@ -249,7 +250,8 @@ Important boundary:
 - `@farming-labs/orm-xata` uses the official Xata client through its SQL
   surface. It preserves the shared setup path and Postgres-style numeric ID and
   namespace behavior, but it keeps transaction semantics conservative instead
-  of claiming full long-lived rollback behavior.
+  of claiming full long-lived rollback behavior. Use `pnpm test:xata:real` for
+  opt-in live-project verification when credentials are available.
 - `@farming-labs/orm-unstorage` is meant for lightweight key-value/document
   storage and shared storage layers, not for highly relational or join-heavy
   workloads.

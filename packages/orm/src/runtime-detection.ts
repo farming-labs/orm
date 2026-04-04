@@ -325,7 +325,7 @@ function isXataClient(client: unknown): client is Record<string, unknown> {
     typeof record.sql === "function" &&
     isRecord(record.db) &&
     (hasFunction(client, "getConfig") ||
-      (isRecord(sql) && ("connectionString" in sql || hasFunction(sql, "batch"))) ||
+      (typeof sql === "function" && ("connectionString" in sql || hasFunction(sql, "batch"))) ||
       /xata|baseclient/i.test(constructorName))
   );
 }

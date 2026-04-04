@@ -107,16 +107,136 @@ function toNumber(value: unknown) {
   return undefined;
 }
 
+function tokenizeTopLevelSql(sql: string) {
+  const tokens: string[] = [];
+  let index = 0;
+  let depth = 0;
+
+  while (index < sql.length) {
+    const char = sql[index];
+    const next = sql[index + 1];
+
+    if (char === "'" || char === '"') {
+      const quote = char;
+      index += 1;
+      while (index < sql.length) {
+        if (sql[index] === quote) {
+          if (sql[index + 1] === quote) {
+            index += 2;
+            continue;
+          }
+          index += 1;
+          break;
+        }
+        index += 1;
+      }
+      continue;
+    }
+
+    if (char === "-" && next === "-") {
+      index += 2;
+      while (index < sql.length && sql[index] !== "\n") {
+        index += 1;
+      }
+      continue;
+    }
+
+    if (char === "/" && next === "*") {
+      index += 2;
+      while (index < sql.length) {
+        if (sql[index] === "*" && sql[index + 1] === "/") {
+          index += 2;
+          break;
+        }
+        index += 1;
+      }
+      continue;
+    }
+
+    if (char === "(") {
+      depth += 1;
+      index += 1;
+      continue;
+    }
+
+    if (char === ")") {
+      depth = Math.max(0, depth - 1);
+      index += 1;
+      continue;
+    }
+
+    if (depth === 0 && char === ",") {
+      tokens.push(",");
+      index += 1;
+      continue;
+    }
+
+    if (depth === 0 && /[A-Za-z_]/.test(char)) {
+      let end = index + 1;
+      while (end < sql.length && /[A-Za-z0-9_$]/.test(sql[end]!)) {
+        end += 1;
+      }
+      tokens.push(sql.slice(index, end).toUpperCase());
+      index = end;
+      continue;
+    }
+
+    index += 1;
+  }
+
+  return tokens;
+}
+
+function primaryStatementKeyword(sql: string) {
+  const tokens = tokenizeTopLevelSql(sql);
+  if (!tokens.length) {
+    return null;
+  }
+
+  if (tokens[0] !== "WITH") {
+    return tokens[0]!;
+  }
+
+  let index = 1;
+  if (tokens[index] === "RECURSIVE") {
+    index += 1;
+  }
+
+  while (index < tokens.length) {
+    while (index < tokens.length && tokens[index] !== "AS") {
+      index += 1;
+    }
+
+    if (index >= tokens.length) {
+      return "WITH";
+    }
+
+    index += 1;
+    if (tokens[index] === ",") {
+      index += 1;
+      continue;
+    }
+
+    return tokens[index] ?? "WITH";
+  }
+
+  return "WITH";
+}
+
 function isReadQuery(sql: string) {
-  return /^\s*(select|with|show|describe|explain)\b/i.test(sql);
+  const keyword = primaryStatementKeyword(sql);
+  return (
+    keyword === "SELECT" || keyword === "SHOW" || keyword === "DESCRIBE" || keyword === "EXPLAIN"
+  );
 }
 
 function isMutationQuery(sql: string) {
-  return /^\s*(insert|update|delete)\b/i.test(sql);
+  const keyword = primaryStatementKeyword(sql);
+  return keyword === "INSERT" || keyword === "UPDATE" || keyword === "DELETE";
 }
 
 function hasReturningClause(sql: string) {
-  return /\breturning\b/i.test(sql);
+  return tokenizeTopLevelSql(sql).includes("RETURNING");
 }
 
 function trimStatement(sql: string) {

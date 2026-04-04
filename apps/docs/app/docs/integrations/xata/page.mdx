@@ -155,3 +155,14 @@ pnpm test:local:xata
 That package-local suite uses a real local PostgreSQL-backed Xata-shaped
 runtime harness so the query, setup, generated numeric ID, and namespace paths
 are all exercised against a live SQL backend.
+
+If you also want to verify the runtime against a real Xata project, run:
+
+```bash title="terminal"
+export XATA_API_KEY=your-xata-api-key
+export XATA_DATABASE_URL=https://workspace.region.xata.sh/db/database:branch
+pnpm test:xata:real
+```
+
+That opt-in suite talks to the official Xata client directly and is meant for a
+dedicated test branch or database URL.

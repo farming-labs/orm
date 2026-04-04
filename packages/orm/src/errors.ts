@@ -417,6 +417,10 @@ function normalizeKvError(handle: OrmDriverHandle, error: unknown) {
 }
 
 function normalizeSupabaseError(handle: OrmDriverHandle, error: unknown) {
+  return normalizePostgresStyleClientError(handle, error);
+}
+
+function normalizePostgresStyleClientError(handle: OrmDriverHandle, error: unknown) {
   return (
     normalizeSqlError(handle, error) ??
     (/duplicate key value/i.test(getMessage(error))
@@ -426,12 +430,7 @@ function normalizeSupabaseError(handle: OrmDriverHandle, error: unknown) {
 }
 
 function normalizeXataError(handle: OrmDriverHandle, error: unknown) {
-  return (
-    normalizeSqlError(handle, error) ??
-    (/duplicate key value/i.test(getMessage(error))
-      ? createOrmError(handle, "UNIQUE_CONSTRAINT_VIOLATION", error)
-      : null)
-  );
+  return normalizePostgresStyleClientError(handle, error);
 }
 
 export function isOrmError(error: unknown): error is OrmError {
