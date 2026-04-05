@@ -527,6 +527,43 @@ describe("runtime contract", () => {
     expect(inspectDatabaseRuntime(upstash).runtime?.kind).toBe("redis");
   });
 
+  it("detects SurrealDB runtimes from official client-like shapes", () => {
+    const surreal = {
+      query: async () => ({
+        collect: async () => [],
+      }),
+      select: async () => [],
+      create: () => ({
+        content: async () => ({}),
+      }),
+      update: () => ({
+        replace: async () => ({}),
+        merge: async () => ({}),
+        content: async () => ({}),
+      }),
+      upsert: () => ({
+        replace: async () => ({}),
+        merge: async () => ({}),
+        content: async () => ({}),
+      }),
+      delete: async () => ({}),
+      beginTransaction: async () => ({
+        commit: async () => undefined,
+        cancel: async () => undefined,
+      }),
+      constructor: {
+        name: "Surreal",
+      },
+    };
+
+    expect(detectDatabaseRuntime(surreal)).toEqual({
+      kind: "surrealdb",
+      client: surreal,
+      source: "client",
+    });
+    expect(inspectDatabaseRuntime(surreal).runtime?.kind).toBe("surrealdb");
+  });
+
   it("detects D1 runtimes from database and session shapes", () => {
     const preparedStatement = {
       bind() {

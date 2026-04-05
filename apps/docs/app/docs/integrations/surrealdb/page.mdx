@@ -1,0 +1,195 @@
+---
+title: "SurrealDB"
+description: "How to use Farming Labs ORM with the official SurrealDB client through one schema and one shared runtime surface."
+order: 9
+icon: network
+---
+
+# SurrealDB
+
+SurrealDB integration is runtime-first.
+
+Use `@farming-labs/orm-surrealdb` when:
+
+- the app already owns a real SurrealDB client
+- a shared package wants to keep one storage layer across SurrealDB, Prisma,
+  Drizzle, Kysely, MikroORM, TypeORM, Sequelize, direct SQL, Neo4j,
+  Firestore, DynamoDB, Redis, Unstorage, or MongoDB-style runtimes
+- you want one schema definition and one query surface while still letting the
+  app keep SurrealDB underneath
+
+## Supported SurrealDB runtime inputs
+
+- an official `surrealdb` `Surreal` client
+- the same client passed directly into `createOrmFromRuntime(...)`
+
+The current runtime uses the official client directly. It does **not** invent
+another hidden SQL or graph client layer.
+
+## Runtime setup
+
+```ts title="surrealdb-runtime.ts"
+import { createNodeEngines } from "@surrealdb/node";
+import { createRemoteEngines, Surreal } from "surrealdb";
+import { createOrm } from "@farming-labs/orm";
+import { createSurrealDbDriver } from "@farming-labs/orm-surrealdb";
+import { appSchema } from "./schema";
+
+const db = new Surreal({
+  engines: {
+    ...createRemoteEngines(),
+    ...createNodeEngines(),
+  },
+});
+
+await db.connect(process.env.SURREAL_URL ?? "ws://127.0.0.1:8000/rpc");
+await db.use({
+  namespace: "app",
+  database: "main",
+});
+
+const orm = createOrm({
+  schema: appSchema,
+  driver: createSurrealDbDriver({
+    client: db,
+  }),
+});
+```
+
+From there, shared code keeps using the same unified API:
+
+```ts
+const user = await orm.user.findUnique({
+  where: {
+    email: "ada@farminglabs.dev",
+  },
+  select: {
+    id: true,
+    email: true,
+    sessions: {
+      select: {
+        token: true,
+      },
+    },
+  },
+});
+```
+
+## What the SurrealDB driver is doing
+
+The SurrealDB driver keeps the shared ORM surface and stores records through
+the official client using ORM-managed record and unique-lookup entries.
+
+It:
+
+1. accepts the app's real SurrealDB client
+2. executes reads and writes through the official client and transaction API
+3. keeps the same normalized error and capability surface as the rest of the repo
+4. resolves relations conservatively through follow-up lookups
+
+That means a package can write its storage layer once while each app decides
+whether the actual execution stack is SurrealDB, Prisma, Drizzle, Kysely,
+MikroORM, TypeORM, Sequelize, direct SQL, Neo4j, Firestore, DynamoDB, Redis,
+Unstorage, MongoDB, or Mongoose.
+
+## Runtime helper path
+
+If a framework or shared package wants to accept the raw SurrealDB client
+directly, use the runtime helpers:
+
+```ts
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+
+const orm = await createOrmFromRuntime({
+  schema: appSchema,
+  client: db,
+});
+```
+
+That is the cleanest path for higher-level integrations that do not want to
+branch on SurrealDB specifically.
+
+## Setup helpers
+
+The setup helpers still work with SurrealDB:
+
+```ts
+import { bootstrapDatabase, pushSchema } from "@farming-labs/orm-runtime/setup";
+
+await pushSchema({
+  schema: appSchema,
+  client: db,
+});
+
+const orm = await bootstrapDatabase({
+  schema: appSchema,
+  client: db,
+});
+```
+
+For SurrealDB runtimes, `pushSchema(...)` and `applySchema(...)` are
+intentional no-ops.
+
+That is useful when a package or framework wants:
+
+- one setup path across runtime families
+- no separate SurrealDB-only setup API at the package boundary
+- a single `bootstrapDatabase(...)` entrypoint even when the backend has no
+  SQL-style DDL workflow
+
+## Transactions and limits
+
+The current SurrealDB runtime supports normal read and write transactions
+through the official client's transaction API.
+
+That means:
+
+- `create`
+- `createMany`
+- `update`
+- `updateMany`
+- `upsert`
+- `delete`
+- `deleteMany`
+- compound-unique lookups
+- model-level constraint enforcement
+- `orm.transaction(...)`
+
+Two boundaries still matter:
+
+- generated integer IDs are not supported
+- schema-qualified table namespaces are not supported
+
+## Relation support
+
+SurrealDB is a multi-model database, but the current ORM layer stays
+conservative about relation loading.
+
+That means:
+
+- `belongsTo`
+- `hasOne`
+- `hasMany`
+- explicit join-table `manyToMany`
+
+work through the shared relation resolver and follow-up lookups instead of
+claiming native graph or SQL join planning.
+
+That makes the current runtime a strong fit for:
+
+- auth and account state
+- org/member/workspace state
+- app and framework records
+- package-owned storage layers that still want one ORM API
+
+## Local verification
+
+Run the local SurrealDB suite with:
+
+```bash title="terminal"
+pnpm test:local:surrealdb
+```
+
+That package-local suite uses a real embedded `mem://` SurrealDB client through
+the official SDK, so the runtime, helper, relation, transaction, and duplicate-key
+paths are exercised against a live local backend instead of a fake harness.

@@ -374,6 +374,29 @@ function normalizeRedisError(handle: OrmDriverHandle, error: unknown) {
   return null;
 }
 
+function normalizeSurrealDbError(handle: OrmDriverHandle, error: unknown) {
+  const record = isRecord(error) ? error : {};
+  const code = typeof record.code === "string" ? record.code : undefined;
+  const name = typeof record.name === "string" ? record.name : undefined;
+  const message = getMessage(error);
+  const target =
+    Array.isArray(record.target) || typeof record.target === "string"
+      ? (record.target as string | string[])
+      : undefined;
+
+  if (
+    code === "SURREALDB_UNIQUE_CONSTRAINT" ||
+    name === "SurrealDbUniqueConstraintError" ||
+    name === "AlreadyExistsError" ||
+    /surrealdb unique constraint violation/i.test(message) ||
+    /already exists/i.test(message)
+  ) {
+    return createOrmError(handle, "UNIQUE_CONSTRAINT_VIOLATION", error, { target });
+  }
+
+  return null;
+}
+
 function normalizeNeo4jError(handle: OrmDriverHandle, error: unknown) {
   const record = isRecord(error) ? error : {};
   const code = typeof record.code === "string" ? record.code : undefined;
@@ -461,6 +484,8 @@ export function normalizeOrmError(handle: OrmDriverHandle, error: unknown) {
       return normalizeKvError(handle, error);
     case "redis":
       return normalizeRedisError(handle, error);
+    case "surrealdb":
+      return normalizeSurrealDbError(handle, error);
     case "neo4j":
       return normalizeNeo4jError(handle, error);
     case "supabase":

@@ -34,6 +34,7 @@ import type { MikroormDriverHandle } from "@farming-labs/orm-mikroorm";
 import type { PrismaDriverConfig, PrismaDriverHandle } from "@farming-labs/orm-prisma";
 import type { Neo4jDriverConfig, Neo4jDriverHandle } from "@farming-labs/orm-neo4j";
 import type { RedisDriverConfig, RedisDriverHandle } from "@farming-labs/orm-redis";
+import type { SurrealDbDriverConfig, SurrealDbDriverHandle } from "@farming-labs/orm-surrealdb";
 import type { SupabaseDriverConfig, SupabaseDriverHandle } from "@farming-labs/orm-supabase";
 import type { SequelizeDriverDialect, SequelizeDriverHandle } from "@farming-labs/orm-sequelize";
 import type { SqlDriverHandle } from "@farming-labs/orm-sql";
@@ -58,6 +59,7 @@ export type AutoDriverHandle<TClient = unknown> =
   | OrmDriverHandle<"mongoose", unknown>
   | Neo4jDriverHandle<any>
   | RedisDriverHandle<any>
+  | SurrealDbDriverHandle<any>
   | SupabaseDriverHandle<any>
   | SequelizeDriverHandle<TClient, SequelizeDriverDialect>
   | TypeormDriverHandle<TClient, AutoDialect>
@@ -97,6 +99,11 @@ export type CreateDriverFromRuntimeOptions<
     base?: RedisDriverConfig<TSchema>["base"];
     prefixes?: RedisDriverConfig<TSchema>["prefixes"];
     transforms?: RedisDriverConfig<TSchema>["transforms"];
+  };
+  surrealdb?: {
+    base?: SurrealDbDriverConfig<TSchema>["base"];
+    prefixes?: SurrealDbDriverConfig<TSchema>["prefixes"];
+    transforms?: SurrealDbDriverConfig<TSchema>["transforms"];
   };
   neo4j?: {
     base?: Neo4jDriverConfig<TSchema>["base"];

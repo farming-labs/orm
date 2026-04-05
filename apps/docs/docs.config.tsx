@@ -256,6 +256,7 @@ export default defineDocs({
         { slug: "sql-databases" },
         { slug: "edgedb" },
         { slug: "neo4j" },
+        { slug: "surrealdb" },
         { slug: "cloudflare-d1" },
         { slug: "cloudflare-kv" },
         { slug: "redis" },

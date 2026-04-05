@@ -24,6 +24,8 @@ This repository is a TypeScript monorepo for @farming-labs/orm
   EdgeDB / Gel SQL runtime driver
 - `packages/neo4j`
   Neo4j graph runtime driver
+- `packages/surrealdb`
+  SurrealDB multi-model runtime driver
 - `packages/d1`
   Cloudflare D1 runtime driver
 - `packages/kv`
@@ -82,6 +84,7 @@ pnpm test:local:d1
 pnpm test:local:kv
 pnpm test:local:edgedb
 pnpm test:local:neo4j
+pnpm test:local:surrealdb
 pnpm test:local:drizzle
 pnpm test:local:kysely
 pnpm test:local:mikroorm
@@ -135,6 +138,10 @@ pnpm release:beta
   Neo4j driver or session shapes. It keeps one schema and one ORM surface, but
   relation loading stays conservative instead of becoming a Cypher-native graph
   query builder.
+- SurrealDB is supported as a runtime-first multi-model backend through the
+  official SurrealDB client. It keeps one schema and one ORM surface, but the
+  current runtime stores ORM-managed records and unique lookups instead of
+  claiming native graph or SQL join planning.
 - Redis support covers both Redis and Upstash-compatible clients through one
   key-value runtime family. It is a good fit for sessions, tokens, cache
   metadata, and rate limits, not highly relational or join-heavy workloads.

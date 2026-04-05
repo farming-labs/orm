@@ -15,6 +15,7 @@ export type DetectedDatabaseRuntime<TClient = unknown> = Readonly<{
     | "kv"
     | "dynamodb"
     | "redis"
+    | "surrealdb"
     | "supabase"
     | "unstorage"
     | "sequelize"
@@ -216,6 +217,8 @@ function isNeo4jDriver(client: unknown): client is Record<string, unknown> {
   const constructorName = getConstructorName(client);
   return (
     hasFunction(client, "session") &&
+    !hasFunction(client, "select") &&
+    !hasFunction(client, "upsert") &&
     (hasFunction(client, "close") ||
       hasFunction(client, "verifyConnectivity") ||
       hasFunction(client, "getServerInfo") ||
@@ -227,6 +230,7 @@ function isNeo4jSession(client: unknown): client is Record<string, unknown> {
   const constructorName = getConstructorName(client);
   return (
     hasFunction(client, "run") &&
+    !hasFunction(client, "select") &&
     (hasFunction(client, "beginTransaction") ||
       hasFunction(client, "executeRead") ||
       hasFunction(client, "executeWrite")) &&
@@ -297,6 +301,21 @@ function isRedisClient(client: unknown): client is Record<string, unknown> {
       hasFunction(client, "connect") ||
       hasFunction(client, "pipeline") ||
       hasFunction(client, "request"))
+  );
+}
+
+function isSurrealDbClient(client: unknown): client is Record<string, unknown> {
+  const constructorName = getConstructorName(client);
+  return (
+    hasFunction(client, "select") &&
+    hasFunction(client, "create") &&
+    hasFunction(client, "update") &&
+    hasFunction(client, "upsert") &&
+    hasFunction(client, "delete") &&
+    (hasFunction(client, "query") ||
+      hasFunction(client, "beginTransaction") ||
+      hasFunction(client, "use") ||
+      /surreal/i.test(constructorName))
   );
 }
 
@@ -585,6 +604,14 @@ export function detectDatabaseRuntime<TClient>(
     });
   }
 
+  if (isSurrealDbClient(client)) {
+    return Object.freeze({
+      kind: "surrealdb",
+      client,
+      source: "client",
+    });
+  }
+
   if (isSupabaseClient(client)) {
     return Object.freeze({
       kind: "supabase",
@@ -822,6 +849,15 @@ export function inspectDatabaseRuntime<TClient>(
         ? []
         : missingFunctions(client, ["get", "set"]).concat([
             "expected a Redis or Upstash Redis client with get/set/del and key listing support",
+          ]),
+    },
+    {
+      kind: "surrealdb",
+      matched: isSurrealDbClient(client),
+      reasons: isSurrealDbClient(client)
+        ? []
+        : missingFunctions(client, ["select", "create", "update", "upsert", "delete"]).concat([
+            "expected an official SurrealDB client, session, or transaction with select/create/update/upsert/delete support",
           ]),
     },
     {
