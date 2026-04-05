@@ -47,6 +47,7 @@
     "@farming-labs/orm-sequelize": "workspace:*",
     "@farming-labs/orm-sql": "workspace:*",
     "@farming-labs/orm-supabase": "workspace:*",
+    "@farming-labs/orm-surrealdb": "workspace:*",
     "@farming-labs/orm-typeorm": "workspace:*",
     "@farming-labs/orm-unstorage": "workspace:*",
     "@farming-labs/orm-xata": "workspace:*"

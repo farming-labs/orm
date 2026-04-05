@@ -1,6 +1,6 @@
 ---
 title: "Support Matrix"
-description: "A simpler support overview for generation, live runtime support, and setup coverage across the supported stacks."
+description: "A simpler support overview for generation, live runtime support, and setup coverage across the supported stacks, including SurrealDB."
 order: 1
 icon: package
 ---
@@ -40,6 +40,7 @@ If you want the full story for one stack, use
 | Sequelize       | No         | Yes     | Full    | Runtime-first relational integration                            |
 | EdgeDB / Gel    | No         | Yes     | No-op   | Runtime bridge through the official Gel SQL client              |
 | Neo4j           | No         | Yes     | Full    | Graph runtime through the official Neo4j driver/session shapes  |
+| SurrealDB       | No         | Yes     | No-op   | Multi-model runtime through the official SurrealDB client       |
 | Cloudflare D1   | No         | Yes     | Limited | Worker-native SQLite binding with local/CI setup helpers        |
 | Cloudflare KV   | No         | Yes     | No-op   | Worker-native key-value runtime                                 |
 | Redis / Upstash | No         | Yes     | No-op   | Key-value runtime for Redis and Upstash-compatible clients      |
@@ -116,6 +117,22 @@ Two boundaries matter:
 
 - this is not a Cypher-native graph query builder
 - relation loading stays conservative and uses follow-up reads instead of claiming native graph traversal planning
+
+### SurrealDB
+
+SurrealDB is supported as a runtime-first multi-model backend through the
+official SurrealDB client.
+
+That means:
+
+- pass the real SurrealDB client directly
+- keep one schema definition and one query surface
+- use the same runtime helper path as the other backends
+
+Two boundaries matter:
+
+- the current ORM layer uses ORM-managed record and unique-lookup storage on top of the official client
+- relation loading stays conservative and uses follow-up reads instead of claiming native graph or SQL join planning
 
 ### Cloudflare KV
 
@@ -200,7 +217,7 @@ That means they rely more on:
 ### Numeric IDs and namespaces
 
 - generated numeric IDs are first-class on the relational runtimes, including D1 and Xata
-- Neo4j, MongoDB, Mongoose, Firestore, DynamoDB, Cloudflare KV, Redis, and Unstorage keep numeric IDs manual-only
+- Neo4j, SurrealDB, MongoDB, Mongoose, Firestore, DynamoDB, Cloudflare KV, Redis, and Unstorage keep numeric IDs manual-only
 - schema namespaces are only meaningful on Postgres-style relational runtimes
 
 ### Unstorage boundary

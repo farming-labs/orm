@@ -11,11 +11,12 @@
     "test:firestore:real": "pnpm --filter @farming-labs/orm-firestore test:real",
     "test:neo4j:real": "pnpm --filter @farming-labs/orm-neo4j test:real",
     "test:xata:real": "pnpm --filter @farming-labs/orm-xata test:real",
-    "test:local": "pnpm test:local:sql && pnpm test:local:d1 && pnpm test:local:kv && pnpm test:local:edgedb && pnpm test:local:neo4j && pnpm test:local:drizzle && pnpm test:local:kysely && pnpm test:local:sequelize && pnpm test:local:typeorm && pnpm test:local:mikroorm && pnpm test:local:dynamodb && pnpm test:local:redis && pnpm test:local:supabase && pnpm test:local:xata && pnpm test:local:unstorage && pnpm test:local:mongodb && pnpm test:local:prisma",
+    "test:local": "pnpm test:local:sql && pnpm test:local:d1 && pnpm test:local:kv && pnpm test:local:edgedb && pnpm test:local:neo4j && pnpm test:local:surrealdb && pnpm test:local:drizzle && pnpm test:local:kysely && pnpm test:local:sequelize && pnpm test:local:typeorm && pnpm test:local:mikroorm && pnpm test:local:dynamodb && pnpm test:local:redis && pnpm test:local:supabase && pnpm test:local:xata && pnpm test:local:unstorage && pnpm test:local:mongodb && pnpm test:local:prisma",
     "test:local:d1": "pnpm --filter @farming-labs/orm-d1 test",
     "test:local:kv": "pnpm --filter @farming-labs/orm-kv test",
     "test:local:edgedb": "pnpm --filter @farming-labs/orm-edgedb test",
     "test:local:neo4j": "pnpm --filter @farming-labs/orm-neo4j test",
+    "test:local:surrealdb": "pnpm --filter @farming-labs/orm-surrealdb test",
     "test:local:sql": "pnpm --filter @farming-labs/orm-sql test:local",
     "test:local:sqlite": "FARM_ORM_LOCAL_SQL_TARGETS=sqlite pnpm --filter @farming-labs/orm-sql test:local",
     "test:local:postgres": "FARM_ORM_LOCAL_SQL_TARGETS=postgres-pool,postgres-client pnpm --filter @farming-labs/orm-sql test:local",
@@ -58,6 +59,7 @@
   "packageManager": "pnpm@10.9.0",
   "pnpm": {
     "overrides": {
+      "defu": "^6.1.6",
       "@tootallnate/once": "^3.0.1",
       "lodash": "^4.18.1",
       "picomatch": "^4.0.4",

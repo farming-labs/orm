@@ -17,6 +17,7 @@ import type { MongooseDriverConfig } from "@farming-labs/orm-mongoose";
 import type { Neo4jDriverConfig } from "@farming-labs/orm-neo4j";
 import type { PrismaDriverConfig } from "@farming-labs/orm-prisma";
 import type { RedisDriverConfig } from "@farming-labs/orm-redis";
+import type { SurrealDbDriverConfig } from "@farming-labs/orm-surrealdb";
 import type { SupabaseDriverConfig } from "@farming-labs/orm-supabase";
 import type { SequelizeDriverConfig, SequelizeDriverDialect } from "@farming-labs/orm-sequelize";
 import type {
@@ -169,6 +170,15 @@ export async function createDriverFromRuntime<
         base: options.redis?.base,
         prefixes: options.redis?.prefixes,
         transforms: options.redis?.transforms as RedisDriverConfig<TSchema>["transforms"],
+      }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
+    }
+    case "surrealdb": {
+      const { createSurrealDbDriver } = await import("@farming-labs/orm-surrealdb");
+      return createSurrealDbDriver<TSchema>({
+        client: runtime.client as SurrealDbDriverConfig<TSchema>["client"],
+        base: options.surrealdb?.base,
+        prefixes: options.surrealdb?.prefixes,
+        transforms: options.surrealdb?.transforms as SurrealDbDriverConfig<TSchema>["transforms"],
       }) as OrmDriver<TSchema, AutoDriverHandle<TClient>>;
     }
     case "supabase": {

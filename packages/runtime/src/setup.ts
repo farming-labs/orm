@@ -829,6 +829,10 @@ async function applySchemaInternal<TSchema extends SchemaDefinition<any>, TClien
       return;
     }
 
+    if (runtime.kind === "surrealdb") {
+      return;
+    }
+
     if (runtime.kind === "supabase") {
       return;
     }
