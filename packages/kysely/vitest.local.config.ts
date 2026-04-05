@@ -13,6 +13,7 @@ export default defineConfig({
       "@farming-labs/orm-edgedb": path.resolve(dirname, "../edgedb/src/index.ts"),
       "@farming-labs/orm-firestore": path.resolve(dirname, "../firestore/src/index.ts"),
       "@farming-labs/orm-kv": path.resolve(dirname, "../kv/src/index.ts"),
+      "@farming-labs/orm-surrealdb": path.resolve(dirname, "../surrealdb/src/index.ts"),
       "@farming-labs/orm-runtime/setup": path.resolve(dirname, "../runtime/src/setup.ts"),
       "@farming-labs/orm-runtime": path.resolve(dirname, "../runtime/src/index.ts"),
       "@farming-labs/orm-drizzle": path.resolve(dirname, "../drizzle/src/index.ts"),
