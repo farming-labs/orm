@@ -10,6 +10,20 @@ export type ChangelogEntry = {
 
 export const changelogEntries: ChangelogEntry[] = [
   {
+    version: "v0.0.51",
+    anchor: "v0-0-51",
+    date: "April 5, 2026",
+    title: "SurrealDB runtime support and CI cleanup",
+    summary:
+      "Added SurrealDB as a first-class runtime, wired it through the shared runtime helpers, and cleaned up the CI path around audit and package-local test resolution.",
+    tags: ["runtime", "surrealdb", "ci"],
+    highlights: [
+      "Added `@farming-labs/orm-surrealdb` so the official SurrealDB client can power the unified ORM surface through runtime detection, `createOrmFromRuntime(...)`, and setup/bootstrap helpers.",
+      "Added the SurrealDB integration guide, support-matrix updates, runtime-helper docs, and repo guidance so the new runtime shows up consistently across the docs and skill files.",
+      "Fixed CI follow-up issues by patching the `defu` audit path and aliasing `@farming-labs/orm-surrealdb` in the package-local Vitest configs that import `@farming-labs/orm-runtime`.",
+    ],
+  },
+  {
     version: "v0.0.48",
     anchor: "v0-0-48",
     date: "April 3, 2026",
