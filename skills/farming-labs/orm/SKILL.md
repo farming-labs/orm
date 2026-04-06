@@ -82,6 +82,8 @@ repo-specific knowledge about the unified ORM API.
 4. Keep docs aligned with shipped behavior.
    If runtime support, query semantics, or release flow changes, update
    `apps/docs` and `README.md` in the same change.
+   The best end-to-end docs example for multi-runtime package design is
+   `apps/docs/app/docs/use-cases/multi-storage-walkthrough/page.mdx`.
 
 ## Runtime conventions
 
@@ -149,6 +151,7 @@ Main docs pages to keep in sync:
 - `apps/docs/app/docs/runtime/page.mdx`
 - `apps/docs/app/docs/integrations/*.mdx`
 - `apps/docs/app/docs/schema/*.mdx`
+- `apps/docs/app/docs/use-cases/multi-storage-walkthrough/page.mdx`
 - `README.md`
 
 After docs changes:

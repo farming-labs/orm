@@ -66,6 +66,10 @@ This repository is a TypeScript monorepo for @farming-labs/orm
    - real `local.integration.ts` tests for backend behavior
 
 4. Keep docs and README current with shipped behavior.
+   The multi-storage example guide lives at
+   `apps/docs/app/docs/use-cases/multi-storage-walkthrough/page.mdx` and is the
+   best end-to-end reference when you need a concrete example of one package
+   using both durable and fast runtimes together.
 
 ## Useful commands
 
@@ -155,3 +159,5 @@ pnpm release:beta
 - Unstorage is supported as a lightweight key-value/document runtime, but it is
   not the preferred fit for highly relational or join-heavy workloads.
 - Docs live under `apps/docs/app/docs`.
+- The best end-to-end walkthrough currently lives at
+  `apps/docs/app/docs/use-cases/multi-storage-walkthrough/page.mdx`.
