@@ -272,6 +272,7 @@ export default defineDocs({
       slug: "use-cases",
       children: [
         { slug: "framework-authors" },
+        { slug: "multi-storage-walkthrough" },
         { slug: "auth-libraries" },
         { slug: "auth-adapter-ecosystem" },
         { slug: "billing-modules" },

@@ -1,0 +1,652 @@
+---
+title: "Multi-Storage Walkthrough"
+description: "Build one reusable platform layer that keeps durable state in a relational runtime and fast state in a key-value runtime."
+order: 2
+icon: server
+---
+
+# Multi-Storage Walkthrough
+
+If you want one concrete mental model for Farming Labs ORM, build a small
+platform layer that owns:
+
+- durable control-plane data such as users, workspaces, memberships,
+  subscriptions, and audit logs
+- fast state such as sessions, rate limits, and cache entries
+
+That is a strong fit for Farming Labs ORM because the package can keep one
+schema-first storage contract while letting each app choose the final runtime
+pairing.
+
+In this walkthrough, the package will support both of these deployments:
+
+- a Node app using Prisma for durable state and Redis for fast state
+- a Cloudflare app using D1 for durable state and KV for fast state
+
+The important part is that the package storage code does not fork into a
+Prisma version, a D1 version, a Redis version, and a KV version. The package
+keeps one storage contract and lets the runtime layer translate it.
+
+## 1. Split the problem by storage behavior
+
+The first design choice is not "which ORM should I support first?"
+
+It is:
+
+- which data needs durable relational behavior
+- which data is better treated as fast key-value state
+
+For this example:
+
+- the control plane uses a relational runtime
+- the fast state layer uses a key-value runtime
+
+That gives the package a clean boundary instead of trying to stretch one
+backend across every concern.
+
+## 2. Define the durable schema
+
+Put the long-lived relational models into one shared schema package.
+
+```ts title="control-plane-schema.ts"
+import {
+  belongsTo,
+  datetime,
+  defineSchema,
+  enumeration,
+  hasMany,
+  id,
+  json,
+  model,
+  string,
+  unique,
+} from "@farming-labs/orm";
+
+export const controlPlaneSchema = defineSchema({
+  user: model({
+    table: "users",
+    fields: {
+      id: id(),
+      email: string().unique(),
+      name: string(),
+      createdAt: datetime().defaultNow(),
+    },
+    relations: {
+      memberships: hasMany("workspaceMembership", { foreignKey: "userId" }),
+    },
+  }),
+
+  workspace: model({
+    table: "workspaces",
+    fields: {
+      id: id(),
+      slug: string().unique(),
+      name: string(),
+      plan: enumeration(["free", "pro", "enterprise"]),
+      createdAt: datetime().defaultNow(),
+    },
+    relations: {
+      memberships: hasMany("workspaceMembership", { foreignKey: "workspaceId" }),
+      subscriptions: hasMany("subscription", { foreignKey: "workspaceId" }),
+      auditLogs: hasMany("auditLog", { foreignKey: "workspaceId" }),
+    },
+  }),
+
+  workspaceMembership: model({
+    table: "workspace_memberships",
+    fields: {
+      id: id(),
+      userId: string().references("user.id"),
+      workspaceId: string().references("workspace.id"),
+      role: string().default("member"),
+      createdAt: datetime().defaultNow(),
+    },
+    unique: [unique(["userId", "workspaceId"])],
+    relations: {
+      user: belongsTo("user", { foreignKey: "userId" }),
+      workspace: belongsTo("workspace", { foreignKey: "workspaceId" }),
+    },
+  }),
+
+  subscription: model({
+    table: "subscriptions",
+    fields: {
+      id: id(),
+      workspaceId: string().references("workspace.id"),
+      providerCustomerId: string().unique(),
+      status: string(),
+      renewsAt: datetime().nullable(),
+      createdAt: datetime().defaultNow(),
+    },
+    relations: {
+      workspace: belongsTo("workspace", { foreignKey: "workspaceId" }),
+    },
+  }),
+
+  auditLog: model({
+    table: "audit_logs",
+    fields: {
+      id: id(),
+      workspaceId: string().references("workspace.id"),
+      action: string(),
+      actorId: string().nullable(),
+      payload: json(),
+      createdAt: datetime().defaultNow(),
+    },
+    relations: {
+      workspace: belongsTo("workspace", { foreignKey: "workspaceId" }),
+    },
+  }),
+});
+```
+
+This is the part of the package that usually wants:
+
+- relational lookups
+- compound uniques
+- stronger transaction behavior
+- readable generated artifacts such as Prisma or SQL output
+
+## 3. Define the fast-state schema
+
+Put short-lived and key-value-friendly state into a separate schema.
+
+```ts title="fast-state-schema.ts"
+import {
+  datetime,
+  defineSchema,
+  id,
+  integer,
+  json,
+  model,
+  string,
+  unique,
+} from "@farming-labs/orm";
+
+export const fastStateSchema = defineSchema({
+  sessionState: model({
+    table: "session_state",
+    fields: {
+      id: id(),
+      sessionToken: string().unique(),
+      userId: string(),
+      workspaceId: string(),
+      state: json(),
+      expiresAt: datetime(),
+      updatedAt: datetime().defaultNow(),
+    },
+  }),
+
+  rateLimitBucket: model({
+    table: "rate_limit_buckets",
+    fields: {
+      id: id(),
+      scope: string(),
+      identifier: string(),
+      remaining: integer(),
+      resetAt: datetime(),
+      updatedAt: datetime().defaultNow(),
+    },
+    unique: [unique(["scope", "identifier"])],
+  }),
+
+  cacheEntry: model({
+    table: "cache_entries",
+    fields: {
+      id: id(),
+      namespace: string(),
+      key: string(),
+      value: json(),
+      expiresAt: datetime().nullable(),
+      updatedAt: datetime().defaultNow(),
+    },
+    unique: [unique(["namespace", "key"])],
+  }),
+});
+```
+
+This side of the package is a good fit for Redis, Upstash Redis, Cloudflare KV,
+or Unstorage-style runtimes. The point is not to turn those backends into a
+full relational database. The point is to keep one schema and one query API for
+state that already fits key-value behavior.
+
+## 4. Generate artifacts for the durable side
+
+The durable schema is usually the one that benefits most from generated
+artifacts.
+
+```ts title="farm-orm.config.ts"
+import { defineConfig } from "@farming-labs/orm-cli";
+import { controlPlaneSchema } from "./control-plane-schema";
+
+export default defineConfig({
+  schemas: [controlPlaneSchema],
+  targets: {
+    prisma: {
+      out: "./generated/prisma/schema.prisma",
+      provider: "postgresql",
+    },
+    sql: {
+      out: "./generated/sql/0001_control_plane.sql",
+      dialect: "postgres",
+    },
+  },
+});
+```
+
+That keeps the package friendly for apps that want normal Prisma or SQL-first
+setup flows, while the fast-state schema can stay runtime-first.
+
+## 5. Accept the raw runtime clients
+
+The package boundary should accept the app's real clients and normalize them
+through the runtime helpers.
+
+```ts title="create-platform-orms.ts"
+import { createOrmFromRuntime } from "@farming-labs/orm-runtime";
+import { controlPlaneSchema } from "./control-plane-schema";
+import { fastStateSchema } from "./fast-state-schema";
+
+export async function createPlatformOrms(input: { durable: unknown; fast: unknown }) {
+  const [durableOrm, fastOrm] = await Promise.all([
+    createOrmFromRuntime({
+      schema: controlPlaneSchema,
+      client: input.durable,
+    }),
+    createOrmFromRuntime({
+      schema: fastStateSchema,
+      client: input.fast,
+    }),
+  ]);
+
+  return {
+    durableOrm,
+    fastOrm,
+  };
+}
+```
+
+That one boundary is what lets the same package support:
+
+- Prisma + Redis
+- TypeORM + Upstash Redis
+- direct SQL + Unstorage
+- D1 + KV
+
+without rewriting the storage layer for every stack pairing.
+
+## 6. Write the storage helpers once
+
+Now the package can compose both runtimes behind one platform-facing API.
+
+```ts title="platform-store.ts"
+type PlatformOrms = Awaited<ReturnType<typeof createPlatformOrms>>;
+
+export function createPlatformStore({ durableOrm, fastOrm }: PlatformOrms) {
+  return {
+    async createWorkspaceWithOwner(input: {
+      slug: string;
+      name: string;
+      ownerEmail: string;
+      ownerName: string;
+    }) {
+      const owner = await durableOrm.user.upsert({
+        where: { email: input.ownerEmail },
+        create: {
+          email: input.ownerEmail,
+          name: input.ownerName,
+        },
+        update: {
+          name: input.ownerName,
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+        },
+      });
+
+      const workspace = await durableOrm.workspace.create({
+        data: {
+          slug: input.slug,
+          name: input.name,
+          plan: "free",
+        },
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          plan: true,
+        },
+      });
+
+      await durableOrm.workspaceMembership.create({
+        data: {
+          userId: owner.id,
+          workspaceId: workspace.id,
+          role: "owner",
+        },
+      });
+
+      return {
+        owner,
+        workspace,
+      };
+    },
+
+    async startSession(input: {
+      sessionToken: string;
+      userId: string;
+      workspaceId: string;
+      state: Record<string, unknown>;
+      expiresAt: Date;
+    }) {
+      return fastOrm.sessionState.upsert({
+        where: {
+          sessionToken: input.sessionToken,
+        },
+        create: input,
+        update: {
+          state: input.state,
+          expiresAt: input.expiresAt,
+          updatedAt: new Date(),
+        },
+      });
+    },
+
+    async consumeWorkspaceRateLimit(input: {
+      scope: string;
+      identifier: string;
+      limit: number;
+      resetAt: Date;
+    }) {
+      const current = await fastOrm.rateLimitBucket.findUnique({
+        where: {
+          scope_identifier: {
+            scope: input.scope,
+            identifier: input.identifier,
+          },
+        },
+        select: {
+          remaining: true,
+          resetAt: true,
+        },
+      });
+
+      const nextRemaining =
+        current && current.resetAt > new Date() && current.remaining > 0
+          ? current.remaining - 1
+          : Math.max(input.limit - 1, 0);
+
+      return fastOrm.rateLimitBucket.upsert({
+        where: {
+          scope_identifier: {
+            scope: input.scope,
+            identifier: input.identifier,
+          },
+        },
+        create: {
+          scope: input.scope,
+          identifier: input.identifier,
+          remaining: nextRemaining,
+          resetAt: input.resetAt,
+        },
+        update: {
+          remaining: nextRemaining,
+          resetAt: input.resetAt,
+          updatedAt: new Date(),
+        },
+      });
+    },
+
+    async loadWorkspaceDashboard(slug: string) {
+      const workspace = await durableOrm.workspace.findUnique({
+        where: { slug },
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          plan: true,
+          memberships: {
+            select: {
+              role: true,
+              user: {
+                select: {
+                  email: true,
+                  name: true,
+                },
+              },
+            },
+          },
+          subscriptions: {
+            select: {
+              providerCustomerId: true,
+              status: true,
+              renewsAt: true,
+            },
+          },
+        },
+      });
+
+      if (!workspace) {
+        return null;
+      }
+
+      const cached = await fastOrm.cacheEntry.findUnique({
+        where: {
+          namespace_key: {
+            namespace: "workspace-dashboard",
+            key: workspace.id,
+          },
+        },
+        select: {
+          value: true,
+          expiresAt: true,
+        },
+      });
+
+      return {
+        workspace,
+        cachedMetrics: cached?.value ?? null,
+      };
+    },
+  };
+}
+```
+
+This is the most important part of the walkthrough.
+
+The storage helpers do not know whether the durable client is Prisma, D1,
+TypeORM, or direct SQL. They also do not know whether the fast client is
+Redis, KV, or Unstorage. They only know the schema contract and the unified ORM
+surface.
+
+## 7. Wire it into a Node app
+
+Here is the same package running in a normal Node deployment with Prisma and
+Redis.
+
+```ts title="node-app.ts"
+import { PrismaClient } from "@prisma/client";
+import { createClient } from "redis";
+import { createPlatformOrms } from "@acme/platform-storage/create-platform-orms";
+import { createPlatformStore } from "@acme/platform-storage/platform-store";
+
+const prisma = new PrismaClient();
+
+const redis = createClient({
+  url: process.env.REDIS_URL,
+});
+
+await redis.connect();
+
+const platform = createPlatformStore(
+  await createPlatformOrms({
+    durable: prisma,
+    fast: redis,
+  }),
+);
+
+await platform.createWorkspaceWithOwner({
+  slug: "acme",
+  name: "Acme",
+  ownerEmail: "ada@acme.dev",
+  ownerName: "Ada",
+});
+```
+
+In this deployment:
+
+- Prisma owns the durable relational state
+- Redis owns the fast session, cache, and rate-limit state
+- the package storage helpers stay unchanged
+
+## 8. Wire the same package into a Cloudflare app
+
+Now take the same package and run it in a Cloudflare-shaped deployment.
+
+```ts title="worker.ts"
+import { createPlatformOrms } from "@acme/platform-storage/create-platform-orms";
+import { createPlatformStore } from "@acme/platform-storage/platform-store";
+
+type Env = {
+  DB: D1Database;
+  CACHE: KVNamespace;
+};
+
+export default {
+  async fetch(_request: Request, env: Env) {
+    const platform = createPlatformStore(
+      await createPlatformOrms({
+        durable: env.DB,
+        fast: env.CACHE,
+      }),
+    );
+
+    const dashboard = await platform.loadWorkspaceDashboard("acme");
+
+    return Response.json(dashboard);
+  },
+};
+```
+
+The package code does not gain a "Cloudflare adapter" branch here.
+
+It still:
+
+- accepts raw runtime clients
+- normalizes them through the runtime layer
+- reuses the same storage helpers
+
+That is the core portability story Farming Labs ORM is trying to unlock.
+
+## 9. Use one setup path in tests and local demos
+
+If the package also owns examples, starter apps, or integration tests, use the
+setup helpers instead of maintaining one setup branch per backend.
+
+```ts title="create-prepared-platform-orms.ts"
+import { bootstrapDatabase } from "@farming-labs/orm-runtime/setup";
+import { controlPlaneSchema } from "./control-plane-schema";
+import { fastStateSchema } from "./fast-state-schema";
+
+export async function createPreparedPlatformOrms(input: { durable: unknown; fast: unknown }) {
+  const [durableOrm, fastOrm] = await Promise.all([
+    bootstrapDatabase({
+      schema: controlPlaneSchema,
+      client: input.durable,
+    }),
+    bootstrapDatabase({
+      schema: fastStateSchema,
+      client: input.fast,
+    }),
+  ]);
+
+  return {
+    durableOrm,
+    fastOrm,
+  };
+}
+```
+
+That gives the package one entrypoint for:
+
+- tests
+- examples
+- starter kits
+- onboarding scripts
+
+On SQL-style runtimes, `bootstrapDatabase(...)` can prepare the database. On
+Redis, KV, and other runtime-first backends, it becomes the same safe no-op
+setup surface instead of forcing a separate branch.
+
+## 10. Design rules that keep this healthy
+
+The pattern works best when the package stays honest about runtime boundaries.
+
+### Keep durable relational data on the durable side
+
+Put things like these in the relational runtime:
+
+- users
+- workspaces
+- memberships
+- subscriptions
+- audit logs
+
+Those models usually want better relational planning, stronger consistency, and
+more readable generated artifacts.
+
+### Keep fast state on the fast side
+
+Put things like these in the key-value side:
+
+- sessions
+- rate limits
+- cache entries
+- temporary verification or provisioning state
+
+That lets the app choose Redis, KV, or another fast runtime without trying to
+make it own the whole control plane.
+
+### Do not pretend this is one cross-store transaction
+
+This pattern gives you one storage layer, not a distributed transaction
+coordinator.
+
+The package should still treat the durable and fast runtimes as separate
+systems:
+
+- write durable records first
+- populate fast state second
+- make cache and rate-limit data replaceable
+- avoid pretending both stores roll back together
+
+## 11. What you get out of this
+
+At the end of this walkthrough, the package owns:
+
+- one durable schema
+- one fast-state schema
+- one runtime helper boundary
+- one package-level storage API
+
+And the consuming app still chooses the concrete pairing:
+
+- Prisma + Redis
+- D1 + KV
+- TypeORM + Upstash Redis
+- direct SQL + Unstorage
+
+That is the practical value of Farming Labs ORM for shared modules and
+framework-owned storage.
+
+## Related guides
+
+- [Framework authors](/docs/use-cases/framework-authors)
+- [Full-stack frameworks](/docs/use-cases/fullstack-frameworks)
+- [Runtime helpers](/docs/runtime/runtime-helpers)
+- [Prisma](/docs/integrations/prisma)
+- [Redis](/docs/integrations/redis)
+- [Cloudflare D1](/docs/integrations/cloudflare-d1)
+- [Cloudflare KV](/docs/integrations/cloudflare-kv)
