@@ -373,10 +373,15 @@ export function createPlatformStore({ durableOrm, fastOrm }: PlatformOrms) {
         },
       });
 
-      const nextRemaining =
-        current && current.resetAt > new Date() && current.remaining > 0
-          ? current.remaining - 1
-          : Math.max(input.limit - 1, 0);
+      const now = new Date();
+      const isActiveWindow = current ? current.resetAt > now : false;
+      const nextRemaining = current
+        ? isActiveWindow
+          ? Math.max(current.remaining - 1, 0)
+          : Math.max(input.limit - 1, 0)
+        : Math.max(input.limit - 1, 0);
+
+      const nextResetAt = isActiveWindow && current ? current.resetAt : input.resetAt;
 
       return fastOrm.rateLimitBucket.upsert({
         where: {
@@ -389,11 +394,11 @@ export function createPlatformStore({ durableOrm, fastOrm }: PlatformOrms) {
           scope: input.scope,
           identifier: input.identifier,
           remaining: nextRemaining,
-          resetAt: input.resetAt,
+          resetAt: nextResetAt,
         },
         update: {
           remaining: nextRemaining,
-          resetAt: input.resetAt,
+          resetAt: nextResetAt,
           updatedAt: new Date(),
         },
       });
@@ -445,9 +450,12 @@ export function createPlatformStore({ durableOrm, fastOrm }: PlatformOrms) {
         },
       });
 
+      const cachedMetrics =
+        cached && (!cached.expiresAt || cached.expiresAt > new Date()) ? cached.value : null;
+
       return {
         workspace,
-        cachedMetrics: cached?.value ?? null,
+        cachedMetrics,
       };
     },
   };
