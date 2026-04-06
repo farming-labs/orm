@@ -159,5 +159,3 @@ pnpm release:beta
 - Unstorage is supported as a lightweight key-value/document runtime, but it is
   not the preferred fit for highly relational or join-heavy workloads.
 - Docs live under `apps/docs/app/docs`.
-- The best end-to-end walkthrough currently lives at
-  `apps/docs/app/docs/use-cases/multi-storage-walkthrough/page.mdx`.

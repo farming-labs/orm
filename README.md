@@ -196,16 +196,13 @@ farm-orm generate sql
 
 The full guides live in the docs app under [`apps/docs`](/Users/mac/oss/orms/apps/docs).
 
-Good starting points:
+Best starting points:
 
 - [Overview](/Users/mac/oss/orms/apps/docs/app/docs/page.mdx)
 - [Integrations](/Users/mac/oss/orms/apps/docs/app/docs/integrations/page.mdx)
 - [Runtime helpers](/Users/mac/oss/orms/apps/docs/app/docs/runtime/runtime-helpers/page.mdx)
 - [Multi-storage walkthrough](/Users/mac/oss/orms/apps/docs/app/docs/use-cases/multi-storage-walkthrough/page.mdx)
 
-The multi-storage walkthrough is the best end-to-end example in the repo right
-now if you want to see how one package can keep:
-
-- durable relational state in one runtime
-- fast key-value state in another runtime
-- one shared storage layer on top of both
+If you want one concrete end-to-end example, start with the multi-storage
+walkthrough. It shows one package using a durable relational runtime, a fast
+key-value runtime, and one shared storage layer on top of both.
