@@ -163,6 +163,13 @@ export default defineDocs({
       },
     },
   }),
+  // mcp: {
+  //   enabled: true,
+  // },
+  // search: {
+  //   provider: "mcp",
+  //   endpoint: "/api/docs/mcp"
+  // },
   nav: {
     title: (
       <div className="flex items-center gap-3 font-medium tracking-tight text-white">
