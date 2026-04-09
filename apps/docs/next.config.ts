@@ -5,6 +5,6 @@ const repoRoot = path.resolve(process.cwd(), "..");
 
 export default withDocs({
   turbopack: {
-    root: repoRoot
-  }
+    root: repoRoot,
+  },
 });
