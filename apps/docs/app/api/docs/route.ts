@@ -4,6 +4,8 @@ import { createDocsAPI } from "@farming-labs/next/api";
 export const { GET, POST } = createDocsAPI({
   entry: docsConfig.entry,
   i18n: docsConfig.i18n,
+  search: docsConfig.search,
+  ai: docsConfig.ai,
 });
 
 export const revalidate = false;
