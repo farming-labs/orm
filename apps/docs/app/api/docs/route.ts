@@ -1,8 +1,12 @@
-import docsConfig from "../../../docs.config";
-import { createDocsAPI } from "@farming-labs/next/api";
+import docsConfig from "@/docs.config";
+import { createDocsAPI, resolveNextProjectRoot } from "@farming-labs/next/api";
+
+const rootDir = resolveNextProjectRoot(import.meta.url);
 
 export const { GET, POST } = createDocsAPI({
+  rootDir,
   entry: docsConfig.entry,
+  contentDir: docsConfig.contentDir,
   i18n: docsConfig.i18n,
   search: docsConfig.search,
   ai: docsConfig.ai,
