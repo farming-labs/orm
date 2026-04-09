@@ -1,5 +1,5 @@
 import docsConfig from "../../../docs.config";
-import { createDocsAPI } from "@farming-labs/theme/api";
+import { createDocsAPI } from "@farming-labs/next/api";
 
 export const { GET, POST } = createDocsAPI({
   entry: docsConfig.entry,
