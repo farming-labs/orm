@@ -21,7 +21,7 @@
     "@farming-labs/orm-prisma": "workspace:*",
     "@farming-labs/orm-sql": "workspace:*",
     "@prisma/client": "^6.5.0",
-    "drizzle-orm": "^0.44.6",
+    "drizzle-orm": "^0.45.2",
     "mongodb": "^6.20.0",
     "mongoose": "^8.19.2",
     "mysql2": "^3.15.2",

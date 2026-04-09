@@ -29,12 +29,12 @@
   },
   "devDependencies": {
     "@types/pg": "^8.15.6",
-    "drizzle-orm": "^0.44.6",
+    "drizzle-orm": "^0.45.2",
     "mysql2": "^3.15.2",
     "pg": "^8.16.3",
     "tsup": "^8.4.0"
   },
   "peerDependencies": {
-    "drizzle-orm": "^0.44.6"
+    "drizzle-orm": "^0.45.2"
   }
 }
