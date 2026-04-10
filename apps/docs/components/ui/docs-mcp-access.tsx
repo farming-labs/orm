@@ -1,4 +1,4 @@
-import { Blocks, Code2, PlugZap } from "lucide-react";
+import { Blocks, PlugZap } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +15,13 @@ const vscodeInstallUrl = `vscode:mcp/install?${encodeURIComponent(
   }),
 )}`;
 
-const clientLabels = ["Cursor", "VS Code"];
+const genericConfig = `{
+  "mcpServers": {
+    "farming-labs-orm-docs": {
+      "url": "${mcpEndpoint}"
+    }
+  }
+}`;
 
 function CursorIcon({ className }: { className?: string }) {
   return (
@@ -56,83 +62,75 @@ export function DocsMcpAccess({ className }: { className?: string }) {
               <p className="font-mono text-[10px] uppercase tracking-[0.18em]">Docs MCP</p>
             </div>
 
-            <h2 className="mt-4 max-w-sm font-mono text-[0.9rem] uppercase tracking-[0.12em] text-white/92 sm:text-[0.98rem]">
-              Add the ORM docs with a native MCP install link
+            <h2 className="mt-4 max-w-sm font-sans text-[0.9rem] uppercase tracking-[0.12em] text-white/92 sm:text-[0.98rem]">
+              Add to MCP
             </h2>
 
             <p className="mt-4 max-w-md text-sm leading-7 text-white/58">
-              This hosted MCP endpoint currently exposes direct install links for Cursor and VS
-              Code, so the docs server can be added without copying config by hand.
+              Clients with install-link support:
             </p>
 
-            <div className="mt-5 flex flex-wrap gap-2">
-              {clientLabels.map((label) => (
-                <span
-                  key={label}
-                  className="border border-white/10 bg-white/[0.03] px-2.5 py-1 font-mono text-[0.58rem] uppercase tracking-[0.12em] text-white/55"
-                >
-                  {label}
-                </span>
-              ))}
-            </div>
-
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-5 flex max-w-md flex-col gap-2.5">
               <a
                 href={cursorInstallUrl}
-                className="group inline-flex min-h-12 items-center gap-3 border border-white/12 bg-white/[0.045] px-3 py-3 text-white transition-[border-color,background-color] hover:border-white/20 hover:bg-white/[0.07]"
+                className="group inline-flex min-h-8 w-full items-center gap-2.5 border border-white/12 bg-white/[0.045] px-3 py-2.5 text-white transition-[border-color,background-color] hover:border-white/20 hover:bg-white/[0.07]"
               >
-                <span className="flex size-9 shrink-0 items-center justify-center border border-white/12 bg-black/35">
-                  <CursorIcon className="size-4.5" />
+                <span className="flex size-8 shrink-0 items-center justify-center border border-white/12 bg-black/35">
+                  <CursorIcon className="size-4" />
                 </span>
                 <span className="flex min-w-0 flex-col items-start">
-                  <span className="font-mono text-[0.54rem] uppercase tracking-[0.18em] text-white/45">
-                    one click
+                  <span className="font-mono text-[0.64rem] uppercase tracking-[0.14em] text-white/92">
+                    Cursor
                   </span>
-                  <span className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-white/92">
-                    Add to Cursor
+                  <span className="font-mono -mt-2 text-[0.6rem] uppercase tracking-wider text-white/45">
+                    Deep Install link
                   </span>
-                </span>
-                <span className="ml-1 border border-white/10 bg-black/25 px-2 py-1 font-mono text-[0.54rem] uppercase tracking-[0.14em] text-white/52 transition-colors group-hover:text-white/72">
-                  MCP
                 </span>
               </a>
               <a
                 href={vscodeInstallUrl}
-                className="group inline-flex min-h-12 items-center gap-3 border border-white/12 bg-white/[0.045] px-3 py-3 text-white transition-[border-color,background-color] hover:border-white/20 hover:bg-white/[0.07]"
+                className="group inline-flex min-h-12 w-full items-center gap-2.5 border border-white/12 bg-white/[0.045] px-3 py-2.5 text-white transition-[border-color,background-color] hover:border-white/20 hover:bg-white/[0.07]"
               >
-                <span className="flex size-9 shrink-0 items-center justify-center border border-white/12 bg-black/35">
-                  <Code2 className="size-4 text-[#0078d4]" strokeWidth={1.7} aria-hidden />
+                <span className="flex size-8 shrink-0 items-center justify-center border border-white/12 bg-black/35">
+                  <img
+                    src="https://code.visualstudio.com/assets/branding/code-stable.png"
+                    alt=""
+                    className="size-4 object-contain"
+                    aria-hidden="true"
+                  />
                 </span>
                 <span className="flex min-w-0 flex-col items-start">
-                  <span className="font-mono text-[0.54rem] uppercase tracking-[0.18em] text-white/45">
-                    one click
+                  <span className="font-mono text-[0.64rem] uppercase tracking-[0.14em] text-white/92">
+                    VS Code
                   </span>
-                  <span className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-white/92">
-                    Add to VS Code
+                  <span className="font-mono -mt-2 text-[0.6rem] uppercase tracking-wider text-white/45">
+                    Install link
                   </span>
-                </span>
-                <span className="ml-1 border border-white/10 bg-black/25 px-2 py-1 font-mono text-[0.54rem] uppercase tracking-[0.14em] text-white/52 transition-colors group-hover:text-white/72">
-                  MCP
                 </span>
               </a>
             </div>
           </div>
 
-          <div className="grid gap-4 p-5 md:p-6">
+          <div className="grid gap-5 p-5 md:p-6">
             <div>
               <div className="mb-2 inline-flex items-center gap-2 text-white/72">
                 <Blocks className="size-4" strokeWidth={1.5} aria-hidden />
-                <p className="font-mono text-[10px] uppercase tracking-[0.18em]">Remote URL</p>
+                <p className="font-mono text-[10px] uppercase tracking-[0.18em]">Endpoint</p>
               </div>
               <pre className="overflow-x-auto border border-white/10 bg-black/30 px-4 py-3 font-mono text-[0.7rem] leading-6 text-white/82">
                 <code>{mcpEndpoint}</code>
               </pre>
             </div>
 
-            <p className="max-w-md text-sm leading-7 text-white/54">
-              Both buttons install the same hosted HTTP MCP server. For VS Code Insiders, use the
-              same install URL with the `vscode-insiders:` scheme.
-            </p>
+            <div>
+              <div className="mb-2 inline-flex items-center gap-2 text-white/72">
+                <Blocks className="size-4" strokeWidth={1.5} aria-hidden />
+                <p className="font-mono text-[10px] uppercase tracking-[0.18em]">MCP config</p>
+              </div>
+              <pre className="overflow-x-auto border border-white/10 bg-black/30 px-4 py-3 font-mono text-[0.68rem] leading-6 text-white/82">
+                <code>{genericConfig}</code>
+              </pre>
+            </div>
           </div>
         </div>
       </Card>
