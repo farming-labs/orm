@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import { Blocks, PlugZap } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -22,6 +25,95 @@ const genericConfig = `{
     }
   }
 }`;
+
+function CopyIcon({ copied, className }: { copied: boolean; className?: string }) {
+  if (copied) {
+    return (
+      <svg
+        className={className}
+        width="1.25em"
+        height="1.25em"
+        viewBox="0 0 20 20"
+        fill="none"
+        aria-hidden
+      >
+        <path
+          d="M5 10.8l3.1 3.1 6.2-6.8"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg
+      className={className}
+      width="1.25em"
+      height="1.25em"
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden
+    >
+      <rect x="5" y="7" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="1.3" />
+      <rect x="8" y="5" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.3" />
+    </svg>
+  );
+}
+
+function CopyableBlock({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: string;
+  className?: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  const timeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current != null) window.clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      if (timeoutRef.current != null) window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = window.setTimeout(() => setCopied(false), 1200) as unknown as number;
+    } catch {
+      // no-op
+    }
+  };
+
+  return (
+    <div className={className}>
+      <div className="mb-2 inline-flex min-w-0 items-center gap-2 text-white/72">
+        <Blocks className="size-4 shrink-0" strokeWidth={1.5} aria-hidden />
+        <p className="truncate font-mono text-[10px] uppercase tracking-[0.18em]">{label}</p>
+      </div>
+      <div className="relative border mr-20 border-white/10 bg-black/30">
+        <button
+          type="button"
+          aria-label={copied ? `Copied ${label}` : `Copy ${label}`}
+          onClick={handleCopy}
+          className="absolute top-2.5 right-8 z-10 inline-flex size-6 items-center justify-center border border-white/10 bg-black/45 text-white/58 transition-colors hover:bg-white/[0.06] hover:text-white/80"
+        >
+          <CopyIcon copied={copied} className="size-4" />
+        </button>
+        <pre className="overflow-x-auto px-4 py-3 pr-12 font-mono text-[0.68rem] leading-6 text-white/82">
+          <code>{value}</code>
+        </pre>
+      </div>
+    </div>
+  );
+}
 
 function CursorIcon({ className }: { className?: string }) {
   return (
@@ -83,7 +175,7 @@ export function DocsMcpAccess({ className }: { className?: string }) {
                     Cursor
                   </span>
                   <span className="font-mono -mt-2 text-[0.6rem] uppercase tracking-wider text-white/45">
-                    Deep Install link
+                    Deep link
                   </span>
                 </span>
               </a>
@@ -112,25 +204,8 @@ export function DocsMcpAccess({ className }: { className?: string }) {
           </div>
 
           <div className="grid gap-5 p-5 md:p-6">
-            <div>
-              <div className="mb-2 inline-flex items-center gap-2 text-white/72">
-                <Blocks className="size-4" strokeWidth={1.5} aria-hidden />
-                <p className="font-mono text-[10px] uppercase tracking-[0.18em]">Endpoint</p>
-              </div>
-              <pre className="overflow-x-auto border border-white/10 bg-black/30 px-4 py-3 font-mono text-[0.7rem] leading-6 text-white/82">
-                <code>{mcpEndpoint}</code>
-              </pre>
-            </div>
-
-            <div>
-              <div className="mb-2 inline-flex items-center gap-2 text-white/72">
-                <Blocks className="size-4" strokeWidth={1.5} aria-hidden />
-                <p className="font-mono text-[10px] uppercase tracking-[0.18em]">MCP config</p>
-              </div>
-              <pre className="overflow-x-auto border border-white/10 bg-black/30 px-4 py-3 font-mono text-[0.68rem] leading-6 text-white/82">
-                <code>{genericConfig}</code>
-              </pre>
-            </div>
+            <CopyableBlock label="Endpoint" value={mcpEndpoint} />
+            <CopyableBlock label="MCP config" value={genericConfig} />
           </div>
         </div>
       </Card>
