@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "pnpm run prisma:generate && next build",
-    "dev": "pnpm run prisma:generate && next dev",
+    "dev": "next dev",
     "prisma:generate": "prisma generate --schema ./prisma/schema.prisma",
     "prisma:push": "prisma db push --schema ./prisma/schema.prisma",
     "test": "pnpm run prisma:generate && next build",
