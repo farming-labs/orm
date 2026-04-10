@@ -1,6 +1,6 @@
 {
   "name": "@farming-labs/orm-runtime",
-  "version": "0.0.56",
+  "version": "0.0.57",
   "files": [
     "dist"
   ],
