@@ -1,4 +1,4 @@
-import { ArrowUpRight, Blocks, Command, PlugZap } from "lucide-react";
+import { Blocks, Code2, PlugZap } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -7,17 +7,15 @@ const mcpEndpoint = "https://orm.farming-labs.dev/api/docs/mcp";
 const cursorInstallUrl =
   "cursor://anysphere.cursor-deeplink/mcp/install?name=farming-labs-orm-docs&config=eyJ1cmwiOiJodHRwczovL29ybS5mYXJtaW5nLWxhYnMuZGV2L2FwaS9kb2NzL21jcCJ9";
 
-const claudeCodeCommand = `claude mcp add --transport http farming-labs-orm-docs ${mcpEndpoint}`;
+const vscodeInstallUrl = `vscode:mcp/install?${encodeURIComponent(
+  JSON.stringify({
+    name: "farming-labs-orm-docs",
+    type: "http",
+    url: mcpEndpoint,
+  }),
+)}`;
 
-const genericConfig = `{
-  "mcpServers": {
-    "farming-labs-orm-docs": {
-      "url": "${mcpEndpoint}"
-    }
-  }
-}`;
-
-const clientLabels = ["Cursor", "Claude Code", "Windsurf", "Cline", "VS Code"];
+const clientLabels = ["Cursor", "VS Code"];
 
 function CursorIcon({ className }: { className?: string }) {
   return (
@@ -59,12 +57,12 @@ export function DocsMcpAccess({ className }: { className?: string }) {
             </div>
 
             <h2 className="mt-4 max-w-sm font-mono text-[0.9rem] uppercase tracking-[0.12em] text-white/92 sm:text-[0.98rem]">
-              Add the ORM docs to your MCP client with one hosted endpoint
+              Add the ORM docs with a native MCP install link
             </h2>
 
             <p className="mt-4 max-w-md text-sm leading-7 text-white/58">
-              Cursor can install it in one click. Other MCP clients can point to the same remote
-              HTTP endpoint and use the docs for page lookup, search, and navigation.
+              This hosted MCP endpoint currently exposes direct install links for Cursor and VS
+              Code, so the docs server can be added without copying config by hand.
             </p>
 
             <div className="mt-5 flex flex-wrap gap-2">
@@ -99,51 +97,42 @@ export function DocsMcpAccess({ className }: { className?: string }) {
                 </span>
               </a>
               <a
-                href={mcpEndpoint}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 border border-white/10 px-4 py-2 font-mono text-[0.66rem] uppercase tracking-[0.14em] text-white/72 transition-colors hover:bg-white/[0.04]"
+                href={vscodeInstallUrl}
+                className="group inline-flex min-h-12 items-center gap-3 border border-white/12 bg-white/[0.045] px-3 py-3 text-white transition-[border-color,background-color] hover:border-white/20 hover:bg-white/[0.07]"
               >
-                Open endpoint
-                <ArrowUpRight className="size-3.5" strokeWidth={1.5} aria-hidden />
+                <span className="flex size-9 shrink-0 items-center justify-center border border-white/12 bg-black/35">
+                  <Code2 className="size-4 text-[#0078d4]" strokeWidth={1.7} aria-hidden />
+                </span>
+                <span className="flex min-w-0 flex-col items-start">
+                  <span className="font-mono text-[0.54rem] uppercase tracking-[0.18em] text-white/45">
+                    one click
+                  </span>
+                  <span className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-white/92">
+                    Add to VS Code
+                  </span>
+                </span>
+                <span className="ml-1 border border-white/10 bg-black/25 px-2 py-1 font-mono text-[0.54rem] uppercase tracking-[0.14em] text-white/52 transition-colors group-hover:text-white/72">
+                  MCP
+                </span>
               </a>
             </div>
           </div>
 
-          <div className="grid gap-5 p-5 md:p-6">
+          <div className="grid gap-4 p-5 md:p-6">
             <div>
               <div className="mb-2 inline-flex items-center gap-2 text-white/72">
                 <Blocks className="size-4" strokeWidth={1.5} aria-hidden />
-                <p className="font-mono text-[10px] uppercase tracking-[0.18em]">Endpoint</p>
+                <p className="font-mono text-[10px] uppercase tracking-[0.18em]">Remote URL</p>
               </div>
               <pre className="overflow-x-auto border border-white/10 bg-black/30 px-4 py-3 font-mono text-[0.7rem] leading-6 text-white/82">
                 <code>{mcpEndpoint}</code>
               </pre>
             </div>
 
-            <div className="grid gap-5 lg:grid-cols-2">
-              <div>
-                <div className="mb-2 inline-flex items-center gap-2 text-white/72">
-                  <Command className="size-4" strokeWidth={1.5} aria-hidden />
-                  <p className="font-mono text-[10px] uppercase tracking-[0.18em]">Claude Code</p>
-                </div>
-                <pre className="overflow-x-auto border border-white/10 bg-black/30 px-4 py-3 font-mono text-[0.68rem] leading-6 text-white/82">
-                  <code>{claudeCodeCommand}</code>
-                </pre>
-              </div>
-
-              <div>
-                <div className="mb-2 inline-flex items-center gap-2 text-white/72">
-                  <Blocks className="size-4" strokeWidth={1.5} aria-hidden />
-                  <p className="font-mono text-[10px] uppercase tracking-[0.18em]">
-                    Generic config
-                  </p>
-                </div>
-                <pre className="overflow-x-auto border border-white/10 bg-black/30 px-4 py-3 font-mono text-[0.68rem] leading-6 text-white/82">
-                  <code>{genericConfig}</code>
-                </pre>
-              </div>
-            </div>
+            <p className="max-w-md text-sm leading-7 text-white/54">
+              Both buttons install the same hosted HTTP MCP server. For VS Code Insiders, use the
+              same install URL with the `vscode-insiders:` scheme.
+            </p>
           </div>
         </div>
       </Card>
