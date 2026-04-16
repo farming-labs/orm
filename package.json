@@ -65,7 +65,8 @@
       "vite": "^7.3.2",
       "picomatch": "^4.0.4",
       "path-to-regexp": "^8.4.0",
-      "@prisma/config>effect": "^3.20.0"
+      "@prisma/config>effect": "^3.20.0",
+      "hono": "^4.12.14"
     }
   }
 }
