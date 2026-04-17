@@ -12,9 +12,9 @@
   },
   "dependencies": {
     "@databuddy/sdk": "^2.4.0",
-    "@farming-labs/docs": "0.1.10",
-    "@farming-labs/next": "^0.1.10",
-    "@farming-labs/theme": "^0.1.10",
+    "@farming-labs/docs": "0.1.13",
+    "@farming-labs/next": "^0.1.13",
+    "@farming-labs/theme": "^0.1.13",
     "@prisma/client": "^6.19.2",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
