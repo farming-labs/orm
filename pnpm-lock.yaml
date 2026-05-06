@@ -96,14 +96,14 @@ importers:
         specifier: ^2.4.0
         version: 2.4.0(react@19.2.0)
       '@farming-labs/docs':
-        specifier: 0.1.68
-        version: 0.1.68
+        specifier: 0.1.71
+        version: 0.1.71
       '@farming-labs/next':
-        specifier: ^0.1.68
-        version: 0.1.68(@farming-labs/docs@0.1.68)(@farming-labs/theme@0.1.68(@farming-labs/docs@0.1.68)(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(lucide-react@1.8.0(react@19.2.0))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76))(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(json-schema-typed@8.0.2)(lucide-react@1.8.0(react@19.2.0))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76)
+        specifier: ^0.1.71
+        version: 0.1.71(@farming-labs/docs@0.1.71)(@farming-labs/theme@0.1.71(@farming-labs/docs@0.1.71)(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(lucide-react@1.8.0(react@19.2.0))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76))(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(json-schema-typed@8.0.2)(lucide-react@1.8.0(react@19.2.0))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76)
       '@farming-labs/theme':
-        specifier: ^0.1.68
-        version: 0.1.68(@farming-labs/docs@0.1.68)(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(lucide-react@1.8.0(react@19.2.0))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76)
+        specifier: ^0.1.71
+        version: 0.1.71(@farming-labs/docs@0.1.71)(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(lucide-react@1.8.0(react@19.2.0))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76)
       '@prisma/client':
         specifier: ^6.19.2
         version: 6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3)
@@ -992,12 +992,12 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@farming-labs/docs@0.1.68':
-    resolution: {integrity: sha512-w3IHQjyjPwO8MYYsbopzby/8+yYt2jLlYahfXxYEgRwQQMEWQgYmM6dfhxIgvej8UypXbd43EbqHRhPDLRQLGQ==}
+  '@farming-labs/docs@0.1.71':
+    resolution: {integrity: sha512-uKaoKopRqmCByCv5CLUFGyNBob3KjVuUx7CdwlS/NnDFWFY/hoNmJDvgs+xOOuxZlSSKThc4LEFlh9KKFUpW1w==}
     hasBin: true
 
-  '@farming-labs/next@0.1.68':
-    resolution: {integrity: sha512-kT4gNrnJxbakqFHRDj1sUi4CzqDD4Oca7NHIO90J/XAbzYNLu678h8D8Y5H1sRF/e4HiNb+/leRJ9LXSlJnLSw==}
+  '@farming-labs/next@0.1.71':
+    resolution: {integrity: sha512-KMMwj13RMjD1YCasN28/rpLX2jTmSXSFNJsgqvfZKKp2tFayou114AjQ9BOUCterT1Nt0opeSv3AOURAWNBAoQ==}
     peerDependencies:
       '@farming-labs/docs': '>=0.0.1'
       '@farming-labs/theme': '>=0.0.1'
@@ -1005,8 +1005,8 @@ packages:
       react: '>=19.2.0'
       react-dom: '>=19.2.0'
 
-  '@farming-labs/theme@0.1.68':
-    resolution: {integrity: sha512-1d2veMtS+5dDNCsD6uhC02BbMnsk4eaEh/rdmMeiSsPLE5irLL7/+AA2DhRfeC9jh2lxd0+znIpYH69kZw8VgQ==}
+  '@farming-labs/theme@0.1.71':
+    resolution: {integrity: sha512-ztIgEdVB/IQJhFjqT7HKJQaQlCZ3vBtTLez/vqyX42hXj405Z+Pt3eT048uuZmfaIauF30lNtbaNLdaYAsqNVA==}
     peerDependencies:
       '@farming-labs/docs': '>=0.0.1'
       next: '>=16.0.0'
@@ -2717,6 +2717,7 @@ packages:
 
   '@ungap/structured-clone@1.3.0':
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
+    deprecated: Potential CWE-502 - Update to 1.3.1 or higher
 
   '@use-gesture/core@10.3.1':
     resolution: {integrity: sha512-WcINiDt8WjqBdUXye25anHiNxPc0VOrlT8F6LLkU6cycrOGUDyY/yyFmsg3k8i5OLvv25llc0QC45GhR/C8llw==}
@@ -6481,7 +6482,7 @@ snapshots:
   '@esbuild/win32-x64@0.27.4':
     optional: true
 
-  '@farming-labs/docs@0.1.68':
+  '@farming-labs/docs@0.1.71':
     dependencies:
       '@clack/prompts': 0.9.1
       '@modelcontextprotocol/sdk': 1.29.0(zod@3.25.76)
@@ -6494,10 +6495,10 @@ snapshots:
       - '@cfworker/json-schema'
       - supports-color
 
-  '@farming-labs/next@0.1.68(@farming-labs/docs@0.1.68)(@farming-labs/theme@0.1.68(@farming-labs/docs@0.1.68)(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(lucide-react@1.8.0(react@19.2.0))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76))(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(json-schema-typed@8.0.2)(lucide-react@1.8.0(react@19.2.0))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76)':
+  '@farming-labs/next@0.1.71(@farming-labs/docs@0.1.71)(@farming-labs/theme@0.1.71(@farming-labs/docs@0.1.71)(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(lucide-react@1.8.0(react@19.2.0))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76))(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(json-schema-typed@8.0.2)(lucide-react@1.8.0(react@19.2.0))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76)':
     dependencies:
-      '@farming-labs/docs': 0.1.68
-      '@farming-labs/theme': 0.1.68(@farming-labs/docs@0.1.68)(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(lucide-react@1.8.0(react@19.2.0))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76)
+      '@farming-labs/docs': 0.1.71
+      '@farming-labs/theme': 0.1.71(@farming-labs/docs@0.1.71)(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(lucide-react@1.8.0(react@19.2.0))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76)
       '@mdx-js/loader': 3.1.1
       '@mdx-js/react': 3.1.1(@types/react@19.2.14)(react@19.2.0)
       '@next/mdx': 16.2.1(@mdx-js/loader@3.1.1)(@mdx-js/react@3.1.1(@types/react@19.2.14)(react@19.2.0))
@@ -6540,9 +6541,9 @@ snapshots:
       - webpack
       - zod
 
-  '@farming-labs/theme@0.1.68(@farming-labs/docs@0.1.68)(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(lucide-react@1.8.0(react@19.2.0))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76)':
+  '@farming-labs/theme@0.1.71(@farming-labs/docs@0.1.71)(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(lucide-react@1.8.0(react@19.2.0))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76)':
     dependencies:
-      '@farming-labs/docs': 0.1.68
+      '@farming-labs/docs': 0.1.71
       fumadocs-core: 16.7.4(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/react@19.2.14)(lucide-react@1.8.0(react@19.2.0))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod@3.25.76)
       fumadocs-ui: 16.7.4(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(fumadocs-core@16.7.4(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/react@19.2.14)(lucide-react@1.8.0(react@19.2.0))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod@3.25.76))(next@16.2.3(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)
       gray-matter: 4.0.3
