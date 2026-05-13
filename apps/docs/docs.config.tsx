@@ -393,7 +393,7 @@ export default defineDocs({
           <a href="/docs/use-cases">Use cases</a>
           <a href="/docs/cli">CLI</a>
           <a href="/docs/schema">Schema</a>
-          <a href="/docs/relations">Relations</a>
+          <a href="/docs/schema/relations">Relations</a>
         </div>
         <div className="docs-sidebar-credit-row text-white/80 opacity-80 flex border-t border-white/10 pb-1 pt-2 -mx-4 gap-2 items-center justify-center text-[10px] font-light font-mono uppercase">
           <Package size={14} className="inline-flex mb-px shrink-0" />
