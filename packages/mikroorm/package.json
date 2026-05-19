@@ -28,15 +28,15 @@
     "@farming-labs/orm-sql": "workspace:*"
   },
   "devDependencies": {
-    "@mikro-orm/core": "^7.0.7",
-    "@mikro-orm/mysql": "^7.0.7",
-    "@mikro-orm/postgresql": "^7.0.7",
+    "@mikro-orm/core": "^7.0.17",
+    "@mikro-orm/mysql": "^7.0.17",
+    "@mikro-orm/postgresql": "^7.0.17",
     "@types/pg": "^8.15.6",
     "mysql2": "^3.15.2",
     "pg": "^8.16.3",
     "tsup": "^8.4.0"
   },
   "peerDependencies": {
-    "@mikro-orm/core": "^7.0.7"
+    "@mikro-orm/core": "^7.0.17"
   }
 }
