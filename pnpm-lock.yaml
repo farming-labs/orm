@@ -71,7 +71,7 @@ importers:
         version: 6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3)
       drizzle-orm:
         specifier: ^0.45.2
-        version: 0.45.2(@opentelemetry/api@1.9.1)(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(@types/sql.js@1.4.11)(@xata.io/client@0.30.1(typescript@5.9.3))(better-sqlite3@11.10.0)(kysely@0.29.2)(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0)(prisma@6.19.2(typescript@5.9.3))(sql.js@1.14.1)
+        version: 0.45.2(@opentelemetry/api@1.9.1)(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(@types/sql.js@1.4.11)(@xata.io/client@0.30.1(typescript@5.9.3))(better-sqlite3@11.10.0)(kysely@0.29.2)(mysql2@3.22.3(@types/node@22.19.15))(pg@8.20.0)(prisma@6.19.2(typescript@5.9.3))(sql.js@1.14.1)
       mongodb:
         specifier: ^6.20.0
         version: 6.20.0
@@ -80,7 +80,7 @@ importers:
         version: 8.23.0
       mysql2:
         specifier: ^3.15.2
-        version: 3.20.0(@types/node@22.19.15)
+        version: 3.22.3(@types/node@22.19.15)
       pg:
         specifier: ^8.16.3
         version: 8.20.0
@@ -98,14 +98,14 @@ importers:
         specifier: ^2.4.0
         version: 2.4.0(react@19.2.0)
       '@farming-labs/docs':
-        specifier: 0.1.107
-        version: 0.1.107
+        specifier: 0.1.111
+        version: 0.1.111
       '@farming-labs/next':
-        specifier: ^0.1.107
-        version: 0.1.107(@farming-labs/docs@0.1.107)(@farming-labs/theme@0.1.107(@farming-labs/docs@0.1.107)(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(lucide-react@1.8.0(react@19.2.0))(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76))(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(json-schema-typed@8.0.2)(lucide-react@1.8.0(react@19.2.0))(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76)
+        specifier: ^0.1.111
+        version: 0.1.111(@farming-labs/docs@0.1.111)(@farming-labs/theme@0.1.111(@farming-labs/docs@0.1.111)(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(lucide-react@1.8.0(react@19.2.0))(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76))(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(json-schema-typed@8.0.2)(lucide-react@1.8.0(react@19.2.0))(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76)
       '@farming-labs/theme':
-        specifier: ^0.1.107
-        version: 0.1.107(@farming-labs/docs@0.1.107)(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(lucide-react@1.8.0(react@19.2.0))(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76)
+        specifier: ^0.1.111
+        version: 0.1.111(@farming-labs/docs@0.1.111)(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(lucide-react@1.8.0(react@19.2.0))(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76)
       '@prisma/client':
         specifier: ^6.19.2
         version: 6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3)
@@ -208,10 +208,10 @@ importers:
         version: 8.20.0
       drizzle-orm:
         specifier: ^0.45.2
-        version: 0.45.2(@opentelemetry/api@1.9.1)(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(@types/sql.js@1.4.11)(@xata.io/client@0.30.1(typescript@5.9.3))(better-sqlite3@11.10.0)(kysely@0.29.2)(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0)(prisma@6.19.2(typescript@5.9.3))(sql.js@1.14.1)
+        version: 0.45.2(@opentelemetry/api@1.9.1)(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(@types/sql.js@1.4.11)(@xata.io/client@0.30.1(typescript@5.9.3))(better-sqlite3@11.10.0)(kysely@0.29.2)(mysql2@3.22.3(@types/node@22.19.15))(pg@8.20.0)(prisma@6.19.2(typescript@5.9.3))(sql.js@1.14.1)
       mysql2:
         specifier: ^3.15.2
-        version: 3.20.0(@types/node@22.19.15)
+        version: 3.22.3(@types/node@22.19.15)
       pg:
         specifier: ^8.16.3
         version: 8.20.0
@@ -297,7 +297,7 @@ importers:
         version: 0.28.17
       mysql2:
         specifier: ^3.15.2
-        version: 3.20.0(@types/node@22.19.15)
+        version: 3.22.3(@types/node@22.19.15)
       pg:
         specifier: ^8.16.3
         version: 8.20.0
@@ -328,7 +328,7 @@ importers:
         version: 8.20.0
       mysql2:
         specifier: ^3.15.2
-        version: 3.20.0(@types/node@22.19.15)
+        version: 3.22.3(@types/node@22.19.15)
       pg:
         specifier: ^8.16.3
         version: 8.20.0
@@ -398,7 +398,7 @@ importers:
         version: 8.20.0
       mysql2:
         specifier: ^3.15.2
-        version: 3.20.0(@types/node@22.19.15)
+        version: 3.22.3(@types/node@22.19.15)
       pg:
         specifier: ^8.16.3
         version: 8.20.0
@@ -509,13 +509,13 @@ importers:
         version: 8.20.0
       mysql2:
         specifier: ^3.15.2
-        version: 3.20.0(@types/node@22.19.15)
+        version: 3.22.3(@types/node@22.19.15)
       pg:
         specifier: ^8.16.3
         version: 8.20.0
       sequelize:
         specifier: ^6.37.8
-        version: 6.37.8(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0)
+        version: 6.37.8(mysql2@3.22.3(@types/node@22.19.15))(pg@8.20.0)
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)
@@ -531,7 +531,7 @@ importers:
         version: 8.20.0
       mysql2:
         specifier: ^3.15.2
-        version: 3.20.0(@types/node@22.19.15)
+        version: 3.22.3(@types/node@22.19.15)
       pg:
         specifier: ^8.16.3
         version: 8.20.0
@@ -582,7 +582,7 @@ importers:
         version: 1.4.11
       mysql2:
         specifier: ^3.15.2
-        version: 3.20.0(@types/node@22.19.15)
+        version: 3.22.3(@types/node@22.19.15)
       pg:
         specifier: ^8.16.3
         version: 8.20.0
@@ -594,7 +594,7 @@ importers:
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)
       typeorm:
         specifier: ^0.3.28
-        version: 0.3.28(better-sqlite3@11.10.0)(mongodb@6.20.0)(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0)(redis@5.11.0)(sql.js@1.14.1)
+        version: 0.3.28(better-sqlite3@11.10.0)(mongodb@6.20.0)(mysql2@3.22.3(@types/node@22.19.15))(pg@8.20.0)(redis@5.11.0)(sql.js@1.14.1)
 
   packages/unstorage:
     dependencies:
@@ -966,12 +966,12 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@farming-labs/docs@0.1.107':
-    resolution: {integrity: sha512-nkyBGZx2ctmgxOmA/jnIFlcdPsFTbl5t5iib98Njyo5tzfREfS8TnTDxsGxfLzafKeldHcGij+v4CHKOZxYjaQ==}
+  '@farming-labs/docs@0.1.111':
+    resolution: {integrity: sha512-iJp3i21O/UH3z0ab6BcsJ6f7duJ1H+zWdsZCTxd0z9PCSaYMdkTEtuMBmF2VlXN8FMM7uO/4e0M4AcLPI1WGQQ==}
     hasBin: true
 
-  '@farming-labs/next@0.1.107':
-    resolution: {integrity: sha512-j5WBtCJcyaceTeGUbXc5t+vnclB0foJ3xkBxyy7Se5QphWqiKIL/+Fczbh7hr93xdMzJB02/raJVnTisGlv3cA==}
+  '@farming-labs/next@0.1.111':
+    resolution: {integrity: sha512-g6wml5//nhuwbse1mO8B+azAD0ncvKtTI/qZ0HrXsAd8aPND1vRqNPV8AMSB3iVFtIuc5M7AXej0d0C5EM3cWA==}
     peerDependencies:
       '@farming-labs/docs': '>=0.0.1'
       '@farming-labs/theme': '>=0.0.1'
@@ -979,8 +979,8 @@ packages:
       react: '>=19.2.0'
       react-dom: '>=19.2.0'
 
-  '@farming-labs/theme@0.1.107':
-    resolution: {integrity: sha512-Ed7HY9/QyMvr+RHy+Q1z75DxTQ1fwhxGu3v/gHVMtJ2QImaTpAgUpCFH2NQZukXkSQ6H4zBhedtg4KOs8pj1kA==}
+  '@farming-labs/theme@0.1.111':
+    resolution: {integrity: sha512-EcO4fIvVoh9iVmkWh5VcIMr40JZ3VGa7fh9TdXuLPLrrvfiIbwxSPe7JVMPU/634QGk/AVTw4Y7xRPs/i4HWDg==}
     peerDependencies:
       '@farming-labs/docs': '>=0.0.1'
       next: '>=16.0.0'
@@ -4324,12 +4324,6 @@ packages:
   ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
 
-  mysql2@3.20.0:
-    resolution: {integrity: sha512-eCLUs7BNbgA6nf/MZXsaBO1SfGs0LtLVrJD3WeWq+jPLDWkSufTD+aGMwykfUVPdZnblaUK1a8G/P63cl9FkKg==}
-    engines: {node: '>= 8.0'}
-    peerDependencies:
-      '@types/node': '>= 8'
-
   mysql2@3.22.3:
     resolution: {integrity: sha512-uWWxvZSRvRhtBdh2CdcuK83YcOfPdmEeEYB069bAmPnV93QApDGVPuvCQOLjlh7tYHEWdgQPrn6kosDxHBVLkA==}
     engines: {node: '>= 8.0'}
@@ -6197,7 +6191,7 @@ snapshots:
   '@esbuild/win32-x64@0.27.4':
     optional: true
 
-  '@farming-labs/docs@0.1.107':
+  '@farming-labs/docs@0.1.111':
     dependencies:
       '@clack/prompts': 0.9.1
       '@modelcontextprotocol/sdk': 1.29.0(zod@3.25.76)
@@ -6210,10 +6204,10 @@ snapshots:
       - '@cfworker/json-schema'
       - supports-color
 
-  '@farming-labs/next@0.1.107(@farming-labs/docs@0.1.107)(@farming-labs/theme@0.1.107(@farming-labs/docs@0.1.107)(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(lucide-react@1.8.0(react@19.2.0))(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76))(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(json-schema-typed@8.0.2)(lucide-react@1.8.0(react@19.2.0))(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76)':
+  '@farming-labs/next@0.1.111(@farming-labs/docs@0.1.111)(@farming-labs/theme@0.1.111(@farming-labs/docs@0.1.111)(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(lucide-react@1.8.0(react@19.2.0))(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76))(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(json-schema-typed@8.0.2)(lucide-react@1.8.0(react@19.2.0))(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76)':
     dependencies:
-      '@farming-labs/docs': 0.1.107
-      '@farming-labs/theme': 0.1.107(@farming-labs/docs@0.1.107)(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(lucide-react@1.8.0(react@19.2.0))(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76)
+      '@farming-labs/docs': 0.1.111
+      '@farming-labs/theme': 0.1.111(@farming-labs/docs@0.1.111)(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(lucide-react@1.8.0(react@19.2.0))(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76)
       '@mdx-js/loader': 3.1.1
       '@mdx-js/react': 3.1.1(@types/react@19.2.14)(react@19.2.0)
       '@next/mdx': 16.2.1(@mdx-js/loader@3.1.1)(@mdx-js/react@3.1.1(@types/react@19.2.14)(react@19.2.0))
@@ -6256,9 +6250,9 @@ snapshots:
       - webpack
       - zod
 
-  '@farming-labs/theme@0.1.107(@farming-labs/docs@0.1.107)(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(lucide-react@1.8.0(react@19.2.0))(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76)':
+  '@farming-labs/theme@0.1.111(@farming-labs/docs@0.1.111)(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(lucide-react@1.8.0(react@19.2.0))(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)(zod@3.25.76)':
     dependencies:
-      '@farming-labs/docs': 0.1.107
+      '@farming-labs/docs': 0.1.111
       fumadocs-core: 16.7.4(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/react@19.2.14)(lucide-react@1.8.0(react@19.2.0))(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod@3.25.76)
       fumadocs-ui: 16.7.4(@types/mdx@2.0.13)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(fumadocs-core@16.7.4(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.4)(@types/mdast@4.0.4)(@types/react@19.2.14)(lucide-react@1.8.0(react@19.2.0))(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(zod@3.25.76))(next@16.2.6(@opentelemetry/api@1.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(shiki@4.0.2)(tailwindcss@4.1.18)
       gray-matter: 4.0.3
@@ -8161,7 +8155,7 @@ snapshots:
 
   draco3d@1.5.7: {}
 
-  drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(@types/sql.js@1.4.11)(@xata.io/client@0.30.1(typescript@5.9.3))(better-sqlite3@11.10.0)(kysely@0.29.2)(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0)(prisma@6.19.2(typescript@5.9.3))(sql.js@1.14.1):
+  drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.20.0)(@types/sql.js@1.4.11)(@xata.io/client@0.30.1(typescript@5.9.3))(better-sqlite3@11.10.0)(kysely@0.29.2)(mysql2@3.22.3(@types/node@22.19.15))(pg@8.20.0)(prisma@6.19.2(typescript@5.9.3))(sql.js@1.14.1):
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
       '@prisma/client': 6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3)
@@ -8170,7 +8164,7 @@ snapshots:
       '@xata.io/client': 0.30.1(typescript@5.9.3)
       better-sqlite3: 11.10.0
       kysely: 0.29.2
-      mysql2: 3.20.0(@types/node@22.19.15)
+      mysql2: 3.22.3(@types/node@22.19.15)
       pg: 8.20.0
       prisma: 6.19.2(typescript@5.9.3)
       sql.js: 1.14.1
@@ -9738,18 +9732,6 @@ snapshots:
 
   ms@2.1.3: {}
 
-  mysql2@3.20.0(@types/node@22.19.15):
-    dependencies:
-      '@types/node': 22.19.15
-      aws-ssl-profiles: 1.1.2
-      denque: 2.1.0
-      generate-function: 2.3.1
-      iconv-lite: 0.7.2
-      long: 5.3.2
-      lru.min: 1.1.4
-      named-placeholders: 1.1.6
-      sql-escaper: 1.3.3
-
   mysql2@3.22.3(@types/node@22.19.15):
     dependencies:
       '@types/node': 22.19.15
@@ -10497,7 +10479,7 @@ snapshots:
 
   sequelize-pool@7.1.0: {}
 
-  sequelize@6.37.8(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0):
+  sequelize@6.37.8(mysql2@3.22.3(@types/node@22.19.15))(pg@8.20.0):
     dependencies:
       '@types/debug': 4.1.13
       '@types/validator': 13.15.10
@@ -10516,7 +10498,7 @@ snapshots:
       validator: 13.15.26
       wkx: 0.5.0
     optionalDependencies:
-      mysql2: 3.20.0(@types/node@22.19.15)
+      mysql2: 3.22.3(@types/node@22.19.15)
       pg: 8.20.0
     transitivePeerDependencies:
       - supports-color
@@ -10949,34 +10931,6 @@ snapshots:
       es-errors: 1.3.0
       is-typed-array: 1.1.15
 
-  typeorm@0.3.28(better-sqlite3@11.10.0)(mongodb@6.20.0)(mysql2@3.20.0(@types/node@22.19.15))(pg@8.20.0)(redis@5.11.0)(sql.js@1.14.1):
-    dependencies:
-      '@sqltools/formatter': 1.2.5
-      ansis: 4.2.0
-      app-root-path: 3.1.0
-      buffer: 6.0.3
-      dayjs: 1.11.20
-      debug: 4.4.3
-      dedent: 1.7.2
-      dotenv: 16.6.1
-      glob: 10.5.0
-      reflect-metadata: 0.2.2
-      sha.js: 2.4.12
-      sql-highlight: 6.1.0
-      tslib: 2.8.1
-      uuid: 11.1.0
-      yargs: 17.7.2
-    optionalDependencies:
-      better-sqlite3: 11.10.0
-      mongodb: 6.20.0
-      mysql2: 3.20.0(@types/node@22.19.15)
-      pg: 8.20.0
-      redis: 5.11.0
-      sql.js: 1.14.1
-    transitivePeerDependencies:
-      - babel-plugin-macros
-      - supports-color
-
   typeorm@0.3.28(better-sqlite3@11.10.0)(mongodb@6.20.0)(mysql2@3.22.3(@types/node@22.19.15))(pg@8.20.0)(redis@5.11.0)(sql.js@1.14.1):
     dependencies:
       '@sqltools/formatter': 1.2.5
@@ -11004,7 +10958,6 @@ snapshots:
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
-    optional: true
 
   typescript@5.9.3: {}
 
