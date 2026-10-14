@@ -38,5 +38,10 @@
   },
   "peerDependencies": {
     "typeorm": "^0.3.28"
+  },
+  "peerDependenciesMeta": {
+    "typeorm": {
+      "optional": true
+    }
   }
 }

@@ -36,5 +36,10 @@
   },
   "peerDependencies": {
     "sequelize": "^6.37.8"
+  },
+  "peerDependenciesMeta": {
+    "sequelize": {
+      "optional": true
+    }
   }
 }

@@ -37,5 +37,10 @@
   },
   "peerDependencies": {
     "@prisma/client": "^6.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@prisma/client": {
+      "optional": true
+    }
   }
 }

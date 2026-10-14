@@ -424,9 +424,6 @@ importers:
 
   packages/runtime:
     dependencies:
-      '@aws-sdk/client-dynamodb':
-        specifier: ^3.1049.0
-        version: 3.1049.0
       '@farming-labs/orm':
         specifier: workspace:*
         version: link:../orm
@@ -491,6 +488,9 @@ importers:
         specifier: workspace:*
         version: link:../xata
     devDependencies:
+      '@aws-sdk/client-dynamodb':
+        specifier: ^3.1049.0
+        version: 3.1049.0
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(jiti@2.7.0)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)
