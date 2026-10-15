@@ -5,13 +5,19 @@ import {
   type SchemaDefinition,
 } from "@farming-labs/orm";
 import { createSqlDriverFromAdapter, type SqlAdapterLike } from "@farming-labs/orm-sql";
-import { CompiledQuery, type Compilable, type QueryResult } from "kysely";
+import type { Compilable, QueryResult } from "kysely";
+import * as kyselyModule from "kysely";
+
+// Read driver values through this binding. When an app does not use this
+// database the driver is not installed, and bundlers substitute an empty
+// module for the optional peer; named imports would then fail the build.
+const kysely = kyselyModule;
 
 export type KyselyDialect = "sqlite" | "mysql" | "postgres";
 
 export type KyselyDatabaseLike = {
   executeQuery<R>(
-    query: Readonly<ReturnType<typeof CompiledQuery.raw>> | Compilable<R>,
+    query: Readonly<ReturnType<typeof kysely.CompiledQuery.raw>> | Compilable<R>,
   ): Promise<Pick<QueryResult<R>, "rows" | "numAffectedRows" | "numChangedRows" | "insertId">>;
   transaction(): {
     execute<TResult>(run: (trx: KyselyDatabaseLike) => Promise<TResult>): Promise<TResult>;
@@ -35,7 +41,7 @@ function createKyselyAdapter(db: KyselyDatabaseLike, dialect: KyselyDialect): Sq
   return {
     dialect,
     async query(sql, params) {
-      const result = await db.executeQuery(CompiledQuery.raw(sql, [...params]));
+      const result = await db.executeQuery(kysely.CompiledQuery.raw(sql, [...params]));
 
       return {
         rows: (result.rows ?? []) as Record<string, unknown>[],
