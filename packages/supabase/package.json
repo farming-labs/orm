@@ -1,6 +1,6 @@
 {
   "name": "@farming-labs/orm-supabase",
-  "version": "0.0.62",
+  "version": "0.0.63",
   "files": [
     "dist"
   ],
