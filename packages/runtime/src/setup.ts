@@ -9,7 +9,6 @@ import {
   renderSafeSql,
   type SchemaDefinition,
 } from "@farming-labs/orm";
-import { CreateTableCommand, DescribeTableCommand } from "@aws-sdk/client-dynamodb";
 import type { DynamoDbBaseClientLike } from "@farming-labs/orm-dynamodb";
 import type { DrizzleDriverConfig } from "@farming-labs/orm-drizzle";
 import type { MongoDbLike } from "@farming-labs/orm-mongo";
@@ -690,7 +689,21 @@ async function pushPrismaSchema(
   }
 }
 
+// The AWS SDK is an optional peer: only DynamoDB setup needs it, and a DynamoDB
+// client in the app means the app already depends on it.
+async function loadDynamoDbCommands() {
+  try {
+    return await import("@aws-sdk/client-dynamodb");
+  } catch (error) {
+    throw new Error(
+      'DynamoDB setup requires "@aws-sdk/client-dynamodb". Install it alongside @farming-labs/orm-runtime.',
+      { cause: error },
+    );
+  }
+}
+
 async function ensureDynamoDbTable(client: DynamoDbBaseClientLike, tableName: string) {
+  const { CreateTableCommand, DescribeTableCommand } = await loadDynamoDbCommands();
   try {
     const described = (await client.send(
       new DescribeTableCommand({

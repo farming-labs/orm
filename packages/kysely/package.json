@@ -36,5 +36,10 @@
   },
   "peerDependencies": {
     "kysely": "^0.28.17"
+  },
+  "peerDependenciesMeta": {
+    "kysely": {
+      "optional": true
+    }
   }
 }

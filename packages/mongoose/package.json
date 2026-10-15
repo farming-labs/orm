@@ -33,5 +33,10 @@
   },
   "peerDependencies": {
     "mongoose": "^8.0.0"
+  },
+  "peerDependenciesMeta": {
+    "mongoose": {
+      "optional": true
+    }
   }
 }

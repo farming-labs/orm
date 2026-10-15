@@ -38,5 +38,10 @@
   },
   "peerDependencies": {
     "@mikro-orm/core": "^7.0.17"
+  },
+  "peerDependenciesMeta": {
+    "@mikro-orm/core": {
+      "optional": true
+    }
   }
 }

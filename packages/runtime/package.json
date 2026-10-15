@@ -29,7 +29,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.1049.0",
     "@farming-labs/orm": "workspace:*",
     "@farming-labs/orm-d1": "workspace:*",
     "@farming-labs/orm-drizzle": "workspace:*",
@@ -53,6 +52,15 @@
     "@farming-labs/orm-xata": "workspace:*"
   },
   "devDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1049.0",
     "tsup": "^8.4.0"
+  },
+  "peerDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1049.0"
+  },
+  "peerDependenciesMeta": {
+    "@aws-sdk/client-dynamodb": {
+      "optional": true
+    }
   }
 }

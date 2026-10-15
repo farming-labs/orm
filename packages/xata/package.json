@@ -36,5 +36,10 @@
   },
   "peerDependencies": {
     "@xata.io/client": "^0.30.1"
+  },
+  "peerDependenciesMeta": {
+    "@xata.io/client": {
+      "optional": true
+    }
   }
 }
