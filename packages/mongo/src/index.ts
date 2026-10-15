@@ -7,7 +7,7 @@ import {
   type SchemaDefinition,
 } from "@farming-labs/orm";
 import type { ModelName } from "@farming-labs/orm";
-import { Decimal128, Long } from "mongodb";
+import * as mongodbModule from "mongodb";
 import {
   createMongooseDriver,
   type MongooseDriverConfig,
@@ -18,6 +18,11 @@ import {
   type MongooseSessionLike,
   type MongooseSessionSourceLike,
 } from "@farming-labs/orm-mongoose";
+
+// Read driver values through this binding. When an app does not use this
+// database the driver is not installed, and bundlers substitute an empty
+// module for the optional peer; named imports would then fail the build.
+const mongodb = mongodbModule;
 
 type MongoRow = Record<string, unknown>;
 type MongoSort = Record<string, 1 | -1>;
@@ -369,7 +374,7 @@ function defaultMongoFieldTransform(field: ManifestField) {
       encode(value: unknown) {
         if (value === undefined || value === null) return value;
         const next = typeof value === "bigint" ? value : BigInt(value as string | number);
-        return Long.fromString(next.toString());
+        return mongodb.Long.fromString(next.toString());
       },
       decode(value: unknown) {
         if (value === undefined || value === null) return value;
@@ -384,7 +389,7 @@ function defaultMongoFieldTransform(field: ManifestField) {
     return {
       encode(value: unknown) {
         if (value === undefined || value === null) return value;
-        return Decimal128.fromString(typeof value === "string" ? value : String(value));
+        return mongodb.Decimal128.fromString(typeof value === "string" ? value : String(value));
       },
       decode(value: unknown) {
         if (value === undefined || value === null) return value;

@@ -29,7 +29,13 @@ import {
   type UpsertArgs,
   type Where,
 } from "@farming-labs/orm";
-import { RecordId, StringRecordId, Table } from "surrealdb";
+import type { RecordId, StringRecordId, Table } from "surrealdb";
+import * as surrealModule from "surrealdb";
+
+// Read driver values through this binding. When an app does not use this
+// database the driver is not installed, and bundlers substitute an empty
+// module for the optional peer; named imports would then fail the build.
+const surreal = surrealModule;
 
 type SurrealRow = Record<string, unknown>;
 type SurrealWhere = Where<Record<string, unknown>>;
@@ -344,11 +350,11 @@ function matchesSurrealPattern(key: string, pattern: string) {
 }
 
 function normalizeSurrealRecordIdValue(value: unknown) {
-  if (value instanceof RecordId) {
+  if (value instanceof surreal.RecordId) {
     return value.id;
   }
 
-  if (value instanceof StringRecordId) {
+  if (value instanceof surreal.StringRecordId) {
     const serialized = value.toString();
     const separator = serialized.indexOf(":");
     return separator === -1 ? serialized : serialized.slice(separator + 1);
@@ -367,7 +373,7 @@ function normalizeSurrealRecordIdValue(value: unknown) {
 }
 
 function normalizeSurrealRecordIdString(value: unknown) {
-  if (value instanceof RecordId || value instanceof StringRecordId) {
+  if (value instanceof surreal.RecordId || value instanceof surreal.StringRecordId) {
     return value.toString();
   }
 
@@ -411,7 +417,7 @@ function createSurrealDriverInternal<TSchema extends SchemaDefinition<any>>(
   }
 
   function kvRecordId(key: string) {
-    return new RecordId(kvTableName(), encodeURIComponent(key));
+    return new surreal.RecordId(kvTableName(), encodeURIComponent(key));
   }
 
   function getModelBase(schema: TSchema, modelName: ModelName<TSchema>) {
@@ -636,7 +642,7 @@ function createSurrealDriverInternal<TSchema extends SchemaDefinition<any>>(
     }
 
     try {
-      const selected = await config.client.select<unknown>(new Table(table));
+      const selected = await config.client.select<unknown>(new surreal.Table(table));
       if (Array.isArray(selected)) {
         return selected.filter((entry): entry is Record<string, unknown> => isRecord(entry));
       }
