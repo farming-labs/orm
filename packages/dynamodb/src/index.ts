@@ -1,12 +1,5 @@
 import { randomUUID } from "node:crypto";
-import {
-  DeleteCommand,
-  GetCommand,
-  PutCommand,
-  ScanCommand,
-  TransactWriteCommand,
-  DynamoDBDocumentClient,
-} from "@aws-sdk/lib-dynamodb";
+import * as dynamodbDocumentModule from "@aws-sdk/lib-dynamodb";
 import {
   createDriverHandle,
   createManifest,
@@ -37,6 +30,11 @@ import {
   type Where,
 } from "@farming-labs/orm";
 import type { ModelName, RelationName } from "@farming-labs/orm";
+
+// Read SDK values through this binding. When an app does not use DynamoDB the
+// SDK is not installed, and bundlers substitute an empty module for the
+// optional peer; named imports would then fail the build.
+const dynamodbDocument = dynamodbDocumentModule;
 
 type DynamoDbRow = Record<string, unknown>;
 type DynamoDbWhere = Where<Record<string, unknown>>;
@@ -147,7 +145,7 @@ function createDocumentClient(
     return client;
   }
 
-  return DynamoDBDocumentClient.from(client as any, {
+  return dynamodbDocument.DynamoDBDocumentClient.from(client as any, {
     marshallOptions: {
       removeUndefinedValues: true,
     },
@@ -486,7 +484,7 @@ function createDynamoDbDriverInternal<TSchema extends SchemaDefinition<any>>(
 
     do {
       const result = (await documentClient.send(
-        new ScanCommand({
+        new dynamodbDocument.ScanCommand({
           TableName: tableName,
           ExclusiveStartKey: exclusiveStartKey,
         }),
@@ -501,7 +499,7 @@ function createDynamoDbDriverInternal<TSchema extends SchemaDefinition<any>>(
 
   async function loadRowByPk(model: ManifestModel, tableName: string, pk: string) {
     const result = (await documentClient.send(
-      new GetCommand({
+      new dynamodbDocument.GetCommand({
         TableName: tableName,
         Key: {
           [ormPrimaryKey]: pk,
@@ -726,7 +724,7 @@ function createDynamoDbDriverInternal<TSchema extends SchemaDefinition<any>>(
     }
 
     const lockResult = (await documentClient.send(
-      new GetCommand({
+      new dynamodbDocument.GetCommand({
         TableName: tableName,
         Key: {
           [ormPrimaryKey]: lockPk,
@@ -865,7 +863,7 @@ function createDynamoDbDriverInternal<TSchema extends SchemaDefinition<any>>(
     conditionallyCreate: boolean,
   ) {
     await documentClient.send(
-      new PutCommand({
+      new dynamodbDocument.PutCommand({
         TableName: tableName,
         Item: buildRecordItem(row),
         ...(conditionallyCreate
@@ -882,7 +880,7 @@ function createDynamoDbDriverInternal<TSchema extends SchemaDefinition<any>>(
 
   async function putUniqueSequential(tableName: string, lock: UniqueLock) {
     await documentClient.send(
-      new PutCommand({
+      new dynamodbDocument.PutCommand({
         TableName: tableName,
         Item: {
           [ormPrimaryKey]: lock.pk,
@@ -899,7 +897,7 @@ function createDynamoDbDriverInternal<TSchema extends SchemaDefinition<any>>(
 
   async function deleteSequential(tableName: string, pk: string) {
     await documentClient.send(
-      new DeleteCommand({
+      new dynamodbDocument.DeleteCommand({
         TableName: tableName,
         Key: {
           [ormPrimaryKey]: pk,
@@ -947,7 +945,7 @@ function createDynamoDbDriverInternal<TSchema extends SchemaDefinition<any>>(
 
     try {
       await documentClient.send(
-        new TransactWriteCommand({
+        new dynamodbDocument.TransactWriteCommand({
           TransactItems: transactItems,
         }),
       );
@@ -988,7 +986,7 @@ function createDynamoDbDriverInternal<TSchema extends SchemaDefinition<any>>(
 
     try {
       await documentClient.send(
-        new TransactWriteCommand({
+        new dynamodbDocument.TransactWriteCommand({
           TransactItems: [putRecordUpdateItem(tableName, next), ...deleteOps, ...putOps],
         }),
       );
@@ -1021,7 +1019,7 @@ function createDynamoDbDriverInternal<TSchema extends SchemaDefinition<any>>(
     const locks = uniqueLocksForRow(model, current.data, current.docId);
     try {
       await documentClient.send(
-        new TransactWriteCommand({
+        new dynamodbDocument.TransactWriteCommand({
           TransactItems: [
             deleteItem(tableName, current.pk),
             ...locks.map((lock) => deleteItem(tableName, lock.pk)),

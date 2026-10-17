@@ -33,6 +33,15 @@ Then the runtime translates that layer into DynamoDB operations with:
 - one normalized error surface
 - one setup/bootstrap path for creating the model tables
 
+## Install
+
+The AWS SDK is an optional peer dependency, so apps that never use DynamoDB do
+not install it. Add it next to the adapter:
+
+```sh
+pnpm add @farming-labs/orm-dynamodb @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb
+```
+
 ## Create the runtime directly
 
 ```ts title="dynamodb-runtime.ts"
