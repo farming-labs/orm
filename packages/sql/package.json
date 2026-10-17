@@ -1,6 +1,6 @@
 {
   "name": "@farming-labs/orm-sql",
-  "version": "0.0.64",
+  "version": "0.0.65",
   "files": [
     "dist"
   ],
