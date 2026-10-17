@@ -24,12 +24,24 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.1049.0",
-    "@aws-sdk/lib-dynamodb": "^3.1049.0",
     "@farming-labs/orm": "workspace:*"
   },
   "devDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1049.0",
+    "@aws-sdk/lib-dynamodb": "^3.1049.0",
     "dynalite": "^4.0.0",
     "tsup": "^8.4.0"
+  },
+  "peerDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1049.0",
+    "@aws-sdk/lib-dynamodb": "^3.1049.0"
+  },
+  "peerDependenciesMeta": {
+    "@aws-sdk/client-dynamodb": {
+      "optional": true
+    },
+    "@aws-sdk/lib-dynamodb": {
+      "optional": true
+    }
   }
 }
