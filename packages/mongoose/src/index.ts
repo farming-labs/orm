@@ -426,6 +426,11 @@ function createMongooseDriverInternal<TSchema extends SchemaDefinition<any>>(
       }
 
       if (key === "OR") {
+        // No alternative matches no document. Skipping the clause would match every one.
+        if (Array.isArray(value) && value.length === 0) {
+          clauses.push({ _id: { $in: [] } });
+          continue;
+        }
         const nested = (Array.isArray(value) ? value : [])
           .map((item) => compileWhere(model, item as MongoWhere))
           .filter((item) => Object.keys(item).length > 0);
