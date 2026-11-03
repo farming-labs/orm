@@ -237,6 +237,25 @@ async function withLocalOrm<TResult>(run: (orm: RuntimeOrm) => Promise<TResult>)
 
 describe("mongoose local integration", () => {
   itWithLocalMongo(
+    "matches no documents for an empty OR and every document for an empty AND",
+    async () => {
+      await withLocalOrm(async (orm) => {
+        await orm.user.create({ data: { email: "or-a@farminglabs.dev", name: "A" } });
+        await orm.user.create({ data: { email: "or-b@farminglabs.dev", name: "B" } });
+
+        // A filter built from an empty list (a caller with no memberships) allows nothing.
+        expect(await orm.user.findMany({ where: { OR: [] } })).toEqual([]);
+        expect(await orm.user.count({ where: { OR: [] } })).toBe(0);
+        expect(await orm.user.updateMany({ where: { OR: [] }, data: { name: "changed" } })).toBe(0);
+        expect(await orm.user.deleteMany({ where: { OR: [] } })).toBe(0);
+        expect(await orm.user.count({ where: { AND: [] } })).toBe(2);
+        expect(await orm.user.count({ where: { name: "changed" } })).toBe(0);
+      });
+    },
+    LOCAL_TIMEOUT_MS,
+  );
+
+  itWithLocalMongo(
     "pushes and bootstraps collections and indexes from a live Mongoose connection",
     async () => {
       const connection = await createLocalConnection();

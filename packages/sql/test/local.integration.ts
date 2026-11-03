@@ -1451,6 +1451,25 @@ for (const [target, factory] of [
       }
     });
 
+    it("matches no rows for an empty OR and every row for an empty AND", async () => {
+      const { orm, close } = await factory();
+
+      try {
+        await orm.user.create({ data: { email: "or-a@farminglabs.dev", name: "A" } });
+        await orm.user.create({ data: { email: "or-b@farminglabs.dev", name: "B" } });
+
+        // A filter built from an empty list (a caller with no memberships) allows nothing.
+        expect(await orm.user.findMany({ where: { OR: [] } })).toEqual([]);
+        expect(await orm.user.count({ where: { OR: [] } })).toBe(0);
+        expect(await orm.user.updateMany({ where: { OR: [] }, data: { name: "changed" } })).toBe(0);
+        expect(await orm.user.deleteMany({ where: { OR: [] } })).toBe(0);
+        expect(await orm.user.count({ where: { AND: [] } })).toBe(2);
+        expect(await orm.user.count({ where: { name: "changed" } })).toBe(0);
+      } finally {
+        await close();
+      }
+    });
+
     it("normalizes duplicate-key errors from a real local database", async () => {
       const { orm, close, dialect } = await factory();
 

@@ -477,6 +477,11 @@ function compileWhere(
     }
 
     if (key === "OR") {
+      // No alternative matches no row. Skipping the clause would match every row.
+      if (Array.isArray(value) && value.length === 0) {
+        clauses.push("1 = 0");
+        continue;
+      }
       const items = Array.isArray(value) ? value : [];
       if (!items.length) continue;
       const nested = items
