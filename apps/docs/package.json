@@ -12,13 +12,13 @@
   },
   "dependencies": {
     "@databuddy/sdk": "^2.4.0",
-    "@farming-labs/docs": "0.2.118",
-    "@farming-labs/next": "^0.2.118",
-    "@farming-labs/theme": "^0.2.118",
+    "@farming-labs/docs": "0.2.142",
+    "@farming-labs/next": "^0.2.142",
+    "@farming-labs/theme": "^0.2.142",
     "@prisma/client": "^6.19.2",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
-    "@tailwindcss/postcss": "4.1.18",
+    "@tailwindcss/postcss": "4.3.3",
     "@types/mdx": "2.0.13",
     "clsx": "^2.1.1",
     "lucide-react": "^1.0.1",
@@ -28,7 +28,7 @@
     "react-dom": "^19.2.0",
     "simple-icons": "^16.13.0",
     "tailwind-merge": "^3.5.0",
-    "tailwindcss": "4.1.18",
+    "tailwindcss": "4.3.3",
     "three": "^0.183.2"
   },
   "devDependencies": {
