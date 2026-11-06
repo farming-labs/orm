@@ -178,7 +178,8 @@ a.docs-sidebar-credit-link {
   text-transform: uppercase !important;
 }
 
-.peer {
+.peer,
+:where(#nd-page :is(h1, h2, h3, h4, h5, h6)) > a[data-card] {
   font-family: var(--app-font-mono), ui-monospace, SFMono-Regular, Menlo, monospace !important;
   font-size: 14px !important;
   font-weight: 180 !important;
@@ -191,6 +192,11 @@ a.docs-sidebar-credit-link {
   text-decoration-skip-ink: none !important;
   text-decoration-skip: none !important;
   transition: text-decoration 0.25s ease-out !important;
+}
+
+/* Keep heading rows at their existing height with the new anchor copy control. */
+#nd-page :is(h2, h3, h4, h5, h6) > button {
+  padding: 0;
 }
 
 .fd-page-action-btn,
